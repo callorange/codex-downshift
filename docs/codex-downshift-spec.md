@@ -265,20 +265,32 @@ Codex의 기본 Multi-Agent 기능으로 Luna를 동적으로 생성한다.
 
 ---
 
-## 7. Luna 동적 생성
+## 7. Luna 동적 생성 및 Downshift Spawn Contract
 
 별도의 custom worker agent를 미리 정의하지 않는다.
 
-부모 모델이 위임 시점에 Codex의 native subagent 기능을 사용한다.
-
-개념적으로 다음 정보를 동적으로 지정한다.
+부모 모델이 위임 시점에 Codex의 native subagent 기능을 사용하며, 모델 상속을 방지하기 위해 다음 매개변수를 반드시 명시한다.
 
 ```text
-model = Luna
-reasoning_effort = 현재 task에 적절한 수준
-fork_turns = none 또는 가능한 최소 context
-message = self-contained task capsule
+spawn_agent(
+    model = "gpt-5.6-luna",          # [필수] 부모 모델 상속 방지
+    fork_turns = "none",             # [필수] 부모 대화 기록 제외, fresh child 생성
+    reasoning_effort = "low"|"medium"|"high", # [필수] 작업 난이도에 따른 지정
+    task_name = "<task_name>",       # [권장] 명확한 작업 식별자
+    message = "<Self-Contained Task Capsule>"
+)
 ```
+
+### 7.1 Fallback Invariant (불변 규칙)
+
+`gpt-5.6-luna` child 생성이 지원되지 않거나 호출 실패 시:
+- Terra 또는 Sol child로 fallback하지 않는다.
+- 다른 subagent로 자동 escalation하지 않는다.
+- 현재 부모 모델(Sol/Terra)이 해당 작업을 직접 계속 수행한다.
+
+### 7.2 Parent 중복 작업 방지
+
+Luna가 작업을 성공적으로 완료하면 부모 모델은 위험도에 비례한 최소 Acceptance 확인만 수행하며, 동일 테스트 반복이나 코드 재작성을 하지 않는다.
 
 ### Reasoning effort
 
@@ -704,21 +716,26 @@ codex-downshift/
 
 ---
 
-## 22. 설치 방향
+## 22. 설치 방향 및 경로 격리 정책
 
-MVP에서는 복잡한 설치 스크립트를 만들지 않는다.
+MVP에서는 복잡한 설치 스크립트를 만들지 않으며, 표준 Agent Skills CLI 및 수동 설치 경로를 지원한다.
 
-표준 Agent Skills 설치 방식을 우선 고려한다.
-
-예시:
+### 표준 CLI 설치
 
 ```bash
+# 글로벌 Codex 스킬로 설치
 npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex --global
+
+# 또는 프로젝트 로컬 스킬로 설치
+npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex
 ```
 
-Codex 전용 global 설치 경로 문제나 `npx skills`의 현재 동작 차이가 있다면 README에 명확히 안내한다.
+### 수동 설치 경로 정책
 
-수동 설치 방법도 함께 제공한다.
+- **글로벌 스킬 경로**: `~/.codex/skills/codex-downshift/` (또는 `$HOME/.codex/skills/codex-downshift/`)
+  > 타 에이전트(Claude Code, Antigravity 등)가 전역 `$HOME/.agents/skills/`를 탐색하여 Codex 전용 스킬을 오인식하는 문제를 방지하기 위해 Codex 전용 디렉터리로 격리한다.
+- **프로젝트 로컬 경로**: `<project-root>/.agents/skills/codex-downshift/`
+  > 프로젝트 내 설치는 해당 저장소 작업이 Codex로 진행됨을 전제하므로 표준 경로를 유지한다.
 
 ---
 
