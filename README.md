@@ -32,7 +32,7 @@ codex-downshift는 OpenAI Codex에서 **Sol** 또는 **Terra**를 주력(부모)
 
 ## 📦 프로젝트 구조
 
-`	ext
+```text
 codex-downshift/
 ├── .gitignore
 ├── README.md
