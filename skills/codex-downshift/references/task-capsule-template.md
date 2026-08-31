@@ -40,15 +40,18 @@ Acceptance criteria:
 - [ ] [완료 조건 2]
 
 Validation:
-[실행할 정량 검증 명령어 (예: pytest tests/test_foo.py && ruff check foo.py)]
+[실행할 정량 검증 명령어 (예: pytest tests/test_foo.py && ruff check foo.py) - 필요한 최소한만 지정]
+
+Recovery policy:
+If validation fails due to your own minor implementation error, you may attempt at most ONE recovery. If it still fails, return failure details immediately.
 
 Escalation condition:
-If the task requires a new semantic, behavioral, architectural,
-or scope decision, stop immediately and return NEEDS_PARENT_DECISION.
+- If new semantic/behavioral/architectural judgment is needed: return NEEDS_PARENT_DECISION.
+- If external side-effects (git push, deploy, secrets, elevated actions) are needed: return NEEDS_PARENT_ACTION.
 
 Worker constraints:
 - Do not spawn or delegate to other agents.
 - Do not invoke another model.
-- Do not broaden the task.
+- Do not perform external side-effects or destructive operations.
 - Stop when the acceptance criteria are satisfied.
 ```

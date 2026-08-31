@@ -15,9 +15,11 @@
 | **5** | 주력 모델로 단독 실행 중 | **Luna** | ❌ **비활성화 (No-op)** | child 생성 없이 Luna가 직접 처리 |
 | **6** | 계획 / 브레인스토밍 요청 | **Sol/Terra** | ❌ **비활성화 (No-op)** | child 생성 없이 부모가 직접 설계·답변 |
 | **7** | 원인 불명의 복잡한 디버깅 | **Sol/Terra** | ❌ **비활성화 (No-op)** | child 생성 없이 부모가 원인 규명 및 해결 |
-| **8** | 새 설계 판단 직면 | **Luna Worker**| 🛑 **에스컬레이션** | `NEEDS_PARENT_DECISION` 반환 후 부모가 판단 |
-| **9** | Luna spawn 실패 / 미지원 | **Sol/Terra** | 🛡️ **Fail-Closed Fallback** | 상위 모델 child 생성/재시도 없이 부모가 직접 수행 |
-| **10**| Luna 작업 완료 후 | **Sol/Terra** | 🔄 **최소 Acceptance** | 전체 재작업/동일테스트 반복 없이 결과만 확인 |
+| **8** | 새 설계 판단 직면 | **Luna Worker**| 🛑 **의미적 에스컬레이션** | `NEEDS_PARENT_DECISION` 반환 후 부모가 판단 |
+| **9** | 외부 부수효과 / 승인 필요 작업 | **Luna Worker**| 🛑 **부수효과 에스컬레이션** | `NEEDS_PARENT_ACTION` 반환 후 부모가 실행 |
+| **10**| Validation 실패 시 1회 초과 | **Luna Worker**| 🛑 **복구 한도 도달 반환** | 1회 recovery 후에도 실패 시 즉시 부모에게 원인 보고 |
+| **11**| Luna spawn 실패 / 미지원 | **Sol/Terra** | 🛡️ **Fail-Closed Fallback** | 상위 모델 child 생성/재시도 없이 부모가 직접 수행 |
+| **12**| Luna 작업 완료 후 | **Sol/Terra** | 🔄 **최소 Acceptance** | 전체 재작업/동일테스트 반복 없이 결과만 확인 |
 
 ---
 
@@ -50,8 +52,11 @@ Exact change:
 
 Preserve: Existing validator functions in src/validators/email.py.
 Validation: pytest tests/test_email_validator.py
-Escalation condition: If existing callers rely on validate_company_email returning False instead of raising ValueError, return NEEDS_PARENT_DECISION.
-Worker constraints: Leaf worker only. Do not spawn agents or invoke other models."""
+Recovery policy: If validation fails due to minor implementation error, attempt at most ONE recovery.
+Escalation condition:
+- If callers expect False return: return NEEDS_PARENT_DECISION.
+- If external side-effects needed: return NEEDS_PARENT_ACTION.
+Worker constraints: Leaf worker only. Do not spawn agents or perform external side-effects."""
 )
 ```
 
@@ -90,6 +95,7 @@ Raises:
 
 Preserve: Function signature, implementation, and type hints.
 Validation: ruff check src/services/user_service.py
+Recovery policy: Max 1 recovery attempt.
 Escalation condition: If signature differs from above, return NEEDS_PARENT_DECISION.
 Worker constraints: Leaf worker only. Do not spawn agents."""
 )
@@ -160,7 +166,36 @@ Relevant:
 
 ---
 
-## 🧪 Scenario 9: Luna Spawn 실패 시 Fail-Closed Fallback (불변 규칙)
+## 🧪 Scenario 9: 외부 부수효과 / 승인 필요 작업 직면 시 (`NEEDS_PARENT_ACTION`)
+
+하위 워커(Luna)가 로컬 수정을 마쳤으나, 원격 저장소 푸시나 배포, 시크릿 설정 등 외부 부수효과가 필요한 경우의 반환 예시입니다:
+
+```text
+NEEDS_PARENT_ACTION
+
+Action required:
+Git push to remote branch `origin/feature-auth` and trigger staging deploy.
+
+Why needed:
+Local changes and test validations are complete, but remote sync requires elevated network/repository permissions.
+
+Task completed so far:
+- Implemented `validate_company_email` in `src/validators/email.py`.
+- Verified 3 unit test cases passing in `tests/test_email_validator.py`.
+```
+
+---
+
+## 🧪 Scenario 10: Validation 실패 시 최대 1회 복구 후 반환 (Recovery Limit)
+
+- **상황**: Luna가 코드 수정 후 테스트를 실행했으나, 사소한 typo로 인해 1차 실패 ➔ 1회 복구 수정 후에도 외부 모듈 의존성 에러로 2차 실패함.
+- **올바른 동작**:
+  - 무한 루프를 돌며 계속 재시도하지 않고, **즉시 실행을 멈추고 실패 상태와 에러 로그를 부모에게 반환**.
+  - 부모 모델(Sol/Terra)이 실패 원인을 분석하여 새 지침을 내리거나 직접 마무리합니다.
+
+---
+
+## 🧪 Scenario 11: Luna Spawn 실패 시 Fail-Closed Fallback (불변 규칙)
 
 - **상황**: 계정 권한 또는 런타임 제약으로 `spawn_agent(model="gpt-5.6-luna")` 호출이 실패함.
 - **동작**:
@@ -172,7 +207,7 @@ Relevant:
 
 ---
 
-## 🧪 Scenario 10: Parent의 효율적인 결과 확인 (중복 작업 방지)
+## 🧪 Scenario 12: Parent의 효율적인 결과 확인 (중복 작업 방지)
 
 - **상황**: Luna가 테스트를 성공적으로 통과시키고 코드 수정을 마쳤다고 보고함.
 - **부모 모델의 올바른 동작 (Good)**:
@@ -181,5 +216,6 @@ Relevant:
 - **피해야 할 안티패턴 (Bad)**:
   - Luna가 이미 통과한 단위 테스트를 부모가 똑같이 다시 실행함.
   - 변경된 로직을 부모가 처음부터 다시 코딩하여 덮어씀.
+
 
 

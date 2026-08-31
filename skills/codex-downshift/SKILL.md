@@ -48,16 +48,36 @@ flowchart TD
 
 ---
 
-## ⚖️ 3. 위임 적격성 판별 (Eligibility Checklist)
+## ⚖️ 3. 위임 적격성 판별 (Eligibility & Safety Signals)
 
 부모 모델은 하위 워커를 생성하기 전에 반드시 다음 **핵심 질문**을 스스로에게 던져야 합니다:
 
 > **"하위 워커가 이 작업을 수행하기 위해, 내가 이미 완료한 중요한 추론을 다시 해야 하는가?"**
 
 - **YES (다시 추론해야 함)** ➔ 부모가 판단을 끝내고 Task Capsule에 구체적 결정을 담거나, 부모가 직접 수행합니다.
-- **NO (기계적 실행 가능)** ➔ 아래 체크리스트를 확인하고 다운시프트합니다.
+- **NO (기계적 실행 가능)** ➔ 아래 **8대 기본 필수 요건**과 **3대 안전성 보조 신호(Safety Signals)**를 확인하고 다운시프트합니다.
 
-### ✅ 위임 가능한 작업 (Good Candidates)
+### 📋 8대 기본 필수 요건 (Baseline Requirements)
+위임 후보가 되려면 다음 조건을 만족해야 합니다:
+1. **수정 목적 명확성**: 무엇을 왜 바꾸는지 명확히 정의되어 있음
+2. **대상 특정 가능성**: 대상 파일, 클래스, 함수, 심볼을 충분히 특정할 수 있음
+3. **기대 동작 확정**: 구체적인 기대 동작과 입출력이 이미 결정되어 있음
+4. **구현 결정 완료**: 중요한 설계 및 알고리즘 결정이 부모 모델에서 끝남
+5. **선택지 배제**: 다른 합리적인 구현 대안 중 하나를 Luna가 스스로 고민하고 선택할 필요가 없음
+6. **Acceptance Criteria 완비**: 작업 완료를 객관적으로 판별할 기준이 명확함
+7. **결정적 검증 수단**: 테스트, 린트, 타입체크 등 결과를 검증할 명확한 방법이 있음
+8. **제한적 실패 영향**: 실패하더라도 범위가 국소적이고 부모가 결과를 쉽게 검토·롤백할 수 있음
+
+### 🛡️ 3대 안전성 보조 신호 (Safety Signals Checklist)
+*(숫자 스코어 엔진을 사용하지 않으며, 정성적 판단 체크리스트로 확인합니다)*
+
+| 안전 신호 | ✅ Luna 다운시프트 적격 (Good) | ⛔ 부모 직접 수행 (Parent Direct) |
+| :--- | :--- | :--- |
+| **Coupling (결합도)** | • 수정 범위가 국소적임<br>• 영향 범위를 명확하게 특정 가능<br>• 타 컴포넌트까지 판단할 필요 없음 | • 여러 서브시스템에 강하게 결합됨<br>• 변경 영향 범위를 확신하기 어려움<br>• 타 인터페이스/데이터 흐름 추가 판단 필요 |
+| **Verification (검증성)** | • 특정 테스트, lint, typecheck로 결정적 검증 가능<br>• 명확한 Acceptance Criteria 존재 | • 검증 방법이 모호함<br>• 결과 판단이 주관적임 |
+| **Consequence (영향도)** | • 실패 영향이 국소적이고 제한적임<br>• 변경을 쉽게 되돌릴 수 있음 (가역적)<br>• 부모가 결과를 즉시 검토 가능 | • 보안, 권한, 데이터 손실 위험<br>• 호환성 파괴, migration, 외부 공개 API<br>• 운영 환경 변경 등 Blast Radius가 큼 |
+
+### ✅ 위임 가능한 작업 예시 (Good Candidates)
 - 명확한 대체 텍스트가 정해진 Docstring, 주석, 문서 수정
 - 부모가 이미 알고리즘과 로직을 결정한 구체적 코드 작성
 - 구체적인 Acceptance Criteria 기반의 테스트 코드 작성 및 실행
@@ -110,26 +130,30 @@ spawn_agent(
 
 ---
 
-## 🔄 6. Parent의 중복 작업 방지 (No Redundant Re-execution)
+## 🔄 6. Parent의 중복 작업 방지 및 Lifecycle 종료 확인
 
-Luna가 성공적으로 작업과 Validation을 완료한 뒤, 부모 모델이 Luna의 작업을 처음부터 다시 수행하거나 동일한 분석/테스트를 반복하지 않습니다.
+Luna가 성공적으로 작업과 Validation을 완료한 뒤, 부모 모델은 다음 규칙을 준수합니다:
 
-- **부모 모델의 역할**:
-  1. Luna가 반환한 결과와 변경 파일/범위 확인
-  2. 위험도에 비례한 최소 Acceptance 확인만 수행
-  3. 불필요한 전체 코드 재탐색, 동일 단위 테스트 반복, 동일 추론 재수행을 피함
-- 단, 안전이나 정합성을 위해 실질적으로 추가 상위 통합 검증이 필요한 경우에만 제한적으로 수행합니다.
+1. **중복 작업 방지 (No Redundant Re-execution)**:
+   - Luna가 반환한 결과와 변경 파일/범위 확인
+   - 위험도에 비례한 최소 Acceptance 확인만 수행
+   - 불필요한 전체 코드 재탐색, 동일 단위 테스트 반복, 동일 추론 재수행을 피함
+2. **Child Lifecycle 종료 확인 (Lifecycle Termination)**:
+   - 부모 모델이 사용자에게 최종 완료를 응답하기 전, 이번 요청에서 생성된 Luna worker가 terminal state에 도달했는지 확인합니다.
+   - 완료된 worker를 이유 없이 다시 사용하지 않으며, 더 이상 필요하지 않은 worker가 불필요하게 계속 실행되지 않도록 합니다. (별도 런타임 없이 프롬프트 지침 수준으로 관리)
 
 ---
 
-## 📝 7. Minimal Self-Contained Task Capsule & 토큰 효율화
+## 📝 7. Minimal Self-Contained Task Capsule & Validation Budget
 
 부모 모델은 하위 워커에게 불필요하게 긴 Chain-of-Thought나 전체 대화를 넘기지 않고, Luna가 작업을 완수하는 데 필요한 **최소한의 결정 사항과 실행 컨텍스트(Minimal Self-Contained Context)**만 전달합니다.
 
-- **토큰 효율 원칙**:
-  - 목표는 "완전한 reasoning 전달"이 아니라 "Luna가 중요한 판단을 다시 하지 않아도 되는 최소한의 self-contained context"입니다.
-  - `Exact change`: 이미 정확한 코드/문자열이 결정되어 있을 때 적극 사용합니다.
-  - `Acceptance criteria`: 규칙과 기준만으로 충분하다면 부모가 전체 코드를 프롬프트에 불필요하게 중복 작성하지 않습니다.
+### ⏱️ Validation Budget & Recovery Limit (최대 1회 복구)
+- **Validation Budget**: Acceptance criteria를 입증하는 데 필요한 최소한의 검증만 수행하며, 동일 목적의 테스트/린트를 이유 없이 반복하지 않습니다.
+- **Recovery Limit (Max 1 Attempt)**: 
+  - Validation 실패가 Luna 자신의 bounded 구현 실수이고 수정 방법이 명확한 경우에 한해 **최대 1회의 recovery attempt만 허용**합니다.
+  - 1회 복구 후에도 실패하면 무한 루프를 돌지 않고 즉시 현재 상태와 실패 원인을 부모에게 반환합니다.
+  - 새로운 의미적/아키텍처 판단이 필요한 경우에는 recovery를 시도하지 않고 즉시 `NEEDS_PARENT_DECISION`을 반환합니다.
 
 ### Task Capsule 기본 템플릿
 ```text
@@ -158,25 +182,29 @@ Acceptance criteria:
 <작업 완료를 판단하는 객관적 기준>
 
 Validation:
-<실행할 테스트 / 린트 / 타입체크 명령>
+<실행할 테스트 / 린트 / 타입체크 명령 (필요한 최소한만)>
+
+Recovery policy:
+If validation fails due to your own minor implementation error, you may attempt at most ONE recovery. If it still fails, return failure details immediately.
 
 Escalation condition:
-If the task requires a new semantic, behavioral, architectural,
-or scope decision, stop immediately and return NEEDS_PARENT_DECISION.
+- If new semantic/behavioral/architectural judgment is needed: return NEEDS_PARENT_DECISION.
+- If external side-effects (git push, deploy, secrets, elevated actions) are needed: return NEEDS_PARENT_ACTION.
 
 Worker constraints:
 - Do not spawn or delegate to other agents.
 - Do not invoke another model.
-- Do not broaden the task.
-- Stop when the acceptance criteria are satisfied.
+- Do not perform external side-effects or destructive operations.
+- Stop when acceptance criteria are satisfied.
 ```
 
 ---
 
-## 🛑 8. Leaf Worker 정책 제약 & 에스컬레이션 규약
+## 🛑 8. Leaf Worker 제약 & 2대 에스컬레이션 프로토콜
 
-하위 워커(Luna)가 실행 도중 예상치 못한 모호성이나 새로운 설계 결정을 마주하면 스스로 범위를 넓히지 않고 즉시 중단한 뒤 다음 형식으로 부모에게 반환합니다:
+하위 워커(Luna)는 bounded implementation worker이므로, 다음 2가지 상황에서 독단적으로 진행하지 않고 즉시 부모에게 작업을 반환합니다:
 
+### 1) 새로운 설계/의미적 판단 직면 시 (`NEEDS_PARENT_DECISION`)
 ```text
 NEEDS_PARENT_DECISION
 
@@ -190,7 +218,20 @@ Relevant:
 <관련 파일 / 클래스 / 함수 / 심볼>
 ```
 
-부모 모델은 이 보고를 받아 필요한 판단을 내린 후, 새로운 지침을 주거나 직접 마무리합니다.
+### 2) 외부 부수효과 / 승인 필요 작업 직면 시 (`NEEDS_PARENT_ACTION`)
+Luna는 `git push`, remote branch 변경, merge, deploy, publish, release, 외부 메시지 전송, production 변경, secret/credential 작업, destructive/elevated 작업을 직접 수행할 수 없습니다.
+```text
+NEEDS_PARENT_ACTION
+
+Action required:
+<필요한 외부 부수효과 또는 승인 작업>
+
+Why needed:
+<해당 작업이 필요한 이유>
+
+Task completed so far:
+<현재까지 완료된 로컬 파일 수정 및 검증 내용>
+```
 
 ---
 
@@ -201,6 +242,9 @@ Relevant:
 | 에이전트의 핑계 (Excuse) | 현실 및 불변 규칙 (Reality) |
 | :--- | :--- |
 | *"작업이 조금 단순해 보이니 부모가 계속하는 게 더 빠르지 않나요?"* | 단순 '부모 속도(Latency)'를 이유로 non-trivial 작업을 부모가 수행해서는 안 됩니다. **Latency보다 Parent Usage 절감이 우선**입니다. (단, 단일 trivial atomic action 단독 제외) |
+| *"결합도가 높지만 Luna reasoning을 high로 주면 알아서 잘 고치겠죠?"* | 다중 서브시스템 결합이나 Blast Radius가 큰 작업은 reasoning과 무관하게 **부모가 직접 수행**해야 합니다. |
+| *"테스트가 계속 실패하니 고칠 때까지 4~5번 반복 수정해볼게요"* | 토큰 낭비 방지를 위해 **최대 1회 복구(Recovery)**만 허용되며, 미해결 시 즉시 부모에게 반환해야 합니다. |
+| *"Luna가 원격 배포나 git push까지 완료하면 편리하지 않을까요?"* | Luna는 로컬 bounded worker이므로 외부 부수효과는 반드시 **`NEEDS_PARENT_ACTION`**으로 에스컬레이션해야 합니다. |
 | *"model 파라미터를 생략해도 기본 모델로 잘 돌겠지"* | `model`을 생략하면 고비용 부모 모델(Sol/Terra)이 상속되어 위임이 무효화됩니다. 반드시 `gpt-5.6-luna`를 명시해야 합니다. |
 | *"Luna spawn이 실패했으니 Terra child로 다시 시도해볼게요"* | 실패 시 상위 모델 child를 호출하는 것은 비용을 늘리므로 Fail-Closed(부모 직접 수행)해야 합니다. |
 | *"Luna가 코드를 잘 짰는지 확인하기 위해 처음부터 다시 작성해볼게요"* | Luna가 Validation을 통과했다면 변경 범위와 Acceptance 확인만 수행해야 중복 비용이 없습니다. |
@@ -215,9 +259,12 @@ Relevant:
 - ❌ `spawn_agent` 호출 시 `model`, `fork_turns`, `reasoning_effort` 매개변수가 누락됨
 - ❌ Sol 부모에서 Sol 자식 또는 Terra 부모에서 Terra 자식이 생성됨 (모델 상속 실패)
 - ❌ 부모의 전체 Chain-of-Thought나 장황한 대화 내역이 Task Capsule에 복사됨
+- ❌ 보안, 권한, 마이그레이션 등 Blast Radius가 큰 작업이 Luna에 위임됨
+- ❌ Luna가 2회 이상 반복적으로 테스트 실패를 수정하며 루프를 돎 (Recovery 1회 제한 위반)
+- ❌ Luna 워커가 `git push`, deploy, secret 등 외부 부수효과 작업을 직접 실행함
+- ❌ Luna 워커가 또 다른 child agent를 생성하거나 상위 모델을 호출함
 - ❌ Luna spawn 실패 후 다른 subagent를 호출하거나 재시도함
 - ❌ Luna가 완료한 단위 테스트나 구현을 부모가 동일하게 처음부터 다시 코딩함
-- ❌ Luna 워커가 또 다른 child agent를 생성하거나 상위 모델을 호출함
 - ❌ 작은 한 줄 수정마다 별도의 Luna child를 여러 번 연속 생성함 (과도한 파편화)
 
 ---
@@ -229,37 +276,21 @@ Relevant:
 - **기본값**: `medium`
 
 ### 선택 기준
-1. **Low**:
-   - 정확한 문자열 또는 코드 교체
-   - 매우 기계적인 반복 수정
-   - 판단이 전혀 필요하지 않은 작은 bounded task
-2. **Medium (기본값)**:
-   - 일반적인 명확한 구현 작업
-   - 명확하게 정의된 테스트 작성 + 구현
-   - 제한된 범위의 코드 탐색이 필요한 작업
-3. **High**:
-   - 범위와 동작은 이미 확정되어 있음
-   - 여러 파일을 수정해야 하거나 비교적 많은 로컬 코드 탐색이 필요함
-   - 그러나 새로운 semantic / behavioral / architectural 판단은 필요하지 않음
+1. **Low**: 정확한 문자열 또는 코드 교체, 매우 기계적인 반복 수정, 판단이 전혀 필요하지 않은 작은 bounded task
+2. **Medium (기본값)**: 일반적인 명확한 구현 작업, 명확하게 정의된 테스트 작성 + 구현, 제한된 범위의 코드 탐색
+3. **High**: 범위와 동작은 이미 확정되어 있고 여러 파일 수정 또는 로컬 코드 탐색이 필요하지만 새로운 의미적/아키텍처 판단은 불필요한 작업
 
 ### ⚠️ 주의 규칙 (Caution)
 - 자동으로 `xhigh` 또는 `max`를 사용하지 않습니다.
-- High보다 더 강한 reasoning이 필요해 보이는 경우 reasoning effort를 계속 올리지 말고 **해당 작업이 정말 downshift 대상인지 다시 판단**합니다.
-- 중요한 판단이 남아 있다면 Luna에 위임하지 않고 현재 부모 모델이 직접 수행합니다.
+- High보다 더 강한 reasoning이 필요해 보이는 경우 reasoning effort를 계속 올리지 말고 **해당 작업이 정말 downshift 대상인지 다시 판단**합니다. (중요 판단이 남아 있다면 부모 모델 직접 수행)
 
 ---
 
 ## 📦 12. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
-Sol/Terra의 사용량 절감이 본 스킬의 핵심 목적이므로, 명확하고 판단이 끝난 **non-trivial execution task는 적극적으로 Luna에 위임**합니다. 단, 위임 자체가 불필요한 비용을 발생시키는 극단적 오버헤드는 다음과 같이 방지합니다:
-
-1. **배치 위임 원칙 (Batching)**:
-   - 서로 관련된 여러 개의 작고 명확한 작업은 가능한 한 **하나의 bounded task로 묶어서 Luna에 위임**합니다.
-   - 작은 작업 여러 개를 각각 별도의 Luna child로 연속 spawn하지 않습니다.
-2. **단일 Trivial Atomic Action 예외**:
-   - 한 줄 수정, 단일 literal 교체 등 독립적인 trivial atomic action 하나만 존재하고, Task Capsule 작성 + spawn + 결과 확인 비용이 직접 수행보다 명백히 큰 경우에는 부모가 직접 수행할 수 있습니다.
-3. **우선순위 불변 원칙**:
-   - 단순히 "부모가 더 빠르다(Latency)"는 이유만으로 명확한 non-trivial 작업을 부모가 계속 수행해서는 안 됩니다. **Latency보다 Parent Usage 절감이 우선**입니다.
+1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 가능한 한 **하나의 bounded task로 묶어서 Luna에 위임**합니다.
+2. **단일 Trivial Atomic Action 예외**: 한 줄 수정, 단일 literal 교체 등 독립적인 trivial atomic action 하나만 존재하고, Task Capsule 작성 + spawn + 결과 확인 비용이 직접 수행보다 명백히 큰 경우에는 부모가 직접 수행할 수 있습니다.
+3. **우선순위 불변 원칙**: 단순 Latency보다 **Parent Usage 절감이 우선**입니다.
 
 ### ❌ 나쁜 패턴 (과도한 파편화)
 ```text
@@ -278,8 +309,21 @@ Sol/Terra의 사용량 절감이 본 스킬의 핵심 목적이므로, 명확하
 
 ---
 
+## 📢 13. Downshift Notice (선택적 한 줄 알림)
+
+실사용 초기에 부모 모델이 실제로 Luna를 spawn하는지 사용자가 인지할 수 있도록, **실제 `spawn_agent`가 호출되는 경우에만** 간결한 한 줄 알림을 출력할 수 있습니다:
+
+```text
+Codex Downshift | Luna / medium | <task_name>
+```
+
+- **표시 조건**: 실제 Luna child가 생성될 때만 1회 출력.
+- **제약**: 한 줄을 넘지 않으며, 긴 reasoning이나 라우팅 설명은 일절 출력하지 않음. 단순 추천이나 No-op 시에는 출력하지 않음.
+
+---
+
 ## 📚 참조 문서
-- [위임 모범 사례 및 안티패턴 (10대 실전 시나리오)](references/delegation-examples.md)
+- [위임 모범 사례 및 안티패턴 (12대 실전 시나리오)](references/delegation-examples.md)
 - [Task Capsule 표준 서식](references/task-capsule-template.md)
 
 

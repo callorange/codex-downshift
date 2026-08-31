@@ -1,6 +1,6 @@
 # codex-downshift — Project Specification
 
-> Status: Implementation completed (v0.1.2) / Runtime verification in progress  
+> Status: Implementation completed (v0.1.3) / Runtime verification in progress  
 > Target: OpenAI Codex  
 > Artifact purpose: Antigravity 등 코딩 에이전트가 이 문서를 기반으로 프로젝트를 생성·구현할 수 있도록 하는 구현 명세
 
@@ -303,9 +303,15 @@ Luna가 작업을 성공적으로 완료하면 부모 모델은 위험도에 비
 
 ---
 
-## 8. Delegation 가능 조건
+## 8. Delegation 가능 조건 및 3대 안전성 신호 (Safety Signals)
 
-Luna에 위임하려면 다음 조건을 대부분 만족해야 한다.
+Luna에 위임하려면 다음 **기본 필수 요건**을 만족해야 하며, 보조적으로 **3대 안전성 신호 체크리스트**를 확인한다. (숫자 기반 score engine은 사용하지 않음)
+
+### 8.1 핵심 판별 질문 및 필수 전제조건 (Baseline Requirements)
+
+> **"Luna가 이 작업을 수행하려면 내가 이미 완료한 중요한 reasoning을 다시 해야 하는가?"**
+
+위임 후보가 되려면 다음 조건을 대부분 만족해야 한다:
 
 - 수정 목적이 명확하다.
 - 대상 파일 또는 심볼을 충분히 특정할 수 있다.
@@ -315,6 +321,18 @@ Luna에 위임하려면 다음 조건을 대부분 만족해야 한다.
 - acceptance criteria가 명확하다.
 - 결과를 검증할 방법이 있다.
 - 실패해도 범위가 제한적이고 부모가 결과를 검토할 수 있다.
+
+### 8.2 3대 안전성 보조 신호 (Safety Signals Checklist)
+
+1. **Coupling (결합도)**:
+   - **Luna 적합**: 수정 범위가 국소적이고, 영향 범위를 명확하게 특정할 수 있으며, 타 컴포넌트까지 판단할 필요가 없음.
+   - **Parent 직접**: 여러 서브시스템에 강하게 결합되어 있거나 변경 영향 범위를 확신하기 어려워 추가 판단이 필요한 경우.
+2. **Verification (검증 가능성)**:
+   - **Luna 적합**: 특정 테스트, lint, typecheck, deterministic command 등으로 결과를 결정적으로 검증 가능.
+   - **Parent 직접**: 검증 방법이 모호하거나 결과 판단이 주관적인 경우.
+3. **Consequence (실패 영향도 / Blast Radius)**:
+   - **Luna 적합**: 실패 영향이 제한적이고, 변경을 쉽게 되돌릴 수 있으며(가역적), 부모가 결과를 즉시 검토 가능.
+   - **Parent 직접**: 보안, 권한, 데이터 손실, 호환성 파괴, 마이그레이션, 외부 공개 API, 운영 환경 등 실패 비용이 큰 작업.
 
 ---
 
@@ -403,7 +421,7 @@ return NEEDS_PARENT_DECISION.
 
 ---
 
-## 12. Task Capsule 형식
+## 12. Task Capsule 형식 및 Validation Budget / Recovery Limit
 
 Luna에게 넘기는 prompt는 가능한 경우 다음 구조를 사용한다.
 
@@ -433,22 +451,34 @@ Acceptance criteria:
 <완료 조건>
 
 Validation:
-<실행할 테스트 / lint / typecheck / 명령>
+<실행할 테스트 / lint / typecheck / 명령 (필요한 최소한만)>
+
+Recovery policy:
+If validation fails due to your own minor implementation error, you may attempt at most ONE recovery. If it still fails, return failure details immediately.
 
 Escalation condition:
-If the task requires a new semantic, behavioral, architectural,
-or scope decision, stop and return NEEDS_PARENT_DECISION.
+- If new semantic/behavioral/architectural judgment is needed: return NEEDS_PARENT_DECISION.
+- If external side-effects (git push, deploy, secrets, elevated actions) are needed: return NEEDS_PARENT_ACTION.
 
 Worker constraints:
 - Do not spawn or delegate to other agents.
 - Do not invoke a more capable model.
-- Do not broaden the task.
+- Do not perform external side-effects or destructive operations.
 - Stop when the acceptance criteria are satisfied.
 ```
 
 모든 항목을 매번 억지로 채울 필요는 없다.
 
 중요한 것은 **부모의 전체 CoT나 긴 대화를 넘기는 것이 아니라, Luna가 부모의 reasoning을 다시 재구성하지 않아도 되는 최소한의 완결된(Minimal Self-Contained) 지침**을 만드는 것이다.
+
+### 12.1 Validation Budget & 최대 1회 Recovery 규칙
+- Acceptance criteria를 입증하는 데 필요한 최소한의 validation만 수행한다.
+- Validation 실패가 Luna 자신의 bounded 구현 실수이고 수정 방법이 명확한 경우에 한해 **최대 1회의 recovery attempt만 허용**한다.
+- 1회 복구 후에도 실패하면 계속 반복하지 않고 현재 상태와 실패 원인을 부모에게 반환한다.
+- 새로운 의미적/아키텍처 판단이 필요한 경우에는 recovery를 시도하지 않고 즉시 `NEEDS_PARENT_DECISION`을 반환한다.
+
+### 12.2 External Side Effect 및 Permission Boundary
+Luna worker는 `git push`, remote branch 변경, merge, deploy, publish, release, 외부 메시지 전송, production 변경, secret 작업 등 외부 부수효과 작업을 직접 수행할 수 없다. 이러한 작업이 필요하면 직접 수행하지 않고 `NEEDS_PARENT_ACTION`으로 부모에게 반환한다.
 
 ---
 
@@ -650,10 +680,10 @@ MVP 성공 여부는 기능 수가 아니라 실제 Codex 사용량 절감으로
 - [x] Luna reasoning effort 동적 선택 정책 작성 (기본값 medium, low/medium/high, xhigh/max 금지)
 - [x] Luna를 leaf worker로 강제하는 prompt 작성 (Policy Constraint)
 - [x] `NEEDS_PARENT_DECISION` 반환 규칙 작성
-- [x] 10대 핵심 실전 시나리오 및 검증 매트릭스 작성 (`delegation-examples.md`)
-- [x] superpowers 표준 합리화 방지 테이블 및 Red Flags 목록 내장
+- [x] 12대 핵심 실전 시나리오 및 검증 매트릭스 작성 (`delegation-examples.md`)
+- [x] superpowers 표준 8대 합리화 방지 테이블 및 10대 Red Flags 목록 내장
 - [x] Fail-Closed Fallback Invariant 작성 (부모 직접 수행)
-- [x] 설치/사용 README 작성 (글로벌 `~/.codex/skills/` 격리 정책 포함)
+- [x] 설치/사용/업데이트 README 작성 (글로벌 `~/.codex/skills/` 격리 정책 포함)
 - [x] superpowers TDD for Skills 기반 검증 완료 (ALL PASS)
 - [ ] 실제 Codex 환경에서 Sol → Luna 동작 실사용 검증
 - [ ] 실제 Codex 환경에서 Terra → Luna 동작 실사용 검증
@@ -666,6 +696,9 @@ MVP 성공 여부는 기능 수가 아니라 실제 Codex 사용량 절감으로
 - [x] Task Capsule 규칙 개선 (Minimal Self-Contained Context)
 - [x] Luna reasoning effort 선택 정책 개선 (Medium 기본값 및 상한 설정)
 - [x] 위임 Granularity 개선 (Trivial Action 예외 및 Bounded Batching)
+- [x] 8대 기본 필수 요건 및 3대 안전성 보조 신호(Coupling, Verification, Consequence) 체계 구축
+- [x] Validation Budget & 최대 1회 Recovery Limit 및 NEEDS_PARENT_ACTION 프로토콜 구현
+- [x] Acknowledgements 섹션 수록 (`codex-auto-model-router` 독립 영감 출처 명시)
 - [ ] Superpowers 상호작용 심화 개선
 - [ ] Codex 버전별 compatibility 안내
 - [ ] 표준 Skill installer 배포 개선
@@ -714,19 +747,25 @@ codex-downshift/
 
 ---
 
-## 22. 설치 방향 및 경로 격리 정책
+## 22. 설치 및 업데이트 방향과 경로 격리 정책
 
-MVP에서는 복잡한 설치 스크립트를 만들지 않으며, 표준 Agent Skills CLI 및 수동 설치 경로를 지원한다.
+MVP에서는 복잡한 설치/업데이트 스크립트를 만들지 않으며, 표준 Agent Skills CLI 및 수동 설치 경로를 지원한다.
 
-### 표준 CLI 설치
+### 표준 CLI 설치 및 업데이트
 
 ```bash
 # 글로벌 Codex 스킬로 설치
 npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex --global
 
-# 또는 프로젝트 로컬 스킬로 설치
-npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex
+# 글로벌 codex-downshift 업데이트
+npx skills@latest update codex-downshift -g -y
+
+# 설치된 글로벌 스킬 전체 업데이트
+npx skills@latest update -g -y
 ```
+
+### Windows Fallback 안내
+Windows 환경이나 upstream CLI 이슈 발생 시 `skills add ... -y` 명령을 다시 실행하여 최신 소스로 안전하게 재설치/갱신할 수 있음을 안내한다.
 
 ### 수동 설치 경로 정책
 
@@ -755,7 +794,13 @@ Antigravity 또는 다른 코딩 에이전트가 구현할 때 다음 범위를 
 
 ---
 
-## 24. 한 문장 정의
+## 24. Acknowledgements (Inspiration)
+
+Parts of the delegation safety design and execution constraints were inspired by [codex-auto-model-router](https://github.com/orange-the-weak/codex-auto-model-router), particularly its bounded task delegation, task capsule structure, validation budget, and fail-safe execution concepts. `codex-downshift` was independently redesigned and implemented to serve as a lightweight, instruction-only skill focusing strictly on Parent-controlled downshifting.
+
+---
+
+## 25. 한 문장 정의
 
 > **Keep the user's Sol or Terra parent in control, and offload only fully specified execution work to Luna.**
 

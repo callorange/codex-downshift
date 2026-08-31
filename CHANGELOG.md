@@ -7,6 +7,22 @@
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-31
+
+### 추가 (Added)
+- `SKILL.md`: 위임 적격성을 보조하는 8대 기본 필수 요건(Baseline Requirements) 및 3대 안전성 신호(Coupling, Verification, Consequence) 정성적 체크리스트 추가.
+- `SKILL.md`: Validation Budget 및 Luna 자체 구현 실수 시 최대 1회 복구(Recovery Limit) 정책 명문화.
+- `SKILL.md` & `delegation-examples.md`: 외부 부수효과 및 승인 필요 작업(`git push`, `deploy`, `secret` 등) 발생 시 `NEEDS_PARENT_ACTION` 프로토콜 추가.
+- `SKILL.md`: Parent의 Child Lifecycle 종료 확인(Terminal State 검증 및 잔여 워커 중단) 규칙 추가.
+- `SKILL.md`: 실제 spawn 시에만 간결하게 출력하는 Downshift Notice(`Codex Downshift | Luna / medium | <task_name>`) 가이드라인 추가.
+- `delegation-examples.md`: 12대 핵심 실전 시나리오로 매트릭스 및 본문 확장 (Recovery Limit, `NEEDS_PARENT_ACTION` 추가).
+- `README.md`: `npx skills update` 업데이트 안내 및 Windows fallback 안내 추가.
+- `README.md` & `docs/`: `codex-auto-model-router`에 대한 독립적 영감 출처 및 Acknowledgements 섹션 추가.
+
+### 변경 (Changed)
+- `task-capsule-template.md`: Recovery policy 및 이원화된 에스컬레이션 프로토콜(`NEEDS_PARENT_DECISION`, `NEEDS_PARENT_ACTION`) 반영.
+- `README.md`: 문서 구조를 표준 순서(소개 ➔ 동작원리 ➔ 설치 ➔ 업데이트 ➔ 안전성 ➔ 예시 ➔ 문서 ➔ Acknowledgements ➔ License)로 최적화.
+
 ## [0.1.2] - 2026-08-31
 
 ### 추가 (Added)
