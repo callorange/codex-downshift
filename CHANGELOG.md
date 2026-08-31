@@ -11,15 +11,16 @@
 
 ### 추가 (Added)
 - `SKILL.md`: 실제 Codex Native Subagent 생성을 위한 Downshift Spawn Contract 명시 (`model = "gpt-5.6-luna"`, `fork_turns = "none"`, `reasoning_effort`, `task_name`).
-- `SKILL.md`: Luna spawn 실패 시 상위 모델로의 대체나 escalation 없이 부모 모델이 직접 수행하는 Fallback Invariant (불변 규칙) 추가.
+- `SKILL.md`: Luna spawn 실패 시 상위 모델로의 대체나 `model` 생략 child 재시도 없이 부모 모델이 직접 수행하는 Fail-Closed Fallback Invariant (불변 규칙) 추가.
 - `SKILL.md`: Luna 작업 완료 후 부모 모델의 중복 작업 및 동일 테스트 재실행 방지 지침 추가.
+- `SKILL.md`: `superpowers:writing-skills` 표준에 맞춘 **합리화 방지 테이블 (Rationalization Table)**, **Red Flags 위험 신호 목록**, **Decision Flowchart 다이어그램** 내장.
 - `references/delegation-examples.md`: 8대 핵심 검증 시나리오 매트릭스 및 실전 예시집 전면 보강.
 
 ### 변경 (Changed)
-- `SKILL.md`: YAML Frontmatter `description`을 암시적 호출 판단에 맞추어 Sol/Terra 대상 및 비활성 조건 명확화.
-- `task-capsule-template.md`: 부모 CoT/대화 제외 및 최소 컨텍스트 기반 토큰 효율 작성 원칙 반영.
+- `SKILL.md`: YAML Frontmatter `description`을 `superpowers` SDO(Skill Discovery Optimization) 표준에 맞추어 순수 트리거 조건(`Use when...`)에 집중하도록 정제.
+- `task-capsule-template.md`: 부모 CoT/대화 제외 및 최소 컨텍스트 기반(Minimal Self-Contained Context) 토큰 효율 작성 원칙 반영.
 - `README.md` & `docs/`: 설치 경로 정책 분리 (글로벌은 타 에이전트 오인식 방지를 위한 `~/.codex/skills/`, 프로젝트는 `.agents/skills/`).
-- `README.md` & `SKILL.md`: "Luna 등" 모호한 표현을 `Luna` (`gpt-5.6-luna`) 단일 모델로 정돈하고, 과장된 성능 표현 완화 및 Leaf Worker 지침 레벨 제약 성격 명문화.
+- `README.md` & `SKILL.md`: "Luna 등" 모호한 표현을 `Luna` (`gpt-5.6-luna`) 단일 모델로 정돈하고, 과장된 성능 표현 완화 및 Leaf Worker 지침 레벨 제약(Policy Constraint) 성격 명문화.
 
 ## [0.1.0] - 2026-08-31
 
