@@ -16,11 +16,11 @@
 
 **English**
 
-> A lightweight Codex skill that keeps Sol or Terra as the parent and offloads (downshifts) fully specified execution tasks to leaf workers (e.g. Luna) to reduce usage.
+> A lightweight Codex skill that keeps Sol or Terra as the parent and offloads (downshifts) fully specified execution tasks to Luna (`gpt-5.6-luna`) to reduce usage.
 
 **한국어 설명**
 
-> Sol 또는 Terra를 부모 모델로 유지하면서, 명확하게 정의된 실행 작업만 Luna 등 경량 모델로 다운시프트(위임)해 Codex 사용량을 절감하는 경량 Skill.
+> Sol 또는 Terra를 부모 모델로 유지하면서, 명확하게 정의된 실행 작업만 Luna (`gpt-5.6-luna`)로 다운시프트(위임)해 Codex 사용량을 절감하는 경량 Skill.
 
 ### 이름 선정 이유
 
@@ -38,7 +38,7 @@
 ## 2. 프로젝트 목표
 
 `codex-downshift`는 사용자가 Codex에서 Sol 또는 Terra를 주력 모델로 사용할 때,
-이미 판단이 끝나고 범위가 명확해진 실행 작업을 Luna 등의 경량 서브에이전트에 넘겨
+이미 판단이 끝나고 범위가 명확해진 실행 작업을 Luna (`gpt-5.6-luna`) 서브에이전트에 넘겨
 상위 모델의 사용량을 줄이는 경량 Codex Skill이다.
 
 핵심 질문은 하나다.

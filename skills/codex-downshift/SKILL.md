@@ -5,13 +5,13 @@ description: Use when operating as Sol or Terra parent model and needing to offl
 
 # Codex Downshift (Execution Delegator Skill)
 
-본 스킬은 OpenAI Codex 환경에서 상위 추론 모델(**Sol** 또는 **Terra**)이 설계와 판단을 완료한 후, 구체적으로 확정된 실행 작업만을 경량 모델인 **Luna** (`gpt-5.6-luna`)로 다운시프트(하향 위임)하여 Codex 사용량과 비용 절감을 목표로 하는 실행 지침입니다.
+본 스킬은 OpenAI Codex 환경에서 상위 추론 모델(**Sol** 또는 **Terra**)이 설계와 판단을 완료한 후, 구체적으로 확정된 실행 작업만을 **Luna** (`gpt-5.6-luna`)로 다운시프트(하향 위임)하여 Codex 사용량과 비용 절감을 목표로 하는 실행 지침입니다.
 
 ---
 
 ## 🎯 1. 핵심 철학 및 의사결정 흐름
 
-> **"Keep the parent in control, downshift bounded execution to leaf workers."**
+> **"Keep the parent in control, downshift bounded execution to Luna."**
 
 1. **부모 모델의 고유 권한**: 요구사항 해석, 사용자 의도 파악, 아키텍처/API 설계, 모호성 해소, 작업 분해, 최종 결과 검증은 항상 부모 모델이 직접 수행합니다.
 2. **단방향 하향 위임 (Downshift Only)**: `Sol ➔ Luna` 또는 `Terra ➔ Luna`로만 위임하며, 수평 전환(`Sol ↔ Terra`)이나 상향 위임(`Luna ➔ Terra/Sol`)은 절대 수행하지 않습니다.
@@ -22,15 +22,17 @@ description: Use when operating as Sol or Terra parent model and needing to offl
 flowchart TD
     A["Parent Model (Sol or Terra)"] --> B{"작업이 bounded & 확정된 실행 작업인가?"}
     B -- "NO (Planning, Debugging, Design)" --> C["부모 모델이 직접 수행 (Downshift 비활성화)"]
-    B -- "YES" --> D["Minimal Self-Contained Task Capsule 작성"]
-    D --> E["spawn_agent(model='gpt-5.6-luna', fork_turns='none', reasoning_effort)"]
-    E --> F{"Luna spawn 성공 여부"}
-    F -- "실패 (미지원/오류)" --> G["Fail-Closed Fallback:<br/>상위 모델 child / 재시도 금지 ➔ 부모 직접 수행"]
-    F -- "성공" --> H["Luna Leaf Worker 실행 (No Subagent Spawning)"]
-    H --> I{"실행 중 모호성 / 새 설계 판단 직면?"}
-    I -- "YES" --> J["NEEDS_PARENT_DECISION 반환 ➔ 부모 모델이 판단"]
-    I -- "NO" --> K["Luna Acceptance & Validation 완료 보고"]
-    K --> L["부모 모델: 결과 확인 및 위험도 비례 최소 검증 (동일 재작업/중복 테스트 금지)"]
+    B -- "YES" --> D{"단독 trivial atomic action인가?"}
+    D -- "YES (단일 1줄/literal 수정 단독)" --> E["오버헤드 방지: 부모 모델이 직접 수행"]
+    D -- "NO (non-trivial 또는 배치 묶음)" --> F["Minimal Self-Contained Task Capsule 작성"]
+    F --> G["spawn_agent(model='gpt-5.6-luna', fork_turns='none', reasoning_effort='medium'|...)"]
+    G --> H{"Luna spawn 성공 여부"}
+    H -- "실패 (미지원/오류)" --> I["Fail-Closed Fallback:<br/>상위 모델 child / 재시도 금지 ➔ 부모 직접 수행"]
+    H -- "성공" --> J["Luna Leaf Worker 실행 (No Subagent Spawning)"]
+    J --> K{"실행 중 모호성 / 새 설계 판단 직면?"}
+    K -- "YES" --> L["NEEDS_PARENT_DECISION 반환 ➔ 부모 모델이 판단"]
+    K -- "NO" --> M["Luna Acceptance & Validation 완료 보고"]
+    M --> N["부모 모델: 결과 확인 및 위험도 비례 최소 검증 (동일 재작업/중복 테스트 금지)"]
 ```
 
 ---
@@ -80,15 +82,15 @@ flowchart TD
 spawn_agent(
     model = "gpt-5.6-luna",          # [필수] 반드시 Luna 모델을 명시 (생략 시 부모 모델 상속 방지)
     fork_turns = "none",             # [필수] 부모 대화 기록을 포크하지 않고 독립 컨텍스트로 생성
-    reasoning_effort = "low"|"medium"|"high", # [필수] 작업 복잡도에 따라 부모가 명시
+    reasoning_effort = "medium",     # [필수] 기본값은 medium, 작업에 따라 low/medium/high 명시
     task_name = "<short_descriptive_name>",   # [권장] 간결하고 명확한 작업명
     message = "<Minimal Self-Contained Task Capsule>" # [필수] 최소 지침서 전달
 )
 ```
 
 ### ⚠️ 부모 모델 상속 방지 (Strict Invariant)
-- `model` 매개변수를 생략하여 **자식 워커가 부모 모델(Sol/Terra)을 그대로 상속하게 해서는 절대 안 됩니다.**
-- Sol 부모에서 Sol 자식이 생성되는 것은 실패한 동작이며, 반드시 `gpt-5.6-luna` 자식이어야 합니다.
+- `model` 및 `reasoning_effort` 매개변수를 생략하여 **자식 워커가 부모 모델(Sol/Terra)의 속성을 그대로 상속하게 해서는 절대 안 됩니다.**
+- Sol 부모에서 Sol 자식이 생성되거나, Terra 부모에서 Terra 자식이 생성되는 것은 실패한 동작이며, 반드시 `gpt-5.6-luna` 자식이어야 합니다.
 - 별도의 커스텀 `agent_type`은 지정하지 않고 기본 실행 워커를 사용합니다.
 
 ---
@@ -198,8 +200,8 @@ Relevant:
 
 | 에이전트의 핑계 (Excuse) | 현실 및 불변 규칙 (Reality) |
 | :--- | :--- |
-| *"작업이 너무 짧고 단순해서 부모가 직접 하는 게 더 빨라요"* | 확정된 기계적 작업은 아무리 짧아도 Luna에 내려야 토큰이 절감됩니다. |
-| *"model 파라미터를 생략해도 기본 모델로 잘 돌겠지"* | `model`을 생략하면 고비용 부모 모델(Sol/Terra)이 상속되어 위임이 무효화됩니다. |
+| *"작업이 조금 단순해 보이니 부모가 계속하는 게 더 빠르지 않나요?"* | 단순 '부모 속도(Latency)'를 이유로 non-trivial 작업을 부모가 수행해서는 안 됩니다. **Latency보다 Parent Usage 절감이 우선**입니다. (단, 단일 trivial atomic action 단독 제외) |
+| *"model 파라미터를 생략해도 기본 모델로 잘 돌겠지"* | `model`을 생략하면 고비용 부모 모델(Sol/Terra)이 상속되어 위임이 무효화됩니다. 반드시 `gpt-5.6-luna`를 명시해야 합니다. |
 | *"Luna spawn이 실패했으니 Terra child로 다시 시도해볼게요"* | 실패 시 상위 모델 child를 호출하는 것은 비용을 늘리므로 Fail-Closed(부모 직접 수행)해야 합니다. |
 | *"Luna가 코드를 잘 짰는지 확인하기 위해 처음부터 다시 작성해볼게요"* | Luna가 Validation을 통과했다면 변경 범위와 Acceptance 확인만 수행해야 중복 비용이 없습니다. |
 | *"Luna reasoning을 high로 주면 아키텍처 판단도 할 수 있지 않을까?"* | 고난도 판단과 설계는 reasoning과 무관하게 무조건 부모의 몫입니다. |
@@ -210,31 +212,74 @@ Relevant:
 
 다음 신호가 포착되면 즉시 실행을 멈추고 규약에 맞게 바로잡아야 합니다:
 
-- ❌ `spawn_agent` 호출 시 `model` 또는 `fork_turns` 매개변수가 누락됨
-- ❌ Sol 부모에서 Sol 자식이 생성됨 (모델 상속 실패)
+- ❌ `spawn_agent` 호출 시 `model`, `fork_turns`, `reasoning_effort` 매개변수가 누락됨
+- ❌ Sol 부모에서 Sol 자식 또는 Terra 부모에서 Terra 자식이 생성됨 (모델 상속 실패)
 - ❌ 부모의 전체 Chain-of-Thought나 장황한 대화 내역이 Task Capsule에 복사됨
-- ❌ Luna spawn 실패 후 다른 subagent를 호출함
+- ❌ Luna spawn 실패 후 다른 subagent를 호출하거나 재시도함
 - ❌ Luna가 완료한 단위 테스트나 구현을 부모가 동일하게 처음부터 다시 코딩함
 - ❌ Luna 워커가 또 다른 child agent를 생성하거나 상위 모델을 호출함
+- ❌ 작은 한 줄 수정마다 별도의 Luna child를 여러 번 연속 생성함 (과도한 파편화)
 
 ---
 
-## ⚙️ 11. Reasoning Effort 동적 조절 가이드
+## ⚙️ 11. Luna Reasoning Effort 선택 정책
 
-1. **Low Reasoning**: 정확한 문자열/문서 치환, 단일 린트 오류 수정, 단순 테스트 명령 실행
-2. **Medium Reasoning**: 명확한 로직의 단위 테스트 작성, 결정된 함수/클래스 구현, 여러 파일의 반복 패턴 수정
-3. **High Reasoning**: 범위는 명확하나 여러 파일 간의 참조를 확인해야 하는 Bounded 작업
+부모 모델은 작업 성격에 맞게 `low`, `medium`, `high` 중 하나를 반드시 명시적으로 선택합니다. (부모 모델의 reasoning effort를 암묵적으로 상속하지 않습니다.)
+
+- **기본값**: `medium`
+
+### 선택 기준
+1. **Low**:
+   - 정확한 문자열 또는 코드 교체
+   - 매우 기계적인 반복 수정
+   - 판단이 전혀 필요하지 않은 작은 bounded task
+2. **Medium (기본값)**:
+   - 일반적인 명확한 구현 작업
+   - 명확하게 정의된 테스트 작성 + 구현
+   - 제한된 범위의 코드 탐색이 필요한 작업
+3. **High**:
+   - 범위와 동작은 이미 확정되어 있음
+   - 여러 파일을 수정해야 하거나 비교적 많은 로컬 코드 탐색이 필요함
+   - 그러나 새로운 semantic / behavioral / architectural 판단은 필요하지 않음
+
+### ⚠️ 주의 규칙 (Caution)
+- 자동으로 `xhigh` 또는 `max`를 사용하지 않습니다.
+- High보다 더 강한 reasoning이 필요해 보이는 경우 reasoning effort를 계속 올리지 말고 **해당 작업이 정말 downshift 대상인지 다시 판단**합니다.
+- 중요한 판단이 남아 있다면 Luna에 위임하지 않고 현재 부모 모델이 직접 수행합니다.
 
 ---
 
-## 📦 12. 적정 작업 단위 (Task Granularity)
+## 📦 12. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
-- **과도한 파편화 방지**: 한 줄 수정마다 에이전트를 매번 생성하지 않습니다 (Subagent 생성 오버헤드가 더 커짐).
-- **논리적 Bounded Task 권장**: 예) `확정된 기능 코드 구현 + 대응 단위 테스트 작성 + 테스트 검증 실행`을 하나의 Bounded Task Capsule로 묶어 위임합니다.
+Sol/Terra의 사용량 절감이 본 스킬의 핵심 목적이므로, 명확하고 판단이 끝난 **non-trivial execution task는 적극적으로 Luna에 위임**합니다. 단, 위임 자체가 불필요한 비용을 발생시키는 극단적 오버헤드는 다음과 같이 방지합니다:
+
+1. **배치 위임 원칙 (Batching)**:
+   - 서로 관련된 여러 개의 작고 명확한 작업은 가능한 한 **하나의 bounded task로 묶어서 Luna에 위임**합니다.
+   - 작은 작업 여러 개를 각각 별도의 Luna child로 연속 spawn하지 않습니다.
+2. **단일 Trivial Atomic Action 예외**:
+   - 한 줄 수정, 단일 literal 교체 등 독립적인 trivial atomic action 하나만 존재하고, Task Capsule 작성 + spawn + 결과 확인 비용이 직접 수행보다 명백히 큰 경우에는 부모가 직접 수행할 수 있습니다.
+3. **우선순위 불변 원칙**:
+   - 단순히 "부모가 더 빠르다(Latency)"는 이유만으로 명확한 non-trivial 작업을 부모가 계속 수행해서는 안 됩니다. **Latency보다 Parent Usage 절감이 우선**입니다.
+
+### ❌ 나쁜 패턴 (과도한 파편화)
+```text
+한 줄 수정 → Luna child 1
+다음 한 줄 수정 → Luna child 2
+테스트 하나 실행 → Luna child 3
+```
+
+### ✅ 좋은 패턴 (Bounded Task 묶음 위임)
+```text
+관련된 기계적 수정 여러 개
++ 대응 테스트 수정
++ validation
+→ 하나의 bounded Luna task
+```
 
 ---
 
 ## 📚 참조 문서
-- [위임 모범 사례 및 안티패턴 (8대 시나리오)](references/delegation-examples.md)
+- [위임 모범 사례 및 안티패턴 (10대 실전 시나리오)](references/delegation-examples.md)
 - [Task Capsule 표준 서식](references/task-capsule-template.md)
+
 
