@@ -1,6 +1,6 @@
 # codex-downshift — Project Specification
 
-> Status: MVP planning  
+> Status: Implementation completed (v0.1.2) / Runtime verification in progress  
 > Target: OpenAI Codex  
 > Artifact purpose: Antigravity 등 코딩 에이전트가 이 문서를 기반으로 프로젝트를 생성·구현할 수 있도록 하는 구현 명세
 
@@ -275,43 +275,31 @@ Codex의 기본 Multi-Agent 기능으로 Luna를 동적으로 생성한다.
 spawn_agent(
     model = "gpt-5.6-luna",          # [필수] 부모 모델 상속 방지
     fork_turns = "none",             # [필수] 부모 대화 기록 제외, fresh child 생성
-    reasoning_effort = "low"|"medium"|"high", # [필수] 작업 난이도에 따른 지정
+    reasoning_effort = "medium",     # [필수] 기본값은 medium, 작업에 따라 low/medium/high 명시
     task_name = "<task_name>",       # [권장] 명확한 작업 식별자
-    message = "<Self-Contained Task Capsule>"
+    message = "<Minimal Self-Contained Task Capsule>"
 )
 ```
 
-### 7.1 Fallback Invariant (불변 규칙)
+### 7.1 Fail-Closed Fallback Invariant (불변 규칙)
 
 `gpt-5.6-luna` child 생성이 지원되지 않거나 호출 실패 시:
 - Terra 또는 Sol child로 fallback하지 않는다.
+- `model`을 생략한 채 child 생성을 재시도하지 않는다.
 - 다른 subagent로 자동 escalation하지 않는다.
-- 현재 부모 모델(Sol/Terra)이 해당 작업을 직접 계속 수행한다.
+- **현재 부모 모델(Sol/Terra)이 해당 작업을 직접 계속 수행한다.**
 
 ### 7.2 Parent 중복 작업 방지
 
 Luna가 작업을 성공적으로 완료하면 부모 모델은 위험도에 비례한 최소 Acceptance 확인만 수행하며, 동일 테스트 반복이나 코드 재작성을 하지 않는다.
 
-### Reasoning effort
+### 7.3 Luna Reasoning Effort 선택 정책
 
-사용자 설정으로 고정하지 않는다.
-
-부모 모델이 작업의 규모와 난이도에 맞게 선택한다.
-
-예시:
-
-```text
-완전히 기계적이고 매우 짧은 실행
-→ Luna의 비교적 낮은 reasoning
-
-명확하지만 여러 단계의 코드 수정/테스트가 필요
-→ Luna의 중간 reasoning
-
-범위는 확정되어 있지만 상당한 코드 탐색이 필요한 bounded 작업
-→ 필요하다면 더 높은 Luna reasoning
-```
-
-reasoning effort 선택은 최적화 대상이지만 MVP에서 복잡한 별도 정책 엔진을 만들 필요는 없다.
+- **기본값**: `medium`
+- **Low**: 정확한 문자열/코드 교체, 매우 기계적인 반복 수정, 판단이 전혀 필요 없는 작은 bounded task
+- **Medium (기본값)**: 일반적인 명확한 구현 작업, 명확히 정의된 테스트 작성 + 구현, 제한된 범위의 코드 탐색
+- **High**: 범위와 동작은 확정되어 있고 여러 파일 수정 또는 로컬 코드 탐색이 필요하지만 새로운 의미적/아키텍처 판단은 불필요한 작업
+- **상한 규칙**: `xhigh` 또는 `max`를 자동 사용하지 않으며, High보다 더 강한 reasoning이 필요해 보이면 reasoning effort를 무한정 올리지 말고 부모 모델이 직접 수행한다. (부모 모델의 reasoning effort를 암묵적으로 상속하지 않고 반드시 명시)
 
 ---
 
@@ -433,7 +421,7 @@ Decisions already made:
 <부모 모델이 이미 결정한 내용>
 
 Exact change:
-<가능하면 실제 수정 내용 또는 매우 구체적인 지시>
+<가능하면 실제 수정 내용 또는 매우 구체적인 지시 (필요 시)>
 
 Preserve:
 <유지해야 하는 기존 동작/내용>
@@ -460,7 +448,7 @@ Worker constraints:
 
 모든 항목을 매번 억지로 채울 필요는 없다.
 
-중요한 것은 **Luna가 부모의 reasoning을 다시 재구성하지 않아도 되는 self-contained prompt**를 만드는 것이다.
+중요한 것은 **부모의 전체 CoT나 긴 대화를 넘기는 것이 아니라, Luna가 부모의 reasoning을 다시 재구성하지 않아도 되는 최소한의 완결된(Minimal Self-Contained) 지침**을 만드는 것이다.
 
 ---
 
@@ -485,29 +473,36 @@ Luna 위임 후보가 된다.
 
 ---
 
-## 14. Task Granularity
+## 14. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
-너무 작은 atomic action마다 Luna를 생성하지 않는다.
+Sol/Terra의 사용량 절감이 본 스킬의 핵심 목적이므로, 명확하고 판단이 끝난 **non-trivial execution task는 적극적으로 Luna에 위임**한다.
 
-나쁜 예:
+단, 위임 자체가 불필요한 오버헤드를 발생시키는 극단적 상황은 다음과 같이 방지한다:
+
+1. **배치 위임 원칙 (Batching)**:
+   - 서로 관련된 여러 개의 작고 명확한 작업(예: 여러 파일의 import 수정, 대응 테스트 작성 등)은 가능한 한 **하나의 bounded task로 묶어서 Luna에 위임**한다.
+   - 작은 작업 여러 개를 각각 별도의 Luna child로 연속 spawn하는 과도한 파편화를 금지한다.
+2. **단일 Trivial Atomic Action 예외**:
+   - 한 줄 수정, 단일 literal 교체 등 독립적인 trivial atomic action 하나만 존재하고, Task Capsule 작성 + spawn + 결과 확인 비용이 직접 수행보다 명백히 큰 경우에는 부모가 직접 수행할 수 있다.
+3. **우선순위 불변 원칙**:
+   - 단순히 "부모가 더 빠르다(Latency)"는 이유만으로 명확한 non-trivial 작업을 부모가 계속 수행해서는 안 된다. **Latency보다 Parent Usage 절감이 우선**이다.
+
+### ❌ 나쁜 예 (과도한 파편화)
 
 ```text
-한 줄 수정 → Luna
-다음 한 줄 수정 → Luna
-테스트 하나 실행 → Luna
+한 줄 수정 → Luna child 1
+다음 한 줄 수정 → Luna child 2
+테스트 하나 실행 → Luna child 3
 ```
 
-가능하면 서로 관련된 명확한 실행 작업을 하나의 bounded task로 묶는다.
-
-좋은 예:
+### ✅ 좋은 예 (Bounded Task 묶음 위임)
 
 ```text
 이미 결정된 serializer 변경
 + 대응 테스트 추가
 + 해당 테스트 실행
+→ 하나의 bounded Luna task
 ```
-
-단, task를 크게 묶는 과정에서 새로운 판단이 필요해진다면 범위를 줄인다.
 
 ---
 
@@ -651,24 +646,27 @@ MVP 성공 여부는 기능 수가 아니라 실제 Codex 사용량 절감으로
 - [x] Luna parent에서 자동 delegation 비활성화
 - [x] 실행 작업 eligibility 규칙 작성
 - [x] planning-only / explanation-only 제외 규칙 작성
-- [x] task capsule 작성 규칙 구현
-- [x] Luna reasoning effort 동적 선택 규칙 작성
-- [x] Luna를 leaf worker로 강제하는 prompt 작성
+- [x] Minimal Self-Contained Task Capsule 작성 규칙 구현
+- [x] Luna reasoning effort 동적 선택 정책 작성 (기본값 medium, low/medium/high, xhigh/max 금지)
+- [x] Luna를 leaf worker로 강제하는 prompt 작성 (Policy Constraint)
 - [x] `NEEDS_PARENT_DECISION` 반환 규칙 작성
-- [x] good/bad delegation examples 작성
-- [x] 설치/사용 README 작성
-- [ ] 실제 Codex에서 Sol → Luna 동작 검증
-- [ ] 실제 Codex에서 Terra → Luna 동작 검증
-- [ ] Luna parent에서 escalation이 발생하지 않는지 검증
+- [x] 10대 핵심 실전 시나리오 및 검증 매트릭스 작성 (`delegation-examples.md`)
+- [x] superpowers 표준 합리화 방지 테이블 및 Red Flags 목록 내장
+- [x] Fail-Closed Fallback Invariant 작성 (부모 직접 수행)
+- [x] 설치/사용 README 작성 (글로벌 `~/.codex/skills/` 격리 정책 포함)
+- [x] superpowers TDD for Skills 기반 검증 완료 (ALL PASS)
+- [ ] 실제 Codex 환경에서 Sol → Luna 동작 실사용 검증
+- [ ] 실제 Codex 환경에서 Terra → Luna 동작 실사용 검증
+- [ ] Luna parent에서 escalation이 발생하지 않는지 실사용 검증
 
 ### MVP 이후
 
 실사용 결과가 있을 때만 검토한다.
 
-- [ ] task capsule 규칙 개선
-- [ ] Luna reasoning effort 선택 정책 개선
-- [ ] 위임 granularity 개선
-- [ ] Superpowers 상호작용 개선
+- [x] Task Capsule 규칙 개선 (Minimal Self-Contained Context)
+- [x] Luna reasoning effort 선택 정책 개선 (Medium 기본값 및 상한 설정)
+- [x] 위임 Granularity 개선 (Trivial Action 예외 및 Bounded Batching)
+- [ ] Superpowers 상호작용 심화 개선
 - [ ] Codex 버전별 compatibility 안내
 - [ ] 표준 Skill installer 배포 개선
 

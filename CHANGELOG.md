@@ -15,6 +15,7 @@
 
 ### 변경 (Changed)
 - `SKILL.md`: Trivial task 위임 규칙 간의 모순 해소 (Latency보다 Parent Usage 절감 우선, 단일 atomic action 오버헤드 예외 및 배치 위임 원칙 확립).
+- `docs/codex-downshift-spec.md`: 기획 명세서의 상태(v0.1.2 완료), Spawn Contract, Trivial Task 정책, 10대 시나리오 및 MVP 구현 현황 체크리스트 최신화 동기화.
 - 프로젝트 전체: "Luna 등", "경량 모델들" 등 다중 모델 자동 선택으로 오해될 수 있는 표현을 `Luna` (`gpt-5.6-luna`) 단일 모델로 일괄 정돈.
 
 ## [0.1.1] - 2026-08-31
