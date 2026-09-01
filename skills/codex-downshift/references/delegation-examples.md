@@ -51,6 +51,11 @@ Exact change:
 2. In src/validators/email.py, implement validate_company_email.
 
 Preserve: Existing validator functions in src/validators/email.py.
+Acceptance criteria:
+- Valid company.com input returns True regardless of domain letter case.
+- Invalid domain input raises ValueError("Invalid corporate email") and never returns False.
+- Existing validator functions remain unchanged.
+- pytest tests/test_email_validator.py passes.
 Validation: pytest tests/test_email_validator.py
 Recovery policy: If validation fails due to minor implementation error, attempt at most ONE recovery.
 Escalation condition:
@@ -94,11 +99,57 @@ Raises:
 \"\"\"
 
 Preserve: Function signature, implementation, and type hints.
+Acceptance criteria:
+- The docstring matches the Exact change text verbatim.
+- Function signature, implementation, and type hints remain unchanged.
+- ruff check src/services/user_service.py passes.
 Validation: ruff check src/services/user_service.py
 Recovery policy: Max 1 recovery attempt.
 Escalation condition: If signature differs from above, return NEEDS_PARENT_DECISION.
 Worker constraints: Leaf worker only. Do not spawn agents."""
 )
+```
+
+### 문서 범주 보존: Bad / Good
+
+#### Bad
+
+```text
+Goal:
+관련 기능의 MVP 범위와 장기 범위를 자연스럽게 정리한다.
+
+Decisions already made:
+- Feature A와 Feature B를 언급한다.
+- Future Feature C도 언급한다.
+```
+
+이 지시는 기능별 범주, 문장 구조 및 생략 가능 정보를 Luna가 다시 결정하게 하므로 위임할 수 없습니다.
+
+#### Good
+
+```text
+Goal:
+확정된 제품 범위를 README에 반영한다.
+
+Target:
+README.md의 `## 제품 범위` 제목 바로 아래. 기존 범위 목록을 교체하며, 해당 제목이 없으면 `NEEDS_PARENT_DECISION`을 반환한다.
+
+Exact change:
+다음 Markdown으로 `## 제품 범위` 아래의 기존 범위 목록을 원문 그대로 교체한다.
+
+- Feature A와 Feature B는 Full MVP 범위입니다.
+- Future Feature C는 Full MVP 이후의 장기 확장 범위입니다.
+
+Preserve:
+- 두 범주를 하나로 합치지 않는다.
+- 기존 개발 환경 문단은 변경하지 않는다.
+
+Acceptance criteria:
+- Feature A와 Feature B가 Full MVP로 표기된다.
+- Future Feature C가 장기 확장으로 별도 표기된다.
+- 세 기능이 동일한 범주로 합쳐지지 않는다.
+- 부모가 제공한 Markdown 원문이 변경되지 않는다.
+- git diff --check가 통과한다.
 ```
 
 ---
@@ -216,6 +267,4 @@ Task completed so far:
 - **피해야 할 안티패턴 (Bad)**:
   - Luna가 이미 통과한 단위 테스트를 부모가 똑같이 다시 실행함.
   - 변경된 로직을 부모가 처음부터 다시 코딩하여 덮어씀.
-
-
 

@@ -114,6 +114,8 @@ npx skills@latest update -g -y
 
 부모 모델은 불필요하게 긴 Chain-of-Thought나 전체 대화를 넘기지 않고, 하위 워커가 상위 추론을 다시 수행하지 않아도 되는 **최소한의 완결된(Self-Contained) 지침**을 전달합니다.
 
+작성 전에는 결과의 의미·동작·범주가 확정되었는지, Luna에 제품·정책 선택이 남지 않았는지, 정확한 표현이 계약이면 `Exact change`가 있는지, Acceptance criteria가 의미적 불변조건을 검증하는지 확인합니다. 이 parent-only check는 child message에 포함하지 않습니다.
+
 ```text
 Role:
 You are a leaf execution worker.
@@ -128,7 +130,7 @@ Decisions already made:
 <부모 모델이 이미 결정한 내용>
 
 Exact change:
-<실제 교체할 코드 스니펫 또는 구체적 지시 (필요 시)>
+<정확한 결과 형태가 계약이면 필수: final text, before/after 또는 결정적인 변환 규칙>
 
 Preserve:
 <유지해야 하는 기존 동작/불변조건>
@@ -137,7 +139,7 @@ Do not touch:
 <명시적인 수정 금지 범위>
 
 Acceptance criteria:
-<완료 조건>
+<의미·범주·동작·호환성 불변조건과 기계적 검증 결과>
 
 Validation:
 <실행할 테스트 / lint / typecheck 명령>

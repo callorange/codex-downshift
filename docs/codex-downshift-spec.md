@@ -1,6 +1,6 @@
 # codex-downshift — Project Specification
 
-> Status: Implementation completed (v0.1.3) / Runtime verification in progress  
+> Status: v0.1.3 released / Unreleased semantic-decision hardening implemented / Runtime verification in progress
 > Target: OpenAI Codex  
 > Artifact purpose: Antigravity 등 코딩 에이전트가 이 문서를 기반으로 프로젝트를 생성·구현할 수 있도록 하는 구현 명세
 
@@ -300,6 +300,7 @@ Luna가 작업을 성공적으로 완료하면 부모 모델은 위험도에 비
 - **Medium (기본값)**: 일반적인 명확한 구현 작업, 명확히 정의된 테스트 작성 + 구현, 제한된 범위의 코드 탐색
 - **High**: 범위와 동작은 확정되어 있고 여러 파일 수정 또는 로컬 코드 탐색이 필요하지만 새로운 의미적/아키텍처 판단은 불필요한 작업
 - **상한 규칙**: `xhigh` 또는 `max`를 자동 사용하지 않으며, High보다 더 강한 reasoning이 필요해 보이면 reasoning effort를 무한정 올리지 말고 부모 모델이 직접 수행한다. (부모 모델의 reasoning effort를 암묵적으로 상속하지 않고 반드시 명시)
+- **권한 불변 규칙**: `low`, `medium`, `high`는 확정된 작업의 탐색·구현 복잡도만 나타내며, 새로운 요구사항 해석, 제품·아키텍처·공개 API·호환성 정책 결정, 문서 범주 변경 또는 Task Capsule에 없는 동작 선택 권한을 추가하지 않는다. `high`에서도 새로운 의미적 판단이 필요하면 `NEEDS_PARENT_DECISION`을 반환한다.
 
 ---
 
@@ -322,7 +323,15 @@ Luna에 위임하려면 다음 **기본 필수 요건**을 만족해야 하며, 
 - 결과를 검증할 방법이 있다.
 - 실패해도 범위가 제한적이고 부모가 결과를 검토할 수 있다.
 
-### 8.2 3대 안전성 보조 신호 (Safety Signals Checklist)
+### 8.2 Semantic Decision Closure
+
+Downshift는 미완성된 의미적 판단을 Luna에 넘기는 수단이 아니다. 부모는 spawn 전에 결과의 의미, 동작, 범주 및 외부 계약을 확정하고, Luna에는 그 결정을 적용하고 검증하는 실행 판단만 남긴다.
+
+제품 의미·정책·범주·공개 계약 선택, 여러 합리적인 결과 중 하나의 선택, PRD·ADR·대화 기록의 새로운 요구사항 해석, 구분된 범주의 병합·분할 판단 또는 `자연스럽게`, `적절하게`, `알아서` 같은 주관적 완료 기준이 필요하면 Task Capsule은 준비되지 않은 상태다. 부모가 결정을 완료해 Capsule을 구체화하거나 작업을 직접 수행한다.
+
+파일 탐색, patch 적용, 코드 조립 및 확정된 동작 안에서의 테스트 실패 분석 같은 bounded execution reasoning은 선택한 `low`, `medium`, `high` 범위에서 허용된다.
+
+### 8.3 3대 안전성 보조 신호 (Safety Signals Checklist)
 
 1. **Coupling (결합도)**:
    - **Luna 적합**: 수정 범위가 국소적이고, 영향 범위를 명확하게 특정할 수 있으며, 타 컴포넌트까지 판단할 필요가 없음.
@@ -425,6 +434,14 @@ return NEEDS_PARENT_DECISION.
 
 Luna에게 넘기는 prompt는 가능한 경우 다음 구조를 사용한다.
 
+부모는 prompt 작성 전에 다음을 확인한다. 이 체크는 child message에 포함하지 않는다.
+
+- 결과의 의미와 동작이 부모에서 확정되었는가?
+- Luna가 선택해야 할 제품·정책·범주 결정이 남아 있지 않은가?
+- 서로 다른 두 결과가 모두 정답일 수 있다면 허용 범위가 명시되었는가?
+- 정확한 표현이나 분류가 계약이라면 `Exact change`가 제공되었는가?
+- acceptance criteria가 형식뿐 아니라 의미적 불변조건도 검증하는가?
+
 ```text
 Role:
 You are a leaf execution worker.
@@ -439,7 +456,7 @@ Decisions already made:
 <부모 모델이 이미 결정한 내용>
 
 Exact change:
-<가능하면 실제 수정 내용 또는 매우 구체적인 지시 (필요 시)>
+<정확한 결과 형태가 계약이면 필수: final text, before/after 또는 결정적인 변환 규칙>
 
 Preserve:
 <유지해야 하는 기존 동작/내용>
@@ -448,7 +465,7 @@ Do not touch:
 <명시적인 범위 제한>
 
 Acceptance criteria:
-<완료 조건>
+<의미·범주·동작·호환성 불변조건과 기계적 검증 결과>
 
 Validation:
 <실행할 테스트 / lint / typecheck / 명령 (필요한 최소한만)>
@@ -467,7 +484,9 @@ Worker constraints:
 - Stop when the acceptance criteria are satisfied.
 ```
 
-모든 항목을 매번 억지로 채울 필요는 없다.
+정확한 문구, 범주 구분, literal, 설정값, import 또는 고정 코드 블록처럼 결과 형태가 계약이면 `Exact change`를 반드시 채운다. 구현 코드를 Luna가 작성해도 되는 작업은 전체 코드를 중복하지 않아도 되지만 signature, algorithm, error behavior, side effect, edge case 및 test case를 확정한다.
+
+Acceptance criteria에는 테스트·lint 같은 형식 검증뿐 아니라 유지해야 할 의미, 범주, 동작 및 호환성 불변조건을 포함한다. 의미적 계약과 무관한 선택 필드는 억지로 채우지 않는다.
 
 중요한 것은 **부모의 전체 CoT나 긴 대화를 넘기는 것이 아니라, Luna가 부모의 reasoning을 다시 재구성하지 않아도 되는 최소한의 완결된(Minimal Self-Contained) 지침**을 만드는 것이다.
 
@@ -699,6 +718,7 @@ MVP 성공 여부는 기능 수가 아니라 실제 Codex 사용량 절감으로
 - [x] 8대 기본 필수 요건 및 3대 안전성 보조 신호(Coupling, Verification, Consequence) 체계 구축
 - [x] Validation Budget & 최대 1회 Recovery Limit 및 NEEDS_PARENT_ACTION 프로토콜 구현
 - [x] Acknowledgements 섹션 수록 (`codex-auto-model-router` 독립 영감 출처 명시)
+- [x] Semantic Decision Closure, 조건부 Exact change 및 의미적 Acceptance Criteria 규칙 구현
 - [ ] Superpowers 상호작용 심화 개선
 - [ ] Codex 버전별 compatibility 안내
 - [ ] 표준 Skill installer 배포 개선

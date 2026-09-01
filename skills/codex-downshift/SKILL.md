@@ -68,6 +68,20 @@ flowchart TD
 7. **결정적 검증 수단**: 테스트, 린트, 타입체크 등 결과를 검증할 명확한 방법이 있음
 8. **제한적 실패 영향**: 실패하더라도 범위가 국소적이고 부모가 결과를 쉽게 검토·롤백할 수 있음
 
+### Semantic Decision Closure
+
+Downshift는 미완성된 의미적 판단을 Luna에 넘기는 수단이 아닙니다. 부모 모델은 spawn 전에 결과의 의미, 동작, 범주 및 외부 계약을 확정하고, Luna에는 그 결정을 적용하고 검증하는 실행 판단만 남겨야 합니다.
+
+다음 중 하나라도 필요하면 Task Capsule은 아직 준비되지 않은 것으로 봅니다:
+
+- 제품 의미, 정책, 범주 또는 공개 계약 선택
+- 여러 합리적인 동작이나 결과 형태 중 하나의 선택
+- PRD, ADR 또는 대화 기록을 읽고 요구사항을 새로 해석
+- 서로 구분된 범주를 합치거나 나눌지 판단
+- `자연스럽게`, `적절하게`, `알아서`처럼 허용 결과를 결정하지 못하는 주관적 Acceptance Criteria 해석
+
+이 경우 부모가 결정을 완료해 Task Capsule을 구체화하거나 작업을 직접 수행합니다. 파일 탐색, patch 적용, 코드 조립 및 확정된 동작 안에서의 테스트 실패 분석 같은 bounded execution reasoning은 허용됩니다.
+
 ### 🛡️ 3대 안전성 보조 신호 (Safety Signals Checklist)
 *(숫자 스코어 엔진을 사용하지 않으며, 정성적 판단 체크리스트로 확인합니다)*
 
@@ -156,6 +170,9 @@ Luna가 성공적으로 작업과 Validation을 완료한 뒤, 부모 모델은 
   - 새로운 의미적/아키텍처 판단이 필요한 경우에는 recovery를 시도하지 않고 즉시 `NEEDS_PARENT_DECISION`을 반환합니다.
 
 ### Task Capsule 기본 템플릿
+
+부모는 작성 전에 결과의 의미·동작·범주가 확정되었는지, Luna에 제품·정책 선택이 남지 않았는지, 정확한 표현이 계약이면 `Exact change`가 있는지, Acceptance criteria가 의미적 불변조건을 검증하는지 확인합니다. 이 parent-only check는 child message에 포함하지 않습니다.
+
 ```text
 Role:
 You are a leaf execution worker.
@@ -170,7 +187,7 @@ Decisions already made:
 <부모 모델이 이미 확정한 구체적 설계/규칙>
 
 Exact change:
-<실제 교체할 코드 스니펫 또는 구체적 지침 (필요 시)>
+<정확한 결과 형태가 계약이면 필수: final text, before/after 또는 결정적인 변환 규칙>
 
 Preserve:
 <반드시 유지해야 하는 기존 동작, 타입 힌트, 외부 인터페이스 등>
@@ -179,7 +196,7 @@ Do not touch:
 <명시적인 수정 금지 영역>
 
 Acceptance criteria:
-<작업 완료를 판단하는 객관적 기준>
+<의미·범주·동작·호환성 불변조건과 기계적 검증 결과>
 
 Validation:
 <실행할 테스트 / 린트 / 타입체크 명령 (필요한 최소한만)>
@@ -279,6 +296,12 @@ Task completed so far:
 1. **Low**: 정확한 문자열 또는 코드 교체, 매우 기계적인 반복 수정, 판단이 전혀 필요하지 않은 작은 bounded task
 2. **Medium (기본값)**: 일반적인 명확한 구현 작업, 명확하게 정의된 테스트 작성 + 구현, 제한된 범위의 코드 탐색
 3. **High**: 범위와 동작은 이미 확정되어 있고 여러 파일 수정 또는 로컬 코드 탐색이 필요하지만 새로운 의미적/아키텍처 판단은 불필요한 작업
+
+### Reasoning Effort Does Not Expand Authority
+
+`low`, `medium`, `high`는 확정된 작업을 실행하는 데 필요한 탐색과 구현 복잡도만 나타냅니다. Reasoning effort를 높여도 새로운 요구사항 해석, 제품·아키텍처·공개 API·호환성 정책 결정, 문서 범주 변경 또는 Task Capsule에 없는 동작 선택 권한은 추가되지 않습니다.
+
+`high`에서도 새로운 의미적 판단이 필요해지면 effort를 더 높이거나 독자적으로 진행하지 않고 `NEEDS_PARENT_DECISION`을 반환합니다.
 
 ### ⚠️ 주의 규칙 (Caution)
 - 자동으로 `xhigh` 또는 `max`를 사용하지 않습니다.

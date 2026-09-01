@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+### 추가 (Added)
+- `SKILL.md`와 프로젝트 spec에 spawn 전 의미·동작·범주·외부 계약을 부모가 확정하도록 하는 Semantic Decision Closure 규칙 추가.
+- `SKILL.md`, Task Capsule template 및 `README.md`의 Capsule 형식에 parent-only Pre-spawn check와 의미적 Acceptance Criteria 작성 지침 추가.
+- `delegation-examples.md`에 문서의 MVP/장기 확장 범주를 보존하는 Bad/Good 사례 추가.
+
+### 변경 (Changed)
+- 정확한 문구·분류·literal·고정 코드 블록이 계약인 작업에서는 `Exact change`를 필수로 제공하도록 규칙 강화.
+- reasoning effort는 실행 복잡도만 조절하며 Luna의 의미적·제품·아키텍처 결정 권한을 확장하지 않는다는 불변 규칙 명문화.
+
 ## [0.1.3] - 2026-08-31
 
 ### 추가 (Added)
