@@ -15,7 +15,7 @@
 - **역할별 계층형 하향 위임 (Tiered Downshift)**: `Sol ➔ Terra / Luna` 및 `Terra ➔ Luna` 하향 위임 지원.
 - **역할별 위임 권한 (Role-Based Child Delegated Authority)**: Active Parent (상위 판단 소유) vs Terra Child (로컬 구현 분석/선택) vs Luna Child (확정된 기계적 실행).
 - **4대 표준 Terminal Return Protocols**: `TASK_COMPLETED` (다중 검증 지원), `TASK_FAILED` (1회 복구 실패 후 작업트리 보존), `NEEDS_PARENT_DECISION`, `NEEDS_PARENT_ACTION` 표준화 (`task-capsule-template.md`).
-- **10대 핵심 실전 행동 시나리오 (Behavioral Specifications)**: High Consequence Gate A 차단, Gate B 모델 라우팅, 4대 반환 프로토콜, Fail-Closed Fallback 등 10대 시나리오 구축 (`delegation-examples.md`).
+- **11대 핵심 실전 행동 시나리오 (Behavioral Specifications)**: High Consequence Gate A 차단, Gate B 모델 라우팅, 4대 반환 프로토콜, Fail-Closed Fallback 등 11대 시나리오 구축 (`delegation-examples.md`).
 - **Scope-Matched Fresh Verification**: `Verification scope MUST match the completion claim scope` 원칙에 따른 Parent의 독립 최소 직접 검증 표준화.
 - **Reasoning Effort 정책**: `low`/`medium` 자동 기본값, `high`/`xhigh`/`max` 사용자 명시적 승인 프로토콜 명문화.
 

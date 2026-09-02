@@ -59,7 +59,7 @@ Validation:
 - [검증 명령 2 (예: ruff check src/foo.py)]
 
 Recovery policy:
-At most ONE recovery attempt. If validation still fails, return TASK_FAILED immediately. Do not enter recursive retry loops.
+At most ONE recovery attempt when appropriate. If recovery is not appropriate (e.g. env/dependency issue) or validation still fails, return TASK_FAILED immediately. Do not enter recursive retry loops.
 
 Worker constraints:
 - Do not spawn or delegate to other agents or models.
@@ -103,7 +103,7 @@ Notes:
 - None (or optional bounded implementation note)
 ```
 
-### 2) 복구 한도 초과 실패 (`TASK_FAILED`)
+### 2) 복구 한도 초과 또는 미시도 실패 (`TASK_FAILED`)
 ```text
 TASK_FAILED
 
@@ -116,11 +116,11 @@ Validation:
   <short error evidence>
 
 Recovery:
-- Attempted: YES (1 recovery attempt executed)
-- <1회 시도했던 수정 내용 요약>
+- Attempted: YES | NO
+- <recovery summary or reason recovery was not appropriate>
 
 Remaining blocker:
-<수정 후에도 검증을 통과하지 못한 원인 및 현 상태>
+<why the task remains incomplete>
 
 Worktree:
 - Current changes preserved for Parent review.

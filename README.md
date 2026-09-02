@@ -58,7 +58,7 @@ Active Parent (Sol or Terra)
 │ Gate B: Decision Authority Gate                          │
 │                                                          │
 │ (Active Sol Parent)                                      │
-│ ├─ Semantic / API / Architecture / High-impact 판단 남음  │
+│ ├─ Semantic / API / Architecture / Security 판단 남음     │
 │ │  ─────────────────────────────────────────→ Sol Direct │
 │ ├─ Semantic 닫힘 + Implementation-local 분석/선택 남음    │
 │ │  ─────────────────────────────────────────→ Terra Child│
@@ -166,7 +166,7 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 
 ### 2. 4대 반환 프로토콜
 - **`TASK_COMPLETED`**: 다중 Validation 증거와 Acceptance 대조 완료 보고
-- **`TASK_FAILED`**: 1회 복구 실패 후 작업트리를 보존하며 실패 상세 보고
+- **`TASK_FAILED`**: 1회 복구 실패 또는 미시도 후 작업트리를 보존하며 실패 상세 보고
 - **`NEEDS_PARENT_DECISION`**: 새 설계 판단/모호성 직면 시 부모에게 제어권 반환
 - **`NEEDS_PARENT_ACTION`**: git push, deploy 등 외부 부수효과 필요 시 부모에게 제어권 반환
 
@@ -198,7 +198,7 @@ codex-downshift/
 ## 📖 문서 및 참조 자료
 
 - [Project Specification (기획 명세)](docs/codex-downshift-spec.md)
-- [Delegation Examples & Behavioral Scenarios (10대 실전 시나리오)](skills/codex-downshift/references/delegation-examples.md)
+- [Delegation Examples & Behavioral Scenarios (11대 실전 시나리오)](skills/codex-downshift/references/delegation-examples.md)
 - [Task Capsule & Terminal Return Protocols (프롬프트 서식)](skills/codex-downshift/references/task-capsule-template.md)
 - [Changelog (변경 이력)](CHANGELOG.md)
 - [Contributing Guide (기여 가이드)](CONTRIBUTING.md)

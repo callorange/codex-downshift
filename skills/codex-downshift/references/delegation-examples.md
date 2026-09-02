@@ -1,6 +1,6 @@
 # Delegation Examples & Behavioral Scenarios
 
-본 문서는 `codex-downshift` 스킬의 2단계 라우팅 파이프라인(Gate A Safety ➔ Gate B Decision Authority), 4대 반환 규격 및 예외 처리 정책을 검증하기 위한 10대 핵심 실전 시나리오 가이드입니다.
+본 문서는 `codex-downshift` 스킬의 2단계 라우팅 파이프라인(Gate A Safety ➔ Gate B Decision Authority), 4대 반환 규격 및 예외 처리 정책을 검증하기 위한 11대 핵심 실전 시나리오 가이드입니다.
 
 ---
 
@@ -174,11 +174,13 @@ Worktree:
 
 ---
 
-## 🧪 Scenario 8: Validation 1회 복구 실패 (`TASK_FAILED`)
+## 🧪 Scenario 8: Validation 복구 한도 초과 또는 미시도 실패 (`TASK_FAILED`)
 
-- **상황**: Child가 코드를 수정한 후 테스트를 실행했으나 실패 ➔ 1회 복구를 시도하여 수정했으나 의존성 충돌로 재실행 역시 실패함.
+- **상황 A (1회 복구 후 실패)**: Child가 코드를 수정한 후 테스트를 실행했으나 실패 ➔ 1회 복구를 시도하여 수정했으나 의존성 충돌로 재실행 역시 실패함.
+- **상황 B (복구 부적절 실패)**: 외부 테스트 인프라 다운, DB 서버 연결 불가 등 Child가 자체 구현으로 해결할 수 없는 환경 실패 발생.
 - **올바른 동작**:
-  - 무한 루프를 돌며 2차, 3차 복구를 시도하지 않고 즉시 실행을 멈추고 `TASK_FAILED` 반환.
+  - 상황 A: 1회 recovery 실패 후 즉시 `TASK_FAILED` 반환 (`Attempted: YES`).
+  - 상황 B: 억지로 recovery를 수행하지 않고 즉시 `TASK_FAILED` 반환 (`Attempted: NO`, 사유 기재).
   - `git reset --hard` 등으로 작업트리를 자의적으로 파괴하지 않고 상태를 보존하여 부모에게 인계.
 ```text
 TASK_FAILED
@@ -192,7 +194,8 @@ Validation:
   E   TypeError: unsupported operand type(s) for +: 'Decimal' and 'float'
 
 Recovery:
-- Attempted: YES (1 recovery attempt executed to cast float to Decimal in calculate_tax)
+- Attempted: YES
+- 1 recovery attempt executed to cast float to Decimal in calculate_tax, but mock fixture returned unexpected float format.
 
 Remaining blocker:
 Third-party gateway client fixture in tests/conftest.py returns mock data as float, conflicting with strict Decimal typing in payment service.

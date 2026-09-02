@@ -28,7 +28,7 @@ description: Use when operating Codex as a Sol or Terra parent and a bounded exe
    - `low` / `medium`: 자동 선택 허용 (기본값: `medium`).
    - `high` / `xhigh` / `max`: 자동 선택 절대 금지. Parent Direct보다 다운시프트 실익이 명백한 경우에 한해 사용자 명시적 승인 후 예외적 사용.
    - *Reasoning effort 상승은 사고 깊이만 늘릴 뿐 위임된 판단 권한(Decision Authority)을 확장하지 않음.*
-8. **Max 1 Recovery**: Child validation 실패 시 자체 구현 수정은 최대 1회만 허용. 재실행 실패 시 즉시 `TASK_FAILED`로 중단.
+8. **Max 1 Recovery**: Child validation 실패 시 자체 구현 수정은 가능한 경우에 한해 최대 1회만 허용(환경/의존성 등 부적절한 경우 미시도). 재실행 실패 또는 미시도 시 즉시 `TASK_FAILED`로 중단.
 9. **Structured Return Protocols**: Child는 반드시 4대 반환 프로토콜(`TASK_COMPLETED`, `TASK_FAILED`, `NEEDS_PARENT_DECISION`, `NEEDS_PARENT_ACTION`) 중 하나로 종료하며, 임의로 destructive rollback(`git reset --hard` 등)을 수행하지 않음.
 10. **Evidence Before Completion (Scope Matching)**: Parent는 Child 결과를 Blind Trust하지 않으며, **자신이 하려는 Completion Claim의 범위와 정확히 일치하는 Minimum Sufficient Fresh Verification을 직접 수행**.
 
@@ -224,7 +224,7 @@ Notes:
 - None
 ```
 
-### 2) 복구 한도 초과 실패 (`TASK_FAILED`)
+### 2) 복구 한도 초과 또는 미시도 실패 (`TASK_FAILED`)
 ```text
 TASK_FAILED
 
@@ -237,11 +237,11 @@ Validation:
   <short error evidence>
 
 Recovery:
-- Attempted: YES (1 recovery attempt executed)
-- <1회 시도했던 수정 내용 요약>
+- Attempted: YES | NO
+- <recovery summary or reason recovery was not appropriate>
 
 Remaining blocker:
-<수정 후에도 검증을 통과하지 못한 원인>
+<why the task remains incomplete>
 
 Worktree:
 - Current changes preserved for Parent review.
@@ -322,7 +322,7 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 ---
 
 ## 📚 9. 참조 문서
-- [위임 모범 사례 및 10대 실전 시나리오](references/delegation-examples.md)
+- [위임 모범 사례 및 11대 실전 시나리오](references/delegation-examples.md)
 - [Task Capsule 및 4대 반환 프로토콜 표준 서식](references/task-capsule-template.md)
 - [프로젝트 상세 기획 명세서](../../docs/codex-downshift-spec.md)
 

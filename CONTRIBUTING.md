@@ -2,7 +2,7 @@
 
 `codex-downshift` 프로젝트에 관심을 가져주셔서 감사합니다!
 
-본 프로젝트는 OpenAI Codex 환경에서 Sol 또는 Terra를 주력(부모) 모델로 유지하면서, 구체적으로 확정된 실행 작업만을 Luna (`gpt-5.6-luna`)에 위임하여 사용량을 절감하는 순수 마크다운 기반의 경량 스킬입니다.
+본 프로젝트는 OpenAI Codex 환경에서 Sol 또는 Terra를 Active Parent로 유지하면서, 2단계 안전 게이트와 Decision Authority에 따라 bounded execution 작업을 Terra (`gpt-5.6-terra`) 또는 Luna (`gpt-5.6-luna`) Child로 하향 위임하여 사용량과 비용을 절감하는 순수 마크다운 기반의 경량 스킬입니다.
 
 ---
 
