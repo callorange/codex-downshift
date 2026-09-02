@@ -184,7 +184,10 @@ Validation:
 - <검증 명령 2 (예: ruff check src/foo.py)>
 
 Recovery policy:
-At most ONE recovery attempt. If validation still fails, return TASK_FAILED immediately.
+- At most ONE recovery attempt when appropriate.
+- If recovery is not appropriate (for example, an environment or dependency failure), return TASK_FAILED without attempting recovery.
+- If validation still fails after one recovery attempt, return TASK_FAILED immediately.
+- Do not enter recursive retry loops.
 
 Worker constraints:
 - Do not spawn or delegate to other agents.
