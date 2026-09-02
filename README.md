@@ -1,8 +1,8 @@
 # codex-downshift
 
-> **Keep the parent model in control, downshift bounded execution to Luna.**
+> **Keep the parent model in control, downshift bounded execution to Luna & Terra.**
 
-`codex-downshift`는 OpenAI Codex에서 **Sol** 또는 **Terra**를 주력(부모) 모델로 사용할 때, 이미 판단이 완료되고 범위가 명확해진 기계적 실행 작업만을 **Luna** (`gpt-5.6-luna`) 서브에이전트로 다운시프트(위임)하여 Codex 사용량과 비용 절감을 목표로 하는 경량 Agent Skill입니다.
+`codex-downshift`는 OpenAI Codex에서 **Sol** 또는 **Terra**를 주력(부모) 모델로 사용할 때, 사전에 검증된 2단계 안전 게이트(Gate A Safety ➔ Gate B Decision Authority)에 따라 충분히 결정된 실행 작업만을 **Luna** (`gpt-5.6-luna`) 또는 **Terra** (`gpt-5.6-terra`) 서브에이전트로 다운시프트(하향 위임)하여 Codex 사용량과 반복 비용을 절감하는 경량 Agent Skill입니다.
 
 ---
 
@@ -10,24 +10,68 @@
 
 본 프로젝트는 모델 간에 사용자를 임의로 스위칭하거나 복잡한 라우팅 규칙을 적용하는 일반적인 Model Router가 아닙니다.
 
-1. **부모 모델의 판단권 유지**: 요구사항 해석, 아키텍처 설계, 비즈니스 결정 등 고난도 추론은 사용자가 선택한 상위 모델(Sol/Terra)이 끝까지 책임집니다.
-2. **단방향 하향 위임 (Downshift Only)**: 상위 모델의 판단이 끝난 명확한 실행 단계(TDD 반복, 확정된 코드 작성, docstring/문서 수정, 린트/타입 오류 수정 등)만 Luna (`gpt-5.6-luna`)로 내려보냅니다.
-3. **Leaf Worker 원칙 (지침 기반 제약)**: 본 스킬은 instruction-only 스킬로, 하위 워커가 다른 에이전트를 생성하거나 외부 부수효과를 실행하지 않도록 엄격히 제한합니다. 추가 판단이 필요하면 `NEEDS_PARENT_DECISION`, 외부 권한 작업이 필요하면 `NEEDS_PARENT_ACTION`으로 작업을 즉시 반환합니다.
-4. **Fail-Closed Fallback 불변 규칙**: Luna 생성이 실패하거나 미지원 환경인 경우, Terra/Sol child로 우회하거나 escalation하지 않고 **부모 모델이 직접 수행**하여 불필요한 고비용 모델 추가 호출을 원천 차단합니다.
+1. **Parent Authority (부모 모델의 판단권 유지)**: 요구사항 해석, 아키텍처 설계, Public API, 보안, 비즈니스 결정 등 고난도 추론은 사용자가 선택한 Active Parent(Sol/Terra)가 끝까지 책임지며, Parent 역할 자체는 Child에게 위임되지 않습니다.
+2. **단방향 하향 위임 (Downshift Only)**: 상위 부모 모델의 판단이 끝난 실행 작업만 하위 모델(`Sol ➔ Terra/Luna`, `Terra ➔ Luna`)로 내려보냅니다.
+3. **Leaf Worker / No Chaining**: 모든 자식 워커는 Leaf Worker로 동작하며 다른 에이전트 생성이나 다단계 체이닝(`Sol ➔ Terra ➔ Luna`)이 엄격히 금지됩니다.
+4. **Safety Before Routing (2단계 게이트)**: Bounded, Verifiable, Limited Consequence(저위험/가역적)를 만족하는 작업만 위임하며, DB migration이나 보안 등 High Consequence 작업은 구현이 닫혀 있어도 **부모 모델이 직접 수행**합니다.
+5. **Fail-Closed Fallback**: Child spawn 실패 또는 라우팅 모호 시 타 모델 우회 없이 **부모 모델이 직접 수행**합니다.
+6. **Evidence Before Completion**: Parent는 Child의 성공 보고를 맹신하지 않고, 자신의 완료 보고 범위와 일치하는 독립적인 **Minimum Sufficient Fresh Verification을 직접 수행**합니다.
 
 ---
 
-## 📊 지원 모델 매트릭스
+## 📊 지원 모델 및 위임 매트릭스
 
-| 부모 모델 (Active Parent) | 위임 동작 | 설명 |
+| 부모 모델 (Active Parent) | 위임 대상 (Child) | 대상 작업 (Decision Authority) |
 | :--- | :--- | :--- |
-| **Sol** | ✅ `Sol ➔ Luna` 활성화 | 모든 핵심 판단은 Sol이 수행하고, 확정된 실행 작업만 Luna에 위임 |
-| **Terra** | ✅ `Terra ➔ Luna` 활성화 | 모든 핵심 판단은 Terra가 수행하고, 확정된 실행 작업만 Luna에 위임 |
-| **Luna** | ❌ 위임 비활성화 | 사용자가 Luna를 주 모델로 선택한 경우 상위 모델을 자동 호출하지 않음 |
-| **기타 모델** | ❌ 위임 비활성화 | 지원하지 않는 모델 환경에서는 자동 위임을 비활성화하고 부모가 직접 수행 |
+| **Sol** | ✅ **`gpt-5.6-luna`** | `Semantic Closed` + `Implementation Closed` (단순 TDD 반복, docstring, 정형 린트/타입 수정 등 기계적 실행) |
+| **Sol** | ✅ **`gpt-5.6-terra`** | `Semantic Closed` + `Implementation-Local Decision Remains` (외부 계약 확정, 내부 로컬 알고리즘/구현 선택 위임) |
+| **Terra** | ✅ **`gpt-5.6-luna`** | `Implementation Closed` (정형 docstring, 린트/타입 수정, 단순 단위 테스트 등 기계적 실행) |
+| **Terra** | 🛑 **Terra Direct** | 구현 판단이 남은 작업은 Downshift Only 원칙에 따라 Terra 부모가 직접 수행 |
+| **Luna** | ❌ **비활성화** | 사용자가 Luna를 주 모델로 선택한 경우 상위 모델 자동 호출 없음 (직접 처리) |
 
 > [!NOTE]
-> 수평 전환(`Sol ↔ Terra`)이나 상향 에스컬레이션(`Luna ➔ Sol/Terra`)은 절대 자동으로 발생하지 않습니다.
+> 상향 에스컬레이션(`Luna/Terra ➔ Sol`)이나 동일 티어 재위임(`Terra Parent ➔ Terra Child`, `Sol Parent ➔ Sol Child`)은 절대 발생하지 않습니다.
+
+---
+
+## 🧭 2단계 결정적 라우팅 파이프라인 (Routing Pipeline)
+
+```text
+Active Parent (Sol or Terra)
+  │
+  ├─ 1. Trivial Atomic Action 단독인가? (단일 1줄/리터럴 수정 등)
+  │    YES ──────────────────────────────────────────→ Parent Direct (오버헤드 방지)
+  │    NO
+  ▼
+┌──────────────────────────────────────────────────────────┐
+│ Gate A: Delegation Safety Gate                           │
+│ - Bounded: 수정 범위와 영향 표면을 충분히 특정 가능한가?          │
+│ - Verifiable: 객관적 Acceptance와 결정적 검증 수단이 있는가?    │
+│ - Limited Consequence: 실패 영향이 국소적/가역적인가?         │
+│ - No High-Impact: 보안/권한/DB Migration/배포/파괴적 변경 배제│
+└────────────────────────────┬─────────────────────────────┘
+                             │
+            ANY NO (위험/모호) ┴──────────────→ Parent Direct (Fail-Closed)
+                             │ ALL PASS
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│ Gate B: Decision Authority Gate                          │
+│                                                          │
+│ (Active Sol Parent)                                      │
+│ ├─ Semantic / API / Architecture / High-impact 판단 남음  │
+│ │  ─────────────────────────────────────────→ Sol Direct │
+│ ├─ Semantic 닫힘 + Implementation-local 분석/선택 남음    │
+│ │  ─────────────────────────────────────────→ Terra Child│
+│ └─ Implementation까지 닫힌 기계적 실행                    │
+│    ─────────────────────────────────────────→ Luna Child │
+│                                                          │
+│ (Active Terra Parent)                                    │
+│ ├─ Implementation까지 닫힌 기계적 실행                    │
+│ │  ─────────────────────────────────────────→ Luna Child │
+│ └─ 그 외 모든 작업 (판단 필요 작업 포함)                   │
+│    ─────────────────────────────────────────→ Terra Direct│
+└──────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -36,14 +80,29 @@
 다운시프트 실행 시 부모 모델은 Codex Native Subagent 생성을 통해 모델 상속을 방지하고 독립 컨텍스트로 자식 워커를 실행합니다:
 
 ```text
+# Sol ➔ Luna 또는 Terra ➔ Luna
 spawn_agent(
     model = "gpt-5.6-luna",          # [필수] 부모 모델 상속 방지
     fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
-    reasoning_effort = "medium",     # [필수] 기본값은 medium, 작업 난이도에 따라 low/medium/high 명시
+    reasoning_effort = "low"|"medium", # [필수] 자동 기본값은 medium
     task_name = "<task_name>",
-    message = "<Minimal Self-Contained Task Capsule>"
+    message = "<Task Capsule>"
+)
+
+# Sol ➔ Terra (Sol Parent 전용)
+spawn_agent(
+    model = "gpt-5.6-terra",         # [필수] Terra 모델 명시
+    fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
+    reasoning_effort = "low"|"medium", # [필수] 자동 기본값은 medium
+    task_name = "<task_name>",
+    message = "<Task Capsule>"
 )
 ```
+
+### ⚙️ Reasoning Effort 정책
+- **자동 허용**: `low`, `medium` (기본값: `medium`)
+- **사용자 승인 필수**: `high`, `xhigh`, `max` (자동 선택 절대 금지, Parent Direct 우선 평가 후 실익이 명백할 때 사용자 승인 후 예외 사용)
+- **불변 원칙**: Reasoning effort 상승은 사고 깊이만 늘릴 뿐, **Child의 판단 권한(Decision Authority)을 확장하지 않습니다.**
 
 ---
 
@@ -64,99 +123,52 @@ npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent
 - **글로벌 스킬 설치 (전역 격리)**: `~/.codex/skills/codex-downshift/`
   > 타 에이전트(Claude Code, Antigravity 등)가 전역 `$HOME/.agents/skills/`를 조회하여 Codex 전용 스킬을 오인식하는 문제를 방지하기 위해 Codex 전용 디렉터리에 격리 설치합니다.
 - **프로젝트 로컬 설치**: `<project-root>/.agents/skills/codex-downshift/`
-  > 프로젝트 내 설치는 해당 저장소 작업이 Codex 기반으로 진행됨을 의미하므로 Agent Skills 표준 경로를 사용합니다.
 
 ---
 
 ## 🔄 업데이트 (Updating)
 
-`skills` CLI는 설치된 스킬의 source 및 hash 정보를 lock file에 안전하게 기록하므로, 스킬 자체에 별도의 versioning runtime이 없어도 최신 버전을 간편하게 업데이트할 수 있습니다.
-
-### 1. 표준 CLI 업데이트
-
 ```bash
-# 글로벌로 설치된 codex-downshift만 업데이트
+# 글로벌로 설치된 codex-downshift 업데이트
 npx skills@latest update codex-downshift -g -y
 
-# 설치된 글로벌 스킬 전체 업데이트
-npx skills@latest update -g -y
+# Windows 환경 fallback 재설치
+npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex --global -y
 ```
 
-### 2. Windows 환경 fallback 안내
-
-> [!TIP]
-> Windows 터미널 환경이나 특정 `skills` CLI 버전에서 `update` 명령 실행 중 이슈가 발생할 경우, 기존 설치에 사용했던 `skills add` 명령을 다시 실행하여 최신 소스로 안전하게 재설치/갱신할 수 있습니다:
-> ```bash
-> npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex --global -y
-> ```
-
 ---
 
-## 🛡️ 위임 적격성 및 안전성 신호 (Safety Signals)
+## 📋 Task Capsule & 4대 반환 프로토콜
 
-부모 모델은 작업을 위임하기 전 **"하위 워커가 상위 추론을 다시 해야 하는가?"**를 확인하고, 다음 기본 요건과 3대 안전성 신호를 점검합니다:
-
-### 1. 기본 필수 요건 (Baseline Requirements)
-- **수정 목적/대상 특정성**: 무엇을 바꾸는지 명확하고 대상 파일/심볼이 특정됨.
-- **기대 동작/설계 결정 완료**: 입출력 및 알고리즘이 확정되어 하위 워커가 대안을 고민할 필요 없음.
-- **Acceptance Criteria & 검증 수단**: 객관적 완료 기준과 결정적 검증 방법(테스트/린트 등)이 완비됨.
-- **제한적 실패 영향**: 실패하더라도 범위가 국소적이고 부모가 쉽게 검토·롤백 가능함.
-
-### 2. 3대 안전성 보조 신호 (Safety Signals)
-- **Coupling (결합도)**: 수정 범위가 국소적이고 명확한 작업만 위임 (다중 시스템 강결합 시 부모 직접 수행).
-- **Verification (검증성)**: 테스트, 린트, 타입체크 등 결정적(Deterministic) 검증이 가능한 작업만 위임.
-- **Consequence (영향도)**: 실패 영향이 가역적이고 제한적인 작업만 위임 (보안/권한/데이터손실/마이그레이션 등 Blast Radius 큰 작업은 부모 직접 수행).
-- **Validation Budget & Max 1 Recovery**: 검증 실패 시 Luna의 자체 구현 실수에 한해 **최대 1회 복구(Recovery)**만 허용하여 토큰 낭비 루프를 방지.
-
----
-
-## 📋 Task Capsule 형식 (Self-Contained Prompt)
-
-부모 모델은 불필요하게 긴 Chain-of-Thought나 전체 대화를 넘기지 않고, 하위 워커가 상위 추론을 다시 수행하지 않아도 되는 **최소한의 완결된(Self-Contained) 지침**을 전달합니다.
-
-작성 전에는 결과의 의미·동작·범주가 확정되었는지, Luna에 제품·정책 선택이 남지 않았는지, 정확한 표현이 계약이면 `Exact change`가 있는지, Acceptance criteria가 의미적 불변조건을 검증하는지 확인합니다. 이 parent-only check는 child message에 포함하지 않습니다.
-
+### 1. Task Capsule 핵심 서식
 ```text
-Role:
-You are a leaf execution worker.
+TASK CAPSULE
 
-Goal:
-<이 작업으로 달성해야 하는 결과>
-
-Target:
-<파일 / 클래스 / 함수 / 테스트 / 심볼>
-
-Decisions already made:
-<부모 모델이 이미 결정한 내용>
-
-Exact change:
-<정확한 결과 형태가 계약이면 필수: final text, before/after 또는 결정적인 변환 규칙>
-
-Preserve:
-<유지해야 하는 기존 동작/불변조건>
-
-Do not touch:
-<명시적인 수정 금지 범위>
-
+Role: You are a leaf worker.
+Goal: <명확한 단일 작업 목표>
+Target / Scope: <허용된 파일 / 심볼 경로>
+Decisions already made: <부모가 확정한 요구사항, API, 동작 결정>
+Delegated authority: <Luna: Predetermined execution / Terra: Implementation-local choice>
+Must not decide: <부모 모델 고유의 판단 영역>
+Exact change: <결과 형태가 계약인 경우 필수: final text 또는 고정 변환 규칙>
+Preserve: <유지해야 하는 기존 동작/호환성>
+Do not touch: <수정 금지 영역>
 Acceptance criteria:
-<의미·범주·동작·호환성 불변조건과 기계적 검증 결과>
-
+- [ ] <유지해야 할 의미·동작 불변조건>
+- [ ] <기계적 검증 결과>
 Validation:
-<실행할 테스트 / lint / typecheck 명령>
-
-Recovery policy:
-If validation fails due to minor implementation error, attempt at most ONE recovery. If it still fails, return failure details immediately.
-
-Escalation condition:
-- If new semantic/behavioral/architectural judgment is needed: return NEEDS_PARENT_DECISION.
-- If external side-effects (git push, deploy, secrets, elevated actions) are needed: return NEEDS_PARENT_ACTION.
-
-Worker constraints:
-- Do not spawn or delegate to other agents.
-- Do not invoke another model.
-- Do not perform external side-effects or destructive operations.
-- Stop when acceptance criteria are satisfied.
+- <검증 명령 1>
+- <검증 명령 2>
+Recovery policy: At most ONE recovery attempt. If still failing, return TASK_FAILED.
+Worker constraints: Leaf worker only. No subagent spawning. No destructive rollbacks.
+Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
 ```
+
+### 2. 4대 반환 프로토콜
+- **`TASK_COMPLETED`**: 다중 Validation 증거와 Acceptance 대조 완료 보고
+- **`TASK_FAILED`**: 1회 복구 실패 후 작업트리를 보존하며 실패 상세 보고
+- **`NEEDS_PARENT_DECISION`**: 새 설계 판단/모호성 직면 시 부모에게 제어권 반환
+- **`NEEDS_PARENT_ACTION`**: git push, deploy 등 외부 부수효과 필요 시 부모에게 제어권 반환
 
 ---
 
@@ -186,8 +198,8 @@ codex-downshift/
 ## 📖 문서 및 참조 자료
 
 - [Project Specification (기획 명세)](docs/codex-downshift-spec.md)
-- [Delegation Examples & Scenarios (12대 실전 시나리오)](skills/codex-downshift/references/delegation-examples.md)
-- [Task Capsule Template (프롬프트 서식)](skills/codex-downshift/references/task-capsule-template.md)
+- [Delegation Examples & Behavioral Scenarios (10대 실전 시나리오)](skills/codex-downshift/references/delegation-examples.md)
+- [Task Capsule & Terminal Return Protocols (프롬프트 서식)](skills/codex-downshift/references/task-capsule-template.md)
 - [Changelog (변경 이력)](CHANGELOG.md)
 - [Contributing Guide (기여 가이드)](CONTRIBUTING.md)
 
@@ -195,7 +207,7 @@ codex-downshift/
 
 ## 🙏 Acknowledgements
 
-Parts of the delegation safety design and execution constraints were inspired by [codex-auto-model-router](https://github.com/orange-the-weak/codex-auto-model-router), particularly its bounded task delegation, task capsule structure, validation budget, and fail-safe execution concepts. `codex-downshift` was independently redesigned and implemented to serve as a lightweight, instruction-only skill focusing strictly on Parent-controlled downshifting.
+Parts of the delegation safety design and execution constraints were inspired by [codex-auto-model-router](https://github.com/orange-the-weak/codex-auto-model-router), particularly its bounded task delegation, task capsule structure, validation budget, and fail-safe execution concepts. `codex-downshift` was independently redesigned and implemented to serve as a lightweight, instruction-only skill focusing strictly on Parent-controlled downshifting with Tiered Downshift and 2-stage safety gates.
 
 ---
 

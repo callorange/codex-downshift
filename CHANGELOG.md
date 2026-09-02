@@ -7,14 +7,21 @@
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-02
+
 ### 추가 (Added)
-- `SKILL.md`와 프로젝트 spec에 spawn 전 의미·동작·범주·외부 계약을 부모가 확정하도록 하는 Semantic Decision Closure 규칙 추가.
-- `SKILL.md`, Task Capsule template 및 `README.md`의 Capsule 형식에 parent-only Pre-spawn check와 의미적 Acceptance Criteria 작성 지침 추가.
-- `delegation-examples.md`에 문서의 MVP/장기 확장 범주를 보존하는 Bad/Good 사례 추가.
+- **10대 핵심 불변 규칙 (10 Core Invariants)** 정립 및 `SKILL.md` 토큰 다이어트(Token Diet) 적용.
+- **2단계 결정적 라우팅 파이프라인**: Gate A (Delegation Safety Gate) ➔ Gate B (Decision Authority Gate) 2단계 안전 검증 도입.
+- **역할별 계층형 하향 위임 (Tiered Downshift)**: `Sol ➔ Terra / Luna` 및 `Terra ➔ Luna` 하향 위임 지원.
+- **역할별 위임 권한 (Role-Based Child Delegated Authority)**: Active Parent (상위 판단 소유) vs Terra Child (로컬 구현 분석/선택) vs Luna Child (확정된 기계적 실행).
+- **4대 표준 Terminal Return Protocols**: `TASK_COMPLETED` (다중 검증 지원), `TASK_FAILED` (1회 복구 실패 후 작업트리 보존), `NEEDS_PARENT_DECISION`, `NEEDS_PARENT_ACTION` 표준화 (`task-capsule-template.md`).
+- **10대 핵심 실전 행동 시나리오 (Behavioral Specifications)**: High Consequence Gate A 차단, Gate B 모델 라우팅, 4대 반환 프로토콜, Fail-Closed Fallback 등 10대 시나리오 구축 (`delegation-examples.md`).
+- **Scope-Matched Fresh Verification**: `Verification scope MUST match the completion claim scope` 원칙에 따른 Parent의 독립 최소 직접 검증 표준화.
+- **Reasoning Effort 정책**: `low`/`medium` 자동 기본값, `high`/`xhigh`/`max` 사용자 명시적 승인 프로토콜 명문화.
 
 ### 변경 (Changed)
-- 정확한 문구·분류·literal·고정 코드 블록이 계약인 작업에서는 `Exact change`를 필수로 제공하도록 규칙 강화.
-- reasoning effort는 실행 복잡도만 조절하며 Luna의 의미적·제품·아키텍처 결정 권한을 확장하지 않는다는 불변 규칙 명문화.
+- Downshift Only 정의 명확화: 상향 위임 및 동일 티어 재위임 금지, No Chaining(`Sol ➔ Terra ➔ Luna` 금지) 명시.
+- `docs/codex-downshift-spec.md` 및 `README.md` 전면 최신화 동기화.
 
 ## [0.1.3] - 2026-08-31
 

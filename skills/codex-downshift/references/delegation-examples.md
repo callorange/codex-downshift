@@ -1,270 +1,236 @@
-# Delegation Examples & Verification Scenarios
+# Delegation Examples & Behavioral Scenarios
 
-본 문서는 `codex-downshift` 스킬의 핵심 동작 및 검증 시나리오를 정의한 참조 가이드입니다.
+본 문서는 `codex-downshift` 스킬의 2단계 라우팅 파이프라인(Gate A Safety ➔ Gate B Decision Authority), 4대 반환 규격 및 예외 처리 정책을 검증하기 위한 10대 핵심 실전 시나리오 가이드입니다.
 
 ---
 
 ## 🎯 핵심 시나리오 요약 매트릭스
 
-| 번호 | 시나리오 상황 | 부모 모델 | 다운시프트 동작 | 기대 결과 |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | 명확한 구현 / TDD 작업 | **Sol** | ✅ **위임 (Downshift)** | `gpt-5.6-luna` child 생성 (`fork_turns="none"`, `reasoning_effort="medium"`) |
-| **2** | 명확한 문서 / 린트 수정 | **Terra** | ✅ **위임 (Downshift)** | `gpt-5.6-luna` child 생성 (`reasoning_effort="low"`) |
-| **3** | 단일 1줄/리터럴 수정 단독 | **Sol/Terra** | ❌ **부모 직접 수행** | Task Capsule 오버헤드 방지를 위해 부모가 직접 수정 |
-| **4** | 여러 기계적 수정 + 테스트 묶음 | **Sol/Terra** | ✅ **배치 위임** | 여러 작은 작업을 하나의 Bounded Task Capsule로 묶어 Luna에 위임 |
-| **5** | 주력 모델로 단독 실행 중 | **Luna** | ❌ **비활성화 (No-op)** | child 생성 없이 Luna가 직접 처리 |
-| **6** | 계획 / 브레인스토밍 요청 | **Sol/Terra** | ❌ **비활성화 (No-op)** | child 생성 없이 부모가 직접 설계·답변 |
-| **7** | 원인 불명의 복잡한 디버깅 | **Sol/Terra** | ❌ **비활성화 (No-op)** | child 생성 없이 부모가 원인 규명 및 해결 |
-| **8** | 새 설계 판단 직면 | **Luna Worker**| 🛑 **의미적 에스컬레이션** | `NEEDS_PARENT_DECISION` 반환 후 부모가 판단 |
-| **9** | 외부 부수효과 / 승인 필요 작업 | **Luna Worker**| 🛑 **부수효과 에스컬레이션** | `NEEDS_PARENT_ACTION` 반환 후 부모가 실행 |
-| **10**| Validation 실패 시 1회 초과 | **Luna Worker**| 🛑 **복구 한도 도달 반환** | 1회 recovery 후에도 실패 시 즉시 부모에게 원인 보고 |
-| **11**| Luna spawn 실패 / 미지원 | **Sol/Terra** | 🛡️ **Fail-Closed Fallback** | 상위 모델 child 생성/재시도 없이 부모가 직접 수행 |
-| **12**| Luna 작업 완료 후 | **Sol/Terra** | 🔄 **최소 Acceptance** | 전체 재작업/동일테스트 반복 없이 결과만 확인 |
+| 번호 | 시나리오 상황 | 부모 모델 | 라우팅 / 동작 | 기대 결과 |
+| :---: | :--- | :---: | :---: | :--- |
+| **1** | DB Migration 등 High Consequence 작업 | **Sol/Terra** | 🛑 **Gate A 차단 ➔ Parent Direct** | 구현이 닫혀 있어도 파괴적/운영 변경이므로 부모 직접 수행 |
+| **2** | 계약 확정 + 구현 로컬 판단 잔여 | **Sol** | 🟡 **Gate B ➔ Terra Child 위임** | `gpt-5.6-terra` child 생성 (`reasoning_effort="medium"`) |
+| **3** | 다중 파일 확정 패턴 기계적 적용 | **Sol** | 🟢 **Gate B ➔ Luna Child 위임** | `gpt-5.6-luna` child 생성 (파일 수와 무관하게 Luna) |
+| **4** | 확정된 docstring / 린트 / 테스트 수정 | **Terra** | 🟢 **Gate B ➔ Luna Child 위임** | `gpt-5.6-luna` child 생성 (`reasoning_effort="low"|"medium"`) |
+| **5** | 구현 판단 잔여 작업 (Terra 부모) | **Terra** | 🛑 **Downshift Only ➔ Terra Direct** | Terra 부모는 Terra child를 부르지 않고 직접 수행 |
+| **6** | Child 작업 중 새 설계 판단 직면 | **Child** | 🛑 **`NEEDS_PARENT_DECISION`** | 하위 워커 임의 판단 금지, 미결 사항 보고 후 부모 판단 |
+| **7** | Child 외부 부수효과 필요 직면 | **Child** | 🛑 **`NEEDS_PARENT_ACTION`** | git push/deploy 등 외부 권한 작업 시 부모에게 제어권 반환 |
+| **8** | 1회 복구 시도 후에도 검증 실패 | **Child** | 🛑 **`TASK_FAILED`** | 무한 루프 금지, 작업트리 보존 후 실패 상세 보고 |
+| **9** | `high`/`xhigh`/`max` reasoning 필요 | **Sol/Terra** | ⚙️ **User Approval Protocol** | 자동 spawn 금지, Parent Direct 우선 검토 후 사용자 승인 요청 |
+| **10**| Child spawn 실패 / 런타임 오류 | **Sol/Terra** | 🛡️ **Fail-Closed Fallback** | 타 모델 우회/재시도 없이 부모 모델이 직접 수행 |
+| **11**| 정상 완료 보고 수신 | **Sol/Terra** | 🔍 **Claim-Matched Fresh Verification** | `TASK_COMPLETED` 수신 후 Parent 최소 직접 검증 후 보고 |
 
 ---
 
-## 🧪 Scenario 1: Sol + 명확한 TDD 구현 (정상 위임)
+## 🧪 Scenario 1: High Consequence 작업 (Gate A 차단)
 
-### 상황
-부모 모델(Sol)이 사용자 요구사항을 분석하고, 이메일 검증 로직의 규격과 테스트 케이스를 모두 확정한 상태.
-
-### 부모 모델의 동작
-```text
-spawn_agent(
-    model = "gpt-5.6-luna",
-    fork_turns = "none",
-    reasoning_effort = "medium",
-    task_name = "implement_email_domain_validator",
-    message = """Role: You are a leaf execution worker.
-Goal: Add email domain validation for '@company.com' only, and verify with tests.
-Target:
-- Code: src/validators/email.py :: validate_company_email
-- Test: tests/test_email_validator.py
-
-Decisions already made:
-- Function: def validate_company_email(email: str) -> bool
-- Behavior: Returns True if email ends with '@company.com' (case-insensitive), otherwise raises ValueError("Invalid corporate email").
-- Implementation: Use string.lower().endswith("@company.com").
-
-Exact change:
-1. In tests/test_email_validator.py, add tests for valid domain, invalid domain (raises ValueError), and case insensitivity.
-2. In src/validators/email.py, implement validate_company_email.
-
-Preserve: Existing validator functions in src/validators/email.py.
-Acceptance criteria:
-- Valid company.com input returns True regardless of domain letter case.
-- Invalid domain input raises ValueError("Invalid corporate email") and never returns False.
-- Existing validator functions remain unchanged.
-- pytest tests/test_email_validator.py passes.
-Validation: pytest tests/test_email_validator.py
-Recovery policy: If validation fails due to minor implementation error, attempt at most ONE recovery.
-Escalation condition:
-- If callers expect False return: return NEEDS_PARENT_DECISION.
-- If external side-effects needed: return NEEDS_PARENT_ACTION.
-Worker constraints: Leaf worker only. Do not spawn agents or perform external side-effects."""
-)
-```
+- **상황**: DB 테이블 컬럼에 `NOT NULL` 제약조건을 추가하고 기본값을 채우는 migration SQL과 스크립트 작성이 완전히 확정됨.
+- **라우팅 판정**:
+  - Semantic Closed + Implementation Closed이지만, 데이터 손실 위험 및 락(Lock) 유발 가능성이 있는 **High Consequence/Blast Radius** 작업임.
+  - **Gate A (Delegation Safety Gate)**에서 탈락.
+- **올바른 동작**:
+  - ❌ Luna 또는 Terra로 위임하지 않음.
+  - ✅ **부모 모델(Sol/Terra)이 직접 마이그레이션 코드를 작성하고 검증합니다.**
 
 ---
 
-## 🧪 Scenario 2: Terra + Docstring / 문서 수정 (Low Reasoning 위임)
+## 🧪 Scenario 2: Sol Parent + Implementation-Local 판단 잔여 (Terra Child)
 
-### 상황
-부모 모델(Terra)이 특정 함수의 Docstring을 Google Python Style에 맞추어 작성하기로 결정함.
-
-### 부모 모델의 동작
-```text
-spawn_agent(
-    model = "gpt-5.6-luna",
-    fork_turns = "none",
-    reasoning_effort = "low",
-    task_name = "update_user_service_docstring",
-    message = """Role: You are a leaf execution worker.
-Goal: Update docstring for UserService.create_user.
-Target: src/services/user_service.py :: UserService.create_user
-
-Exact change:
-Replace the existing docstring with:
-\"\"\"Creates a new active user in the system.
-
-Args:
-    username: Unique username for login.
-    email: Verified email address.
-
-Returns:
-    User: The newly created User model instance.
-
-Raises:
-    UserAlreadyExistsError: If a user with the same email already exists.
-\"\"\"
-
-Preserve: Function signature, implementation, and type hints.
-Acceptance criteria:
-- The docstring matches the Exact change text verbatim.
-- Function signature, implementation, and type hints remain unchanged.
-- ruff check src/services/user_service.py passes.
-Validation: ruff check src/services/user_service.py
-Recovery policy: Max 1 recovery attempt.
-Escalation condition: If signature differs from above, return NEEDS_PARENT_DECISION.
-Worker constraints: Leaf worker only. Do not spawn agents."""
-)
-```
-
-### 문서 범주 보존: Bad / Good
-
-#### Bad
-
-```text
-Goal:
-관련 기능의 MVP 범위와 장기 범위를 자연스럽게 정리한다.
-
-Decisions already made:
-- Feature A와 Feature B를 언급한다.
-- Future Feature C도 언급한다.
-```
-
-이 지시는 기능별 범주, 문장 구조 및 생략 가능 정보를 Luna가 다시 결정하게 하므로 위임할 수 없습니다.
-
-#### Good
-
-```text
-Goal:
-확정된 제품 범위를 README에 반영한다.
-
-Target:
-README.md의 `## 제품 범위` 제목 바로 아래. 기존 범위 목록을 교체하며, 해당 제목이 없으면 `NEEDS_PARENT_DECISION`을 반환한다.
-
-Exact change:
-다음 Markdown으로 `## 제품 범위` 아래의 기존 범위 목록을 원문 그대로 교체한다.
-
-- Feature A와 Feature B는 Full MVP 범위입니다.
-- Future Feature C는 Full MVP 이후의 장기 확장 범위입니다.
-
-Preserve:
-- 두 범주를 하나로 합치지 않는다.
-- 기존 개발 환경 문단은 변경하지 않는다.
-
-Acceptance criteria:
-- Feature A와 Feature B가 Full MVP로 표기된다.
-- Future Feature C가 장기 확장으로 별도 표기된다.
-- 세 기능이 동일한 범주로 합쳐지지 않는다.
-- 부모가 제공한 Markdown 원문이 변경되지 않는다.
-- git diff --check가 통과한다.
-```
-
----
-
-## 🧪 Scenario 3: 단일 1줄/리터럴 수정 단독 (부모 직접 수행 예외)
-
-- **상황**: `config.py`의 `TIMEOUT = 30`을 `TIMEOUT = 60`으로 1줄만 수정하는 독립적이고 사소한 단독 요청.
+- **상황**: Sol 부모 모델이 주문 할인 계산기 API 명세(입출력 타입, 에러 조건, 할인율 정책)를 확정했으나, 내부 알고리즘(Strategy 패턴 vs 함수형 파이프라인)의 선택은 하위 워커에게 맡기고자 함.
+- **라우팅 판정**:
+  - Gate A 통과 (Bounded, Verifiable, 저위험 로컬 코드)
+  - Gate B: Semantic/API Closed + **Implementation-Local Decision Remains** ➔ **Terra Child**.
 - **부모 모델의 동작**:
-  - Task Capsule 작성 및 `spawn_agent` 호출 오버헤드가 코드 수정 자체보다 명백히 크므로, **부모 모델(Sol/Terra)이 직접 수술적 편집(Surgical Edit)을 수행**하여 완료합니다.
+  ```text
+  spawn_agent(
+      model = "gpt-5.6-terra",
+      fork_turns = "none",
+      reasoning_effort = "medium",
+      task_name = "implement_discount_calculator",
+      message = """TASK CAPSULE
+  Role: You are a leaf worker.
+  Goal: Implement OrderDiscountCalculator satisfying the fixed API contract.
+  Target / Scope: src/services/discount.py, tests/test_discount.py
+  Decisions already made:
+  - Fixed API: calculate_discount(order: Order) -> Decimal
+  - Policy: VIP=20%, Regular=5%, Holiday Promo adds 5% max up to 25%. Raises InvalidOrderError if total <= 0.
+  Delegated authority: Implementation-local architecture and algorithm structure inside discount.py.
+  Must not decide: Do not alter the Public API signature, return types, or discount rate percentages.
+  Acceptance criteria:
+  - [ ] All discount calculation rules pass unit tests.
+  - [ ] InvalidOrderError raised on negative or zero total.
+  Validation: pytest tests/test_discount.py && ruff check src/services/discount.py
+  Recovery policy: At most ONE recovery attempt.
+  Worker constraints: Leaf worker only. Do not spawn other agents.
+  Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION"""
+  )
+  ```
 
 ---
 
-## 🧪 Scenario 4: 여러 기계적 수정 + 테스트 묶음 (Bounded Batching 위임)
+## 🧪 Scenario 3: Sol Parent + 확정된 다중 파일 기계적 수정 (Luna Child)
 
-- **상황**: 5개 파일의 deprecated import 경로 수정 및 관련 2개 테스트 실행이 필요한 작업.
-- **올바른 동작 (Good - Batching)**:
-  - 5개 수정을 각각 Luna 1~5로 파편화하여 생성하지 않고, **하나의 Bounded Task Capsule로 묶어서 단일 Luna 워커에게 위임**합니다.
+- **상황**: 12개 직렬화 모듈의 deprecated 필드명을 신규 명세에 맞춰 교체하고, 기존 테스트 4개를 업데이트해야 함.
+- **라우팅 판정**:
+  - 파일 수가 12개로 많지만, 변환 패턴과 대상이 완벽히 정형화됨 (Implementation Closed).
+  - *파일 수가 많다는 이유로 Terra로 올리지 않음.* ➔ **Luna Child**.
 - **부모 모델의 동작**:
-  - `spawn_agent(model="gpt-5.6-luna", fork_turns="none", reasoning_effort="low", task_name="batch_update_deprecated_imports", message="...")`
+  ```text
+  spawn_agent(
+      model = "gpt-5.6-luna",
+      fork_turns = "none",
+      reasoning_effort = "medium",
+      task_name = "batch_update_serializer_fields",
+      message = """TASK CAPSULE
+  Role: You are a leaf worker.
+  Goal: Rename deprecated field 'user_id' to 'account_id' across 12 serializers and update tests.
+  Target / Scope: src/serializers/*.py, tests/test_serializers.py
+  Decisions already made: All 12 serializers must use 'account_id: UUID'.
+  Delegated authority: Predetermined execution only. Apply exact renaming.
+  Must not decide: Do not add or remove any other fields.
+  Acceptance criteria:
+  - [ ] All 12 serializers use account_id.
+  - [ ] pytest tests/test_serializers.py passes.
+  Validation: pytest tests/test_serializers.py && ruff check src/serializers/
+  Recovery policy: At most ONE recovery attempt.
+  Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION"""
+  )
+  ```
 
 ---
 
-## 🧪 Scenario 5: Luna Parent 사용 시 (자동 위임 비활성화)
+## 🧪 Scenario 4: Terra Parent + 기계적 실행 (Luna Child)
 
-- **상황**: 사용자가 Codex의 주 모델을 `Luna`로 선택하여 대화 중.
-- **동작**: `codex-downshift` 스킬은 완전히 비활성화되며, Luna가 다른 에이전트(Terra/Sol)를 호출하지 않고 모든 작업을 직접 수행합니다.
-
----
-
-## 🧪 Scenario 6: Planning / Brainstorming 요청 (위임 제외)
-
-- **사용자 요청**: "이 서비스의 인증 아키텍처 개선 계획을 세워줘."
+- **상황**: Terra가 주력(Parent) 모델인 상태에서, 확정된 Docstring 작성 및 단위 테스트 린트 수정을 처리해야 함.
+- **라우팅 판정**:
+  - Gate A 통과, Implementation Closed ➔ **Luna Child**.
 - **부모 모델의 동작**:
-  - 서브에이전트를 생성하지 않습니다.
-  - 부모 모델(Sol/Terra)이 코드베이스를 직접 조사하고 계획 문서를 작성합니다.
+  ```text
+  spawn_agent(
+      model = "gpt-5.6-luna",
+      fork_turns = "none",
+      reasoning_effort = "low",
+      task_name = "update_docstrings",
+      message = "..."
+  )
+  ```
 
 ---
 
-## 🧪 Scenario 7: 원인 불명의 복잡한 디버깅 (위임 제외)
+## 🧪 Scenario 5: Terra Parent + 구현 판단 잔여 (Terra Direct)
 
-- **사용자 요청**: "간헐적으로 세션 토큰 만료 에러가 발생하는데 원인을 찾아서 고쳐줘."
-- **부모 모델의 동작**:
-  - 원인이 규명되지 않은 모호한 상태이므로 Luna에 위임하지 않습니다.
-  - 부모 모델이 직접 가설 수립 및 로그 추적을 진행하여 근본 원인을 파악한 후에만 필요 시 구체적 코드 수정을 위임합니다.
+- **상황**: Terra가 주력(Parent) 모델인 상태에서, 내부 알고리즘 분석 및 선택이 필요한 로컬 구현 작업 직면.
+- **라우팅 판정**:
+  - Downshift Only 불변 규칙: Terra Parent는 동일 티어인 Terra Child를 생성할 수 없음 (`Terra Parent ➔ Terra Child` 금지).
+  - Luna에게 위임하기에는 구현 판단이 열려 있음.
+- **올바른 동작**:
+  - ✅ **Terra 부모 모델이 직접 분석하고 구현을 수행합니다.**
 
 ---
 
-## 🧪 Scenario 8: Luna 작업 중 새 설계 판단 필요 시 (`NEEDS_PARENT_DECISION`)
+## 🧪 Scenario 6: Child 작업 중 새 설계 판단 직면 (`NEEDS_PARENT_DECISION`)
 
-하위 워커(Luna)가 실행 도중 지침에 없는 모호한 상황이나 호환성 문제를 발견했을 때의 반환 예시입니다:
+하위 워커(Luna 또는 Terra)가 구현 중 기존 레거시 코드와의 심각한 호환성 충돌이나 모호한 요구사항을 마주했을 때:
 
 ```text
 NEEDS_PARENT_DECISION
 
 Unresolved:
-Target function `validate_company_email` is already imported and used by 12 legacy endpoints expecting a boolean return (`False`), not a raised `ValueError`.
+Target function `validate_company_email` is imported by 8 legacy authentication views that expect a boolean (`False`) return on failure, whereas the Task Capsule specifies raising `ValueError("Invalid corporate email")`.
 
 Why it blocks execution:
-Raising ValueError as specified will break backwards compatibility for 12 existing test suites in `tests/legacy/`.
+Raising ValueError will break backwards compatibility for existing legacy authentication endpoints. Choosing between maintaining boolean return or refactoring legacy callers exceeds the delegated authority.
 
 Relevant:
-- src/validators/email.py:L15
-- tests/legacy/test_auth_endpoints.py:L45-L80
+- src/validators/email.py:L15-L25
+- src/legacy/auth_views.py:L40-L90
+
+Worktree:
+- Local edits in src/validators/email.py are currently kept in working tree without commit.
 ```
 
 ---
 
-## 🧪 Scenario 9: 외부 부수효과 / 승인 필요 작업 직면 시 (`NEEDS_PARENT_ACTION`)
+## 🧪 Scenario 7: Child 외부 부수효과 직면 (`NEEDS_PARENT_ACTION`)
 
-하위 워커(Luna)가 로컬 수정을 마쳤으나, 원격 저장소 푸시나 배포, 시크릿 설정 등 외부 부수효과가 필요한 경우의 반환 예시입니다:
+하위 워커가 로컬 구현과 검증을 마쳤으나, 원격 저장소 푸시, 배포, 또는 외부 서비스 통신이 필요한 경우:
 
 ```text
 NEEDS_PARENT_ACTION
 
 Action required:
-Git push to remote branch `origin/feature-auth` and trigger staging deploy.
+Git push to remote branch `origin/feature-auth` and trigger CI workflow.
 
 Why needed:
-Local changes and test validations are complete, but remote sync requires elevated network/repository permissions.
+Leaf workers are constrained from executing network-side effects or publishing repository changes.
 
 Task completed so far:
-- Implemented `validate_company_email` in `src/validators/email.py`.
-- Verified 3 unit test cases passing in `tests/test_email_validator.py`.
+- Implemented `validate_company_email` in src/validators/email.py.
+- Verified all unit tests passing (3/3 PASSED) via pytest tests/test_email_validator.py.
+
+Worktree:
+- All changes are clean, formatted, and validated in local workspace.
 ```
 
 ---
 
-## 🧪 Scenario 10: Validation 실패 시 최대 1회 복구 후 반환 (Recovery Limit)
+## 🧪 Scenario 8: Validation 1회 복구 실패 (`TASK_FAILED`)
 
-- **상황**: Luna가 코드 수정 후 테스트를 실행했으나, 사소한 typo로 인해 1차 실패 ➔ 1회 복구 수정 후에도 외부 모듈 의존성 에러로 2차 실패함.
+- **상황**: Child가 코드를 수정한 후 테스트를 실행했으나 실패 ➔ 1회 복구를 시도하여 수정했으나 의존성 충돌로 재실행 역시 실패함.
 - **올바른 동작**:
-  - 무한 루프를 돌며 계속 재시도하지 않고, **즉시 실행을 멈추고 실패 상태와 에러 로그를 부모에게 반환**.
-  - 부모 모델(Sol/Terra)이 실패 원인을 분석하여 새 지침을 내리거나 직접 마무리합니다.
+  - 무한 루프를 돌며 2차, 3차 복구를 시도하지 않고 즉시 실행을 멈추고 `TASK_FAILED` 반환.
+  - `git reset --hard` 등으로 작업트리를 자의적으로 파괴하지 않고 상태를 보존하여 부모에게 인계.
+```text
+TASK_FAILED
+
+Modified files:
+- src/services/payment.py
+- tests/test_payment.py
+
+Validation:
+- pytest tests/test_payment.py -> FAILED
+  E   TypeError: unsupported operand type(s) for +: 'Decimal' and 'float'
+
+Recovery:
+- Attempted: YES (1 recovery attempt executed to cast float to Decimal in calculate_tax)
+
+Remaining blocker:
+Third-party gateway client fixture in tests/conftest.py returns mock data as float, conflicting with strict Decimal typing in payment service.
+
+Worktree:
+- Current changes preserved for Parent review. No automatic reset/revert/clean performed.
+```
 
 ---
 
-## 🧪 Scenario 11: Luna Spawn 실패 시 Fail-Closed Fallback (불변 규칙)
+## 🧪 Scenario 9: High Reasoning Effort 필요 상황 (승인 프로토콜)
 
-- **상황**: 계정 권한 또는 런타임 제약으로 `spawn_agent(model="gpt-5.6-luna")` 호출이 실패함.
-- **동작**:
-  - ❌ Terra child나 Sol child를 대안으로 생성하지 않습니다.
-  - ❌ `model`을 생략한 채 child 생성을 재시도하지 않습니다.
-  - ❌ 다른 모델로 escalation 재시도를 하지 않습니다.
-  - ✅ **현재 부모 모델(Sol/Terra)이 직접 해당 작업을 수행하여 완료합니다.**
-  - "Luna spawn unavailable; continuing directly with parent model." 간결한 로그만 남깁니다.
+- **상황**: Sol 부모 모델이 로컬 코드베이스의 복잡한 비선형 의존성을 분석해야 하는 구현 작업을 마주하여 `medium`으로는 부족하고 `high` reasoning이 필요하다고 판단함.
+- **올바른 동작 흐름**:
+  1. **Parent Direct 우선 평가**: Sol이 직접 수행하는 것이 더 빠른지 검토.
+  2. **실익 확인**: 작업 범위가 방대하여 Terra Child (`high`)로 위임하는 실익이 명백함을 확인.
+  3. **사용자 승인 요청 (In-Chat)**:
+     > *"본 작업은 4개 모듈의 비동기 락 의존성을 깊이 있게 분석해야 하므로 `gpt-5.6-terra` (high reasoning effort) 위임이 필요합니다. high reasoning effort 사용을 승인하시겠습니까?"*
+  4. 사용자가 승인하면 `reasoning_effort="high"`로 spawn. 미승인 시 Sol이 직접 수행.
 
 ---
 
-## 🧪 Scenario 12: Parent의 효율적인 결과 확인 (중복 작업 방지)
+## 🧪 Scenario 10: Child Spawn 실패 (Fail-Closed Fallback)
 
-- **상황**: Luna가 테스트를 성공적으로 통과시키고 코드 수정을 마쳤다고 보고함.
-- **부모 모델의 올바른 동작 (Good)**:
-  - `git diff` 또는 Luna가 반환한 변경 파일 목록과 테스트 결과 요약을 확인합니다.
-  - 지정한 Acceptance Criteria가 충족되었음을 확인하고 즉시 사용자에게 보고합니다.
-- **피해야 할 안티패턴 (Bad)**:
-  - Luna가 이미 통과한 단위 테스트를 부모가 똑같이 다시 실행함.
-  - 변경된 로직을 부모가 처음부터 다시 코딩하여 덮어씀.
+- **상황**: 런타임 제약 또는 일시적 API 오류로 `spawn_agent(model="gpt-5.6-terra")` 호출이 실패함.
+- **올바른 동작 (Fail-Closed)**:
+  - ❌ `gpt-5.6-luna`로 우회 spawn하지 않음.
+  - ❌ `model`을 생략한 child를 재시도하지 않음.
+  - ✅ **부모 모델(Sol)이 해당 작업을 직접 이어서 수행하여 마무리합니다.**
+
+---
+
+## 🧪 Scenario 11: Parent의 Claim-Matched Fresh Verification
+
+- **상황**: Luna가 단위 테스트 및 린트를 통과하고 `TASK_COMPLETED`를 반환함.
+- **부모 모델의 올바른 동작**:
+  1. `git diff`를 열어 실제 변경된 코드가 Acceptance에 부합하는지 확인.
+  2. **Fresh Verification 직접 실행**: 회귀 테스트 `pytest tests/test_email_validator.py`를 직접 실행하여 `PASSED` 증거 확보.
+  3. **정직하고 정확한 완료 보고**:
+     > *"이메일 유효성 검증 로직이 성공적으로 구현되었습니다. 변경된 회귀 테스트를 부모 모델이 직접 재검증하여 통과를 확인했습니다 (Child는 전체 린트 통과를 보고함)."*
 
