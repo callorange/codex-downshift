@@ -282,7 +282,7 @@ Exact change: Replace the existing docstring with the provided Google Style docs
 Preserve: Signature, implementation, and type hints.
 Acceptance criteria: Docstring matches Exact change verbatim; ruff check passes.
 Validation: ruff check src/services/user_service.py
-Recovery policy: At most ONE recovery attempt.
+Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
 ```
 

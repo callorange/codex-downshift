@@ -159,7 +159,7 @@ Acceptance criteria:
 Validation:
 - <검증 명령 1>
 - <검증 명령 2>
-Recovery policy: At most ONE recovery attempt. If still failing, return TASK_FAILED.
+Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED.
 Worker constraints: Leaf worker only. No subagent spawning. No destructive rollbacks.
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
 ```

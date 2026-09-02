@@ -60,7 +60,7 @@
   - [ ] All discount calculation rules pass unit tests.
   - [ ] InvalidOrderError raised on negative or zero total.
   Validation: pytest tests/test_discount.py && ruff check src/services/discount.py
-  Recovery policy: At most ONE recovery attempt.
+  Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
   Worker constraints: Leaf worker only. Do not spawn other agents.
   Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION"""
   )
@@ -92,7 +92,7 @@
   - [ ] All 12 serializers use account_id.
   - [ ] pytest tests/test_serializers.py passes.
   Validation: pytest tests/test_serializers.py && ruff check src/serializers/
-  Recovery policy: At most ONE recovery attempt.
+  Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
   Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION"""
   )
   ```
