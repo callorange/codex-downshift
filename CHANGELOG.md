@@ -20,6 +20,11 @@
 - **Terra Child 기본 reasoning 단순화**: Terra Child의 자동 디스패치 reasoning effort를 `medium`으로 단일화하고 구 raw-token 배율 잔재 제거.
 - 핵심 문서(`README.md`, `docs/codex-downshift-spec.md`, `SKILL.md`, `delegation-examples.md`) 및 런타임 config 전면 동기화.
 
+### 수정 (Fixed)
+- **`docs/codex-downshift-spec.md` Reasoning Effort 불변 규칙 동기화**: Invariant 7의 단일 medium 기본값 표기를 최신 Luna Low(기본)/Medium(경량탐색) 및 Terra Medium(Sol Parent 전용 구현 워커) 정책과 정확히 일치하도록 동기화.
+- **Default Downshift Threshold와 Gate B 책임 분리**: Threshold 충족 시 모델(Luna Low)을 직단정하던 Rationalization Table 문구를 Gate A(Safety) 및 Gate B(Decision Authority) 판정 단계로 수정 (`Threshold decides whether to evaluate downshift. Gate B decides which worker receives the task.`).
+- **`model-economics.md` 데이터 출처 및 스냅샷 명시**: 2026-09-03 기준 OpenAI 공식 요율, Codex Radar 및 CursorBench 3.2 출처 URL과 스냅샷 정보 추가.
+
 ## [0.1.4] - 2026-09-02
 
 ### 추가 (Added)

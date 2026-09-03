@@ -88,6 +88,7 @@ Active Parent (Sol or Terra)
 
 > [!NOTE]
 > 위 임계값은 Codex가 공식적으로 보장한 경제적 손익분기점이 아닙니다. Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 보수적 기본 heuristic입니다.
+> Threshold는 다운시프트 평가 진입 여부를 결정하며, 대상 Child 모델은 Gate B의 Decision Authority 판정으로 결정됩니다 (`Threshold decides whether to evaluate downshift. Gate B decides which worker receives the task.`).
 
 ### 🔍 Parent Direct 조건 및 4~9줄 구간 정책
 - **≤3줄 단발 수정**: 단일 파일 내 3줄 이하, 로직/분기문 추가 없는 단순 오타/상수 1개 변경, 1턴 검증 종료 건은 캡슐 오버헤드 방지를 위해 Parent Direct 처리.
@@ -246,6 +247,7 @@ codex-downshift/
         ├── SKILL.md
         └── references/
             ├── delegation-examples.md
+            ├── model-economics.md
             └── task-capsule-template.md
 ```
 
@@ -255,6 +257,7 @@ codex-downshift/
 
 - [Project Specification (기획 명세)](docs/codex-downshift-spec.md)
 - [Delegation Examples & Behavioral Scenarios (11대 실전 시나리오)](skills/codex-downshift/references/delegation-examples.md)
+- [Model Economics & Estimated Consumption Index (비용 모델)](skills/codex-downshift/references/model-economics.md)
 - [Task Capsule & Terminal Return Protocols (프롬프트 서식)](skills/codex-downshift/references/task-capsule-template.md)
 - [Changelog (변경 이력)](CHANGELOG.md)
 - [Contributing Guide (기여 가이드)](CONTRIBUTING.md)

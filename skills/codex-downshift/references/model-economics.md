@@ -4,7 +4,7 @@
 
 ---
 
-## 1. OpenAI 공식 Codex Token-Credit 요율표
+## 1. OpenAI 공식 Token-Credit Rate
 
 OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다.
 
@@ -84,3 +84,28 @@ OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다.
 > 해당 입력 부분만 단순 비교하면 약 26.7배 차이가 납니다.
 > 단, 실제 작업 전체 비용은 output, reasoning, 추가 tool call 및 반복 agent step에 따라 달라지므로,
 > "세션 전체가 항상 26배 저렴하다"고 해석해서는 안 됩니다.
+
+---
+
+## 6. Sources & Snapshot
+
+Snapshot date: **2026-09-03**
+
+### Official pricing / credit-rate source
+- OpenAI API Pricing
+  - https://developers.openai.com/api/docs/pricing
+- OpenAI Codex / credit-based usage documentation
+  - 공식 token-credit rate 확인에 사용
+
+### Observed agent usage / benchmark sources
+- Codex Radar
+  - https://codexradar.com/
+  - 모델 및 reasoning effort별 agent token usage / steps 관측치
+- CursorBench 3.2
+  - https://cursor.com/evals
+  - 모델 및 reasoning effort별 score / token usage / agent steps 관측치
+
+### Interpretation note
+`Estimated Codex Consumption Index`는 위 공식 요율과 공개 benchmark/agent usage 관측치를 조합한 상대 비교용 추정치입니다.
+
+OpenAI가 공개한 Plus/Pro 5시간 또는 주간 allowance 공식 차감 배율이 아니며, benchmark 데이터와 Codex metering 정책이 변경되면 이 값 역시 재계산되어야 합니다.
