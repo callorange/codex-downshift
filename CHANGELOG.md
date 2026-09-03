@@ -8,16 +8,17 @@
 ## [Unreleased]
 
 ### 추가 (Added)
-- **Codex 공식 크레딧 단가 & 실측 토큰 결합 경제학 매트릭스**: 모델별 Input(5/50/100), Cached(0.5/5/10), Output(30/300/500) 크레딧 단가와 실측 토큰 배수를 결합한 종합 실질 비용 지수(Luna low 30 vs Sol medium 3,075: **99% 절감**) 산출 및 명세 반영.
-- **Luna-First 라우팅 규칙 정립**: Luna Medium(비용 지수 106)이 Terra Medium(지수 738)보다 실제 크레딧상 7배 저렴함을 반영하여 경량 탐색 시 Luna Medium 우선 활용 원칙 도입.
+- **Codex 실질 세션 종합 요율표 반영**: Input + Cached + Output 가중치가 모두 반영된 실질 과금 요율(Luna Light 1.00×, Luna Med 2.61×, Terra Med 5.35×, Sol Med 18.04×, Sol Max 52.50×)을 전 문서 표준으로 채택.
+- **골든 스위칭 규칙 (`Luna High 6.00× > Terra Medium 5.35×`)**: Luna High(6.00×)가 Terra Medium(5.35×)보다 11% 더 비쌈을 규명하고, Luna Medium으로 부족한 복잡한 작업은 Luna High 대신 더 똑똑하고 저렴한 Terra Medium으로 즉시 스위칭하도록 라우팅 규칙 정립.
+- **실질 절감율 공식화**: Sol Medium(18.04×) 대비 Luna Light 위임 시 **94.5% 절감(1/18)**, Luna Medium 위임 시 **85.5% 절감(1/7)**, Terra Medium 위임 시 **70.3% 절감(1/3.4)**을 명시.
 - **Parent Execution Protocol (4단계 다운시프트 루프)**: Parent의 직접 코드 편집 도구 호출 전 Gate 확인 ➔ Task Capsule ➔ Spawn ➔ Verify 강제 절차 신설.
 - **손익분기점(BEP) 기반 즉시 호출 기준 (Downshift Mandatory Trigger Criteria)**: 상위 판단 완료 후 10줄 이상 코드 작성, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 무조건 하위 워커를 호출하도록 정량화.
-- **합리화 방지 테이블 및 Red Flags 보강**: "10줄 안팎 작업의 자가 구현", "Luna High 고추론 선택에 따른 비용 폭탄" 등 실전 변명 차단.
+- **합리화 방지 테이블 및 Red Flags 보강**: "Luna High 선택에 따른 비용 폭탄 및 비효율" 등 실전 변명 차단.
 
 ### 변경 (Changed)
 - **Frontmatter Description (SDO) 전면 개편**: 부정문 예외 조항을 제거하고, 상위 부모 모델이 코드 수정에 착수하기 직전 다운시프트를 강제하도록 행동 기반 트리거로 교체.
 - **Trivial Atomic Action 판별 엄격화**: 기존의 주관적 "비용 비교" 문구를 삭제하고, 단일 파일 3줄 이하·무로직·무테스트 1턴 검증의 3대 동시 만족 조건으로 엄격 한정(오버헤드 방지 목적).
-- **Spawn Contract 및 Invariant 7 최적화**: 기계적 조립용 Luna는 `low`(비용 지수 30)를 기본으로 하고 경량 탐색 시 `medium`(지수 106)까지 허용, Terra는 `medium`(지수 738, 76% 절감)을 고지능 워커로 한정.
+- **Spawn Contract 및 Invariant 7 최적화**: 기계적 조립용 Luna `low`(1.00×, 94.5% 절감) 기본, 경량 탐색 시 Luna `medium`(2.61×) 허용, Terra `medium`(5.35×, 70.3% 절감)을 고지능 워커로 한정.
 - 핵심 문서(`README.md`, `docs/codex-downshift-spec.md`, `SKILL.md`) 및 `C:\Users\callo\.gemini\config\skills\codex-downshift\` 전면 최신화 동기화.
 
 ## [0.1.4] - 2026-09-02
