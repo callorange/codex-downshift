@@ -39,9 +39,13 @@
 ```text
 Active Parent (Sol or Terra)
   │
-  ├─ 1. Trivial Atomic Action 단독인가? (단일 1줄/리터럴 수정 등)
+  ├─ 1. 상위 판단 미결 (Semantic / Architecture / Security)?
+  │    YES ──────────────────────────────────────────→ Parent Direct (상위 추론/판단 직접 수행)
+  │    NO (상위 판단 완료)
+  ▼
+  ├─ 2. 다운시프트 손익분기점(BEP) 미달 (≤3줄 오타/상수 단발 수정)?
   │    YES ──────────────────────────────────────────→ Parent Direct (오버헤드 방지)
-  │    NO
+  │    NO (10줄 이상, 테스트 사이클, 다중 파일 등 BEP 충족)
   ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Gate A: Delegation Safety Gate                           │
@@ -58,51 +62,67 @@ Active Parent (Sol or Terra)
 │ Gate B: Decision Authority Gate                          │
 │                                                          │
 │ (Active Sol Parent)                                      │
-│ ├─ Semantic / API / Architecture / Security 판단 남음     │
-│ │  ─────────────────────────────────────────→ Sol Direct │
 │ ├─ Semantic 닫힘 + Implementation-local 분석/선택 남음    │
 │ │  ─────────────────────────────────────────→ Terra Child│
-│ └─ Implementation까지 닫힌 기계적 실행                    │
-│    ─────────────────────────────────────────→ Luna Child │
+│ └─ Implementation까지 닫힌 기계적 조립/테스트              │
+│    ──────────────────────────→ Luna Child (low [1.00×])  │
 │                                                          │
 │ (Active Terra Parent)                                    │
-│ ├─ Implementation까지 닫힌 기계적 실행                    │
-│ │  ─────────────────────────────────────────→ Luna Child │
-│ └─ 그 외 모든 작업 (판단 필요 작업 포함)                   │
+│ ├─ Implementation까지 닫힌 기계적 조립/테스트              │
+│ │  ──────────────────────────→ Luna Child (low [1.00×])  │
+│ └─ 그 외 로컬 구현 작업                                  │
 │    ─────────────────────────────────────────→ Terra Direct│
 └──────────────────────────────────────────────────────────┘
 ```
 
+### 🚀 Downshift Mandatory Trigger (손익분기점 기반 즉시 호출)
+상위 판단이 완료된 실행 작업 중 다음 3가지 중 하나라도 해당하면 Sol 직접 수정보다 위임이 무조건 이득이 되는 손익분기점(BEP)을 초과하므로 **반드시 하위 워커를 호출**:
+1. **테스트/검증 루프**: 단위 테스트를 작성하거나 테스트 명령어를 실행해 결과를 검증해야 하는 작업.
+2. **코드 규모**: 10줄 이상(또는 함수/클래스 1개 단위)의 코드 작성/수정.
+3. **다중 파일 범위**: 2개 이상의 파일에 걸친 변경 (배치 위임).
+
+### 🔍 Parent Direct 엄격 한정 조건 (오버헤드 방지)
+- 단일 파일 내 **3줄 이하** 수정
+- 로직/분기문 추가가 없는 단순 오타, 리터럴/상수값 1개 변경, 단순 import 추가
+- 수정 후 테스트 루프나 디버깅 없이 1턴에 검증 종료
+
 ---
 
-## 🚀 Native Subagent Spawn Contract
+## 🚀 Native Subagent Spawn Contract & 토큰 경제학
 
 다운시프트 실행 시 부모 모델은 Codex Native Subagent 생성을 통해 모델 상속을 방지하고 독립 컨텍스트로 자식 워커를 실행합니다:
 
 ```text
-# Sol ➔ Luna 또는 Terra ➔ Luna
+# Sol ➔ Luna 또는 Terra ➔ Luna (기계적 조립/테스트)
 spawn_agent(
     model = "gpt-5.6-luna",          # [필수] 부모 모델 상속 방지
     fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
-    reasoning_effort = "low"|"medium", # [필수] 자동 기본값은 medium
+    reasoning_effort = "low",        # [필수] Light (1.00× 최적 효율)
     task_name = "<task_name>",
     message = "<Task Capsule>"
 )
 
-# Sol ➔ Terra (Sol Parent 전용)
+# Sol ➔ Terra (로컬 구현 위임, Sol Parent 전용)
 spawn_agent(
     model = "gpt-5.6-terra",         # [필수] Terra 모델 명시
     fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
-    reasoning_effort = "low"|"medium", # [필수] 자동 기본값은 medium
+    reasoning_effort = "low"|"medium", # [필수] Light(1.84×) ~ Medium(2.46×)
     task_name = "<task_name>",
     message = "<Task Capsule>"
 )
 ```
 
-### ⚙️ Reasoning Effort 정책
-- **자동 허용**: `low`, `medium` (기본값: `medium`)
-- **사용자 승인 필수**: `high`, `xhigh`, `max` (자동 선택 절대 금지, Parent Direct 우선 평가 후 실익이 명백할 때 사용자 승인 후 예외 사용)
-- **불변 원칙**: Reasoning effort 상승은 사고 깊이만 늘릴 뿐, **Child의 판단 권한(Decision Authority)을 확장하지 않습니다.**
+### ⚙️ GPT-5.6 실측 토큰 비율 및 운용 규칙 (기준: Luna Light = 1.00×)
+
+| 모델 \ 추론 레벨 | Light (`low`) | Medium (`medium`) | High (`high`) | XHigh | Max |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Luna** | **1.00×** (스위트 스팟) | **3.54×** | **10.45×** | **16.60×** | **27.06×** |
+| **Terra** | **1.84×** | **2.46×** (고효율) | **4.61×** | **7.99×** | **17.52×** |
+| **Sol** | **3.23×** | **6.15×** (일반 부모) | **8.61×** | — | — |
+
+1. **Luna는 `low` (1.00×) 고정**: Medium으로 올리면 토큰이 3.54×로 급증하여 Terra Medium(2.46×)보다 비싸집니다.
+2. **로컬 판단은 Terra 라우팅**: 내부 알고리즘 선택이 필요할 때는 Luna Medium(3.54×) 대신 Terra Light(1.84×) 또는 Medium(2.46×)을 사용하여 토큰을 약 30% 절감합니다.
+3. **High / Max 자동 선택 절대 금지**: `Luna High (10.45×)`는 `Sol High (8.61×)`보다 비싸 비용 역전이 발생하므로 사전 승인 없이 자동 선택이 차단됩니다.
 
 ---
 

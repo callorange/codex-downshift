@@ -11,7 +11,7 @@
 | **1** | DB Migration 등 High Consequence 작업 | **Sol/Terra** | 🛑 **Gate A 차단 ➔ Parent Direct** | 구현이 닫혀 있어도 파괴적/운영 변경이므로 부모 직접 수행 |
 | **2** | 계약 확정 + 구현 로컬 판단 잔여 | **Sol** | 🟡 **Gate B ➔ Terra Child 위임** | `gpt-5.6-terra` child 생성 (`reasoning_effort="medium"`) |
 | **3** | 다중 파일 확정 패턴 기계적 적용 | **Sol** | 🟢 **Gate B ➔ Luna Child 위임** | `gpt-5.6-luna` child 생성 (파일 수와 무관하게 Luna) |
-| **4** | 확정된 docstring / 린트 / 테스트 수정 | **Terra** | 🟢 **Gate B ➔ Luna Child 위임** | `gpt-5.6-luna` child 생성 (`reasoning_effort="low"|"medium"`) |
+| **4** | 확정된 docstring / 린트 / 테스트 수정 | **Terra** | 🟢 **Gate B ➔ Luna Child 위임** | `gpt-5.6-luna` child 생성 (`reasoning_effort="low"` [1.00×]) |
 | **5** | 구현 판단 잔여 작업 (Terra 부모) | **Terra** | 🛑 **Downshift Only ➔ Terra Direct** | Terra 부모는 Terra child를 부르지 않고 직접 수행 |
 | **6** | Child 작업 중 새 설계 판단 직면 | **Child** | 🛑 **`NEEDS_PARENT_DECISION`** | 하위 워커 임의 판단 금지, 미결 사항 보고 후 부모 판단 |
 | **7** | Child 외부 부수효과 필요 직면 | **Child** | 🛑 **`NEEDS_PARENT_ACTION`** | git push/deploy 등 외부 권한 작업 시 부모에게 제어권 반환 |
@@ -79,7 +79,7 @@
   spawn_agent(
       model = "gpt-5.6-luna",
       fork_turns = "none",
-      reasoning_effort = "medium",
+      reasoning_effort = "low",
       task_name = "batch_update_serializer_fields",
       message = """TASK CAPSULE
   Role: You are a leaf worker.

@@ -7,6 +7,18 @@
 
 ## [Unreleased]
 
+### 추가 (Added)
+- **Parent Execution Protocol (4단계 다운시프트 루프)**: Parent의 직접 코드 편집 도구 호출 전 Gate 확인 ➔ Task Capsule ➔ Spawn ➔ Verify 강제 절차 신설.
+- **손익분기점(BEP) 기반 즉시 호출 기준 (Downshift Mandatory Trigger Criteria)**: 상위 판단 완료 후 10줄 이상 코드 작성, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 무조건 하위 워커를 호출하도록 정량화.
+- **GPT-5.6 실측 토큰 경제학 매트릭스**: 모델별·추론레벨별 토큰 소모 비율(Luna Light 1.00× vs Medium 3.54× vs High 10.45×, Terra Light 1.84× vs Medium 2.46×, Sol Light 3.23× vs Medium 6.15×) 반영.
+- **합리화 방지 테이블 및 Red Flags 보강**: "10줄 안팎 작업의 자가 구현", "Luna High 고추론 선택에 따른 비용 폭탄" 등 실전 변명 차단.
+
+### 변경 (Changed)
+- **Frontmatter Description (SDO) 전면 개편**: 부정문 예외 조항을 제거하고, 상위 부모 모델이 코드 수정에 착수하기 직전 다운시프트를 강제하도록 행동 기반 트리거로 교체.
+- **Trivial Atomic Action 판별 엄격화**: 기존의 주관적 "비용 비교" 문구를 삭제하고, 단일 파일 3줄 이하·무로직·무테스트 1턴 검증의 3대 동시 만족 조건으로 엄격 한정(오버헤드 방지 목적).
+- **Spawn Contract 기본 추론 레벨 최적화**: 기계적 조립용 Luna의 `reasoning_effort`를 최적 효율인 `low` (Light: 1.00×)로 고정, Terra는 `low` 또는 `medium`으로 권장.
+- 핵심 문서(`README.md`, `docs/codex-downshift-spec.md`, `delegation-examples.md`) 및 `C:\Users\callo\.gemini\config\skills\codex-downshift\` 전면 최신화 동기화.
+
 ## [0.1.4] - 2026-09-02
 
 ### 추가 (Added)

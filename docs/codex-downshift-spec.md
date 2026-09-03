@@ -118,9 +118,13 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
 ```text
 Active Parent (Sol or Terra)
   │
-  ├─ 1. Trivial Atomic Action 단독인가? (단일 1줄/리터럴 수정 등)
+  ├─ 1. 상위 판단 미결 (Semantic / Architecture / Security)?
+  │    YES ──────────────────────────────────────────→ Parent Direct (상위 추론/판단 직접 수행)
+  │    NO (상위 판단 완료)
+  ▼
+  ├─ 2. 다운시프트 손익분기점(BEP) 미달 (≤3줄 오타/상수 단발 수정)?
   │    YES ──────────────────────────────────────────→ Parent Direct (오버헤드 방지)
-  │    NO
+  │    NO (10줄 이상, 테스트 사이클, 다중 파일 등 BEP 충족)
   ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Gate A: Delegation Safety Gate                           │
@@ -137,20 +141,30 @@ Active Parent (Sol or Terra)
 │ Gate B: Decision Authority Gate                          │
 │                                                          │
 │ (Active Sol Parent)                                      │
-│ ├─ Semantic / Architecture / API / Security 판단 남음     │
-│ │  ─────────────────────────────────────────→ Sol Direct │
 │ ├─ Semantic 닫힘 + Implementation-local 분석/선택 남음    │
 │ │  ─────────────────────────────────────────→ Terra Child│
-│ └─ Implementation까지 닫힌 기계적 실행                    │
-│    ─────────────────────────────────────────→ Luna Child │
+│ └─ Implementation까지 닫힌 기계적 조립/테스트              │
+│    ──────────────────────────→ Luna Child (low [1.00×])  │
 │                                                          │
 │ (Active Terra Parent)                                    │
-│ ├─ Implementation까지 닫힌 기계적 실행                    │
-│ │  ─────────────────────────────────────────→ Luna Child │
-│ └─ 그 외 모든 작업 (판단 필요 작업 포함)                   │
+│ ├─ Implementation까지 닫힌 기계적 조립/테스트              │
+│ │  ──────────────────────────→ Luna Child (low [1.00×])  │
+│ └─ 그 외 로컬 구현 작업                                  │
 │    ─────────────────────────────────────────→ Terra Direct│
 └──────────────────────────────────────────────────────────┘
 ```
+
+### 6.1 Downshift Mandatory Trigger (즉시 호출 기준: 손익분기점)
+상위 판단이 끝난 실행 작업 중 다음 3가지 중 하나라도 충족되면 다운시프트 손익분기점(BEP)을 초과하므로 **반드시 하위 워커를 호출**:
+1. **테스트/검증 루프**: 단위 테스트를 작성하거나 테스트 명령어를 실행해 결과를 검증해야 하는 작업.
+2. **코드 규모**: 10줄 이상(또는 함수/클래스 1개 단위)의 코드 작성/수정.
+3. **다중 파일 범위**: 2개 이상의 파일에 걸친 변경 (배치 위임).
+
+### 6.2 Parent Direct 엄격 한정 조건
+오버헤드 방지를 위한 Parent 직접 수정은 아래 3조건을 **동시에 만족하는 경우에만 한정 허용**:
+1. 단일 파일 내 **3줄 이하** 수정.
+2. 로직/분기문(if/else/loop) 추가가 없는 오타, 상수/리터럴 1개 변경, 단순 import 추가.
+3. 수정 후 테스트 루프나 디버깅 없이 1턴에 검증 종료.
 
 ---
 
@@ -190,20 +204,20 @@ codex-downshift/
 부모 모델이 위임 시점에 Codex의 native subagent 기능을 사용하며, 모델 상속을 방지하기 위해 다음 매개변수를 반드시 명시한다:
 
 ```text
-# 1) Sol ➔ Luna 또는 Terra ➔ Luna
+# 1) Sol ➔ Luna 또는 Terra ➔ Luna (기계적 조립/테스트)
 spawn_agent(
     model = "gpt-5.6-luna",          # [필수] 부모 모델 상속 방지
     fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
-    reasoning_effort = "low"|"medium", # [필수] 자동 기본값은 medium
+    reasoning_effort = "low",        # [필수] Light (1.00× 최적 효율)
     task_name = "<task_name>",
     message = "<Task Capsule>"
 )
 
-# 2) Sol ➔ Terra (Sol Parent 전용)
+# 2) Sol ➔ Terra (로컬 구현 위임, Sol Parent 전용)
 spawn_agent(
     model = "gpt-5.6-terra",         # [필수] Terra 모델 명시
     fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
-    reasoning_effort = "low"|"medium", # [필수] 자동 기본값은 medium
+    reasoning_effort = "low"|"medium", # [필수] Light(1.84×) ~ Medium(2.46×)
     task_name = "<task_name>",
     message = "<Task Capsule>"
 )
@@ -214,9 +228,17 @@ spawn_agent(
   - 타 모델로 우회하거나 `model`을 생략한 child를 재시도하지 않는다.
   - **현재 부모 모델(Sol/Terra)이 해당 작업을 직접 계속 수행한다.**
 
-### 8.2 Reasoning Effort 정책
-- **자동 허용**: `low`, `medium` (기본값: `medium`)
-- **사용자 승인 필수**: `high`, `xhigh`, `max` (자동 spawn 절대 금지, Parent Direct 우선 평가 후 사용자 승인 요청)
+### 8.2 GPT-5.6 실측 토큰 경제학 매트릭스 및 Reasoning Effort 정책
+
+| 모델 \ 추론 레벨 | Light (`low`) | Medium (`medium`) | High (`high`) | XHigh | Max |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Luna** | **1.00×** (스위트 스팟) | **3.54×** | **10.45×** | **16.60×** | **27.06×** |
+| **Terra** | **1.84×** | **2.46×** (고효율) | **4.61×** | **7.99×** | **17.52×** |
+| **Sol** | **3.23×** | **6.15×** (일반 부모) | **8.61×** | — | — |
+
+- **Luna 스위트 스팟 (`low` 고정)**: Luna는 기계적 조립 전담이므로 `low`(1.00×)로 고정한다. `medium`으로 올리면 토큰이 3.54×로 급증해 Terra Medium(2.46×)보다 비싸진다.
+- **로컬 판단 라우팅**: 내부 알고리즘/클래스 선택이 필요할 때는 Luna Medium(3.54×) 대신 Terra `low`(1.84×) 또는 `medium`(2.46×)으로 라우팅하여 약 30% 비용을 절감한다.
+- **High / Max 자동 선택 절대 금지**: `Luna High (10.45×)`는 `Sol High (8.61×)`보다 비싸므로 비용 역전이 일어난다. 사용자 명시적 승인 없이 자동 선택을 금지한다.
 - **권한 불변 원칙**: Reasoning effort는 사고 깊이만 변경할 뿐, **Child에게 위임된 판단 권한(Decision Authority)을 절대 확장하지 않는다.**
 
 ---
@@ -323,9 +345,10 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 
 ## 14. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
-1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 하나의 Bounded Task Capsule로 묶어 위임한다.
-2. **단일 Trivial Atomic Action 예외**: 한 줄 수정, 단일 literal 교체 등 독립적인 trivial action은 오버헤드 방지를 위해 부모가 직접 수행한다.
-3. **우선순위 불변 원칙**: 단순 Latency보다 **Parent Usage 절감이 우선**이다.
+1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 개별 직접 수정하지 않고 하나의 Bounded Task Capsule로 묶어 Luna에게 일괄 위임한다.
+2. **손익분기점(BEP) 기반 즉시 호출 기준**: 상위 판단이 완료된 작업 중 10줄 이상 코딩, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 무조건 다운시프트를 발동한다. (Sol Medium 6.15× 대비 Luna Light 1.00×로 약 84% 절감 효과 달성).
+3. **Parent Direct 엄격 한정 조건**: 오버헤드 방지를 위한 부모 직접 수정은 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수/리터럴 수정, 테스트 루프 없는 1턴 검증으로 엄격히 한정한다.
+4. **우선순위 불변 원칙**: 단순 편의성이나 Latency보다 **Parent Usage 절감이 최우선**이다.
 
 ---
 
