@@ -24,10 +24,10 @@ description: Use whenever operating as an Active Parent model (Sol or Terra) and
    - **Terra Child**: `Semantic Closed` + `External Contract Closed` + `Implementation-Local Decision Remains`. 외부 계약은 확정되었으나 내부 구현 분석 및 선택이 필요한 경우 전담 (Sol Parent 전용).
 5. **Leaf Worker / No Chaining**: 모든 Child는 Leaf Worker이며 다른 agent나 model을 spawn/invoke/delegate할 수 없다. `Sol ➔ Terra ➔ Luna` 다단계 체이닝 금지.
 6. **Fail Closed**: Child spawn 실패, 라우팅 모호성, 또는 권한 불확실 시 다른 하위 모델로 우회하지 않고 **부모 모델이 직접 수행**.
-7. **Reasoning Effort Policy (No automatic above medium & Luna Light Default)**:
-   - **Luna**: 기본값 `light` (1.00× 최적 효율). `medium` 이상 지정 시 토큰 급증(Luna Medium 3.54× > Terra Medium 2.46×)으로 비효율.
-   - **Terra**: `light` (1.84×) 또는 `medium` (2.46×) 허용 (기본값: `light`).
-   - `high` / `xhigh` / `max`: 자동 선택 절대 금지 (Luna High 10.45× > Sol High 8.61×로 비용 역전 발생).
+7. **Reasoning Effort & Credit Policy (No automatic above medium & Luna-First)**:
+   - **Luna**: 기본값 `low` (Light: 1.00×, 비용 지수 30으로 Sol 대비 **99% 절감**). 경량 탐색 시 `medium` (3.54×, 비용 지수 106)까지 허용 (Terra Medium 738 대비 7배 저렴).
+   - **Terra**: `low` (1.84×, 지수 552) 또는 `medium` (2.46×, 지수 738) 허용 (기본값: `medium`, Sol 대비 **76% 절감**).
+   - `high` / `xhigh` / `max`: 자동 선택 절대 금지 (비용 급증 방지).
    - *Reasoning effort 상승은 사고 깊이만 늘릴 뿐 위임된 판단 권한(Decision Authority)을 확장하지 않음.*
 8. **Max 1 Recovery**: Child validation 실패 시 자체 구현 수정은 가능한 경우에 한해 최대 1회만 허용(환경/의존성 등 부적절한 경우 미시도). 재실행 실패 또는 미시도 시 즉시 `TASK_FAILED`로 중단.
 9. **Structured Return Protocols**: Child는 반드시 4대 반환 프로토콜(`TASK_COMPLETED`, `TASK_FAILED`, `NEEDS_PARENT_DECISION`, `NEEDS_PARENT_ACTION`) 중 하나로 종료하며, 임의로 destructive rollback(`git reset --hard` 등)을 수행하지 않음.
@@ -160,25 +160,39 @@ spawn_agent(
 
 ---
 
-## ⚙️ 4. Reasoning Effort 및 실측 토큰 경제학 매트릭스
+## ⚙️ 4. Reasoning Effort 및 실측 토큰·크레딧 경제학 매트릭스
 
-### 1) GPT-5.6 모델별·추론레벨별 실 사용 토큰 비율 (기준: Luna Light = 1.00×)
+### 1) Codex 공식 크레딧 단가표
+| 모델 | Input (1M당) | Cached Input (1M당) | Output (1M당) |
+| :--- | ---: | ---: | ---: |
+| **Luna** | **5** | **0.5** | **30** |
+| **Terra** | **50** (10×) | **5** (10×) | **300** (10×) |
+| **Sol** | **100** (20×) | **10** (20×) | **500** (16.7×) |
 
-| 모델 \ 추론 레벨 | Light (`low`) | Medium (`medium`) | High (`high`) | XHigh | Max |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Luna** | **1.00×** (스위트 스팟) | **3.54×** | **10.45×** | **16.60×** | **27.06×** |
-| **Terra** | **1.84×** | **2.46×** (고효율) | **4.61×** | **7.99×** | **17.52×** |
-| **Sol** | **3.23×** | **6.15×** (일반 부모) | **8.61×** | — | — |
+---
 
-### 2) 토큰 경제학 기반 3대 핵심 운용 규칙
-1. **Luna의 기본값은 무조건 `low` (Light: 1.00×) 고정**:
-   - Luna는 구현 패턴이 확정된 기계적 조립/테스트 전담입니다. 생각을 많이 시킬 이유가 없으며, `medium`으로 올리면 토큰이 3.54×로 급증하여 오히려 Terra Medium(2.46×)보다 비싸집니다.
-2. **로컬 판단 필요 시 Terra `low` (1.84×) ~ `medium` (2.46×) 라우팅**:
-   - 내부 알고리즘이나 클래스 구조 선택이 필요할 때는 Luna에게 생각을 더 시키지 말고, 더 똑똑하고 토큰을 덜 쓰는 Terra Medium(2.46×)에 위임하는 것이 약 30% 더 저렴합니다.
-3. **High / Max 자동 선택 절대 금지 (비용 폭탄 방지)**:
-   - `Luna High (10.45×)` 및 `Luna Max (27.06×)`는 부모인 `Sol High (8.61×)`보다 비쌉니다. 하위 모델의 High 선택은 치명적인 비용 역전(Cost Inversion)을 유발하므로 자동 선택이 엄격히 금지됩니다.
+### 2) 종합 실질 크레딧 비용 지수 (토큰 배수 × Output 단가)
+추론 토큰은 Output 단가로 과금되므로, **[실측 토큰 배수 × Output 크레딧 단가]**가 실제 지출 비용을 결정합니다:
 
-### 3) High / xhigh / max 사용자 승인 프로토콜
+| 모델 | Output 단가 | Light (`low`) | Medium (`medium`) | High (`high`) | XHigh | Max |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Luna** | **30** | **30** (1.00× 기준, **99% 절감**) | **106** (3.54×) | **314** (10.45×) | **498** (16.60×) | **812** (27.06×) |
+| **Terra** | **300** | **552** (1.84×) | **738** (2.46×, **76% 절감**) | **1,383** (4.61×) | **2,397** (7.99×) | **5,256** (17.52×) |
+| **Sol** | **500** | **1,615** (3.23×) | **3,075** (6.15×, 부모 기준) | **4,305** (8.61×) | — | — |
+
+---
+
+### 3) 토큰·단가 결합 기반 4대 핵심 운용 규칙
+1. **Luna-First 원칙 (99% 비용 증발)**:
+   - Luna `low`(비용 지수 30)는 Sol Medium(비용 지수 3,075) 대비 **1/102.5 (99% 절감)**입니다. 10줄 이상의 기계적 구현/테스트는 무조건 Luna `low`를 디폴트로 호출합니다.
+2. **Luna Medium(106)이 Terra Medium(738)보다 7배 저렴**:
+   - 순수 토큰 수는 Terra Medium(2.46×)이 적지만, 단가가 10배 차이나므로 실제 크레딧 비용은 **Luna Medium이 Terra Medium보다 7배 저렴**합니다. 경량 로컬 탐색이 필요한 작업도 Terra보다 Luna Medium을 우선 고려합니다.
+3. **Terra의 정체성 (75% 절감형 고지능 워커)**:
+   - Terra는 초저가 모델이 아니며(Sol의 60% 단가), Sol 대비 약 76%를 아끼는 모델입니다. Luna의 지능으로 감당하기 힘든 복잡한 로컬 알고리즘/클래스 구조 설계에 한해 선택적으로 투입합니다.
+4. **세션 누적 캐시 비용의 압도적 방어**:
+   - Sol 메인 세션이 길어지면(40k 토큰) 매 턴 캐시 읽기에만 **400,000 크레딧**이 낭비됩니다. 반면 Luna의 독립 세션(Fresh 3k)은 전체 입력 비용이 **15,000 크레딧**(Sol 캐시의 1/26)에 불과하여 다중 턴 반복 검증 시 비용 방어력이 극대화됩니다.
+
+### 4) High / xhigh / max 사용자 승인 프로토콜
 `low` / `medium`으로 감당할 수 없는 고난도 작업의 경우:
 1. **Parent Direct 우선 평가**: Parent(Sol)가 직접 수행하는 것이 더 단순하고 빠르면 직접 수행.
 2. **실익 평가 및 사용자 승인 요청**: 여전히 Child 위임 실익이 명백한 경우 사용자에게 사유와 예상 비용을 설명하고 사전 승인 요청.
