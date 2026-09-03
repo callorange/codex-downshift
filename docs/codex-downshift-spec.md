@@ -170,7 +170,7 @@ Active Parent (Sol or Terra)
 
 > [!NOTE]
 > 위 임계값은 Codex가 공식적으로 보장한 경제적 손익분기점이 아니다. Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 보수적 기본 heuristic이다.
-> Threshold는 다운시프트 평가 진입 여부를 결정하며, 대상 Child 모델은 Gate B의 Decision Authority 판정으로 결정한다 (`Threshold decides whether to evaluate downshift. Gate B decides which worker receives the task.`).
+> Threshold는 다운시프트 평가 진입 여부를 결정한다. Gate A는 위임 자체의 허용 여부를 결정하며, Gate A를 통과한 경우 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정한다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
 
 ### 6.2 Parent Direct 조건 및 4~9줄 구간 정책
 - **≤3줄 단발 수정**: 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수/리터럴 수정, 테스트 루프 없는 1턴 검증으로 엄격히 한정하여 캡슐 오버헤드를 방지한다.
@@ -386,7 +386,7 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 ## 14. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
 1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 개별 직접 수정하지 않고 하나의 Bounded Task Capsule로 묶어 Luna에게 일괄 위임한다.
-2. **Default Downshift Threshold (Provisional BEP Heuristic)**: 상위 판단이 완료된 작업 중 10줄 이상 코딩, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 다운시프트 평가로 진입한다. 이는 공식 보장 손익분기점이 아닌 Parent의 직접 수정 합리화를 막기 위한 보수적 기본 heuristic이다. Threshold는 다운시프트 평가 진입 여부를 결정하며, 대상 Child 모델은 Gate B의 Decision Authority 판정으로 결정한다 (`Threshold decides whether to evaluate downshift. Gate B decides which worker receives the task.`).
+2. **Default Downshift Threshold (Provisional BEP Heuristic)**: 상위 판단이 완료된 작업 중 10줄 이상 코딩, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 다운시프트 평가로 진입한다. 이는 공식 보장 손익분기점이 아닌 Parent의 직접 수정 합리화를 막기 위한 보수적 기본 heuristic이다. Threshold는 다운시프트 평가 진입 여부를 결정한다. Gate A는 위임 자체의 허용 여부를 결정하며, Gate A를 통과한 경우 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정한다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
 3. **Parent Direct 조건 및 4~9줄 구간 정책**: 
    - 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수 수정, 테스트 루프 없는 1턴 검증은 캡슐 오버헤드 방지를 위해 Parent Direct를 적용한다.
    - 4~9줄 단일 파일 구간은 implementation closed 상태이고 테스트 루프나 추가 탐색 없이 1턴에 검증 가능한 경우에 한해 Parent Direct 선택이 허용될 수 있다. (단, 테스트/수정 사이클 필요 시 4줄이라도 반드시 다운시프트).

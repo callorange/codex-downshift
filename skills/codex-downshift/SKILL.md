@@ -110,7 +110,7 @@ Parent의 자의적인 직접 구현 합리화를 방지하기 위해 실사용 
 
 > [!NOTE]
 > 위 기준은 공식 보장 손익분기점이 아니며, Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 기본 운영 heuristic입니다.
-> Threshold는 다운시프트 평가 진입 여부를 결정하며, 실제 Child 모델은 Gate B의 Decision Authority 판정으로 결정합니다 (`Threshold decides whether to evaluate downshift. Gate B decides which worker receives the task.`).
+> Threshold는 다운시프트 평가 진입 여부를 결정합니다. Gate A는 위임 자체의 허용 여부를 결정하며, Gate A를 통과한 경우 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정합니다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
 
 ### 🔍 Parent Direct 허용 조건 및 4~9줄 구간 처리
 - **≤3줄 단발 수정**: 단일 파일 3줄 이하, 로직/분기 없는 오타/상수 변경, 무테스트 1턴 종료 건은 캡슐 오버헤드 방지를 위해 Parent Direct 처리.
@@ -237,7 +237,7 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 ### 📋 Rationalization Table
 | 에이전트의 핑계 | 현실 및 불변 규칙 |
 | :--- | :--- |
-| *"10줄 안팎의 작업이라 캡슐을 만들고 spawn하는 것보다 직접 고치는 게 빠릅니다"* | **금지.** 10줄 이상 또는 테스트/검증 루프는 Default Downshift Threshold를 충족합니다. Parent가 직접 구현하지 말고 **Gate A와 Gate B를 순서대로 적용하여 남은 Decision Authority에 맞는 적절한 하위 워커(Luna Low / Luna Medium / Terra Medium)를 선택하십시오.** Threshold는 다운시프트 평가 진입 여부를 결정하고, 실제 Child 모델은 Gate B의 Decision Authority 판정으로 결정합니다 (`Threshold decides whether to evaluate downshift. Gate B decides which worker receives the task.`). |
+| *"10줄 안팎의 작업이라 캡슐을 만들고 spawn하는 것보다 직접 고치는 게 빠릅니다"* | **금지.** 10줄 이상 또는 테스트/검증 루프는 Default Downshift Threshold를 충족합니다. 먼저 Gate A에서 위임 안전성을 평가하십시오. **Gate A 실패 시 Parent Direct**, Gate A를 통과한 경우에만 Gate B에서 남은 Decision Authority에 따라 Luna Low / Luna Medium / Terra Medium 또는 Terra Parent Direct 경로를 결정합니다. Threshold 자체는 Child 모델을 결정하지 않습니다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`). |
 | *"지금 한창 구현 흐름 중이니 이번 한 번만 직접 코딩할게요"* | **금지.** '이번 한 번만'은 세션 전체의 전면 자가 구현으로 변질됩니다. 코드 수정 도구 호출 전 Task Capsule을 작성하십시오. |
 | *"Luna가 복잡한 로직을 풀 수 있게 reasoning을 High로 올릴게요"* | **비효율.** Luna High(6.00×, 40 steps)는 Terra Medium(5.35×, 20 steps)보다 예상 소모 지수와 step 효율이 떨어집니다. Sol Parent에서는 Terra Medium을 호출하고, Terra Parent에서는 직접 수행하십시오. |
 | *"1줄짜리 오타/상수 수정인데 이것도 무조건 캡슐 만들어야 하나요?"* | **아닙니다.** 3줄 이하, 무로직, 무테스트 단발 수정은 캡슐 오버헤드 방지를 위해 Parent Direct가 원칙입니다. |

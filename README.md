@@ -88,7 +88,7 @@ Active Parent (Sol or Terra)
 
 > [!NOTE]
 > 위 임계값은 Codex가 공식적으로 보장한 경제적 손익분기점이 아닙니다. Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 보수적 기본 heuristic입니다.
-> Threshold는 다운시프트 평가 진입 여부를 결정하며, 대상 Child 모델은 Gate B의 Decision Authority 판정으로 결정됩니다 (`Threshold decides whether to evaluate downshift. Gate B decides which worker receives the task.`).
+> Threshold는 다운시프트 평가 진입 여부를 결정합니다. Gate A는 위임 자체의 허용 여부를 결정하며, Gate A를 통과한 경우 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정합니다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
 
 ### 🔍 Parent Direct 조건 및 4~9줄 구간 정책
 - **≤3줄 단발 수정**: 단일 파일 내 3줄 이하, 로직/분기문 추가 없는 단순 오타/상수 1개 변경, 1턴 검증 종료 건은 캡슐 오버헤드 방지를 위해 Parent Direct 처리.

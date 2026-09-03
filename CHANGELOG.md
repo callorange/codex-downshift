@@ -22,8 +22,8 @@
 
 ### 수정 (Fixed)
 - **`docs/codex-downshift-spec.md` Reasoning Effort 불변 규칙 동기화**: Invariant 7의 단일 medium 기본값 표기를 최신 Luna Low(기본)/Medium(경량탐색) 및 Terra Medium(Sol Parent 전용 구현 워커) 정책과 정확히 일치하도록 동기화.
-- **Default Downshift Threshold와 Gate B 책임 분리**: Threshold 충족 시 모델(Luna Low)을 직단정하던 Rationalization Table 문구를 Gate A(Safety) 및 Gate B(Decision Authority) 판정 단계로 수정 (`Threshold decides whether to evaluate downshift. Gate B decides which worker receives the task.`).
-- **`model-economics.md` 데이터 출처 및 스냅샷 명시**: 2026-09-03 기준 OpenAI 공식 요율, Codex Radar 및 CursorBench 3.2 출처 URL과 스냅샷 정보 추가.
+- **Threshold → Gate A → Gate B 책임 관계 명확화 및 Gate A 실패 경로 명시**: Threshold 충족 시 Gate A에서 안전성을 평가하여 실패 시 Parent Direct 처리하고, 통과 시에만 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정하도록 문서 전체(Rationalization Table, README, spec, SKILL)의 설명 문구를 통일 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
+- **`model-economics.md` Codex credit-rate 직접 출처 URL 추가 및 역할 분리**: OpenAI Help Center 직접 출처(`https://help.openai.com/en/articles/11481834`)를 추가하고, API pricing 참고용 URL 및 벤치마크 출처의 역할을 엄격히 분리 명시.
 
 ## [0.1.4] - 2026-09-02
 

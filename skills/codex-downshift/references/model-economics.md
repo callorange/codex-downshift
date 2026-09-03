@@ -6,7 +6,7 @@
 
 ## 1. OpenAI 공식 Token-Credit Rate
 
-OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다.
+OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다 ([OpenAI Help Center: credit-based usage](https://help.openai.com/en/articles/11481834) 기준).
 
 | 모델 (Model) | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
 | :--- | ---: | ---: | ---: |
@@ -91,11 +91,16 @@ OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다.
 
 Snapshot date: **2026-09-03**
 
-### Official pricing / credit-rate source
+### Official Codex credit-rate source
+- OpenAI ChatGPT / Codex credit-based usage rate card
+  - https://help.openai.com/en/articles/11481834
+  - Codex의 모델별 Input / Cached Input / Output token-credit rate 확인에 사용
+
+### API pricing reference
 - OpenAI API Pricing
   - https://developers.openai.com/api/docs/pricing
-- OpenAI Codex / credit-based usage documentation
-  - 공식 token-credit rate 확인에 사용
+  - API dollar pricing 참고용
+  - Codex Plus/Pro 포함 allowance 차감 공식의 직접 근거가 아님
 
 ### Observed agent usage / benchmark sources
 - Codex Radar
@@ -106,6 +111,6 @@ Snapshot date: **2026-09-03**
   - 모델 및 reasoning effort별 score / token usage / agent steps 관측치
 
 ### Interpretation note
-`Estimated Codex Consumption Index`는 위 공식 요율과 공개 benchmark/agent usage 관측치를 조합한 상대 비교용 추정치입니다.
+`Estimated Codex Consumption Index`는 위 공식 token-credit rate와 공개 benchmark / agent usage 관측치를 조합한 상대 비교용 추정치입니다.
 
-OpenAI가 공개한 Plus/Pro 5시간 또는 주간 allowance 공식 차감 배율이 아니며, benchmark 데이터와 Codex metering 정책이 변경되면 이 값 역시 재계산되어야 합니다.
+OpenAI가 공개한 Plus/Pro의 5시간 또는 주간 allowance 공식 차감 배율이 아니며, benchmark 결과나 Codex metering 정책이 변경되면 지수를 다시 계산해야 합니다.
