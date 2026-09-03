@@ -8,18 +8,17 @@
 ## [Unreleased]
 
 ### 추가 (Added)
-- **Codex 실질 세션 종합 요율표 반영**: Input + Cached + Output 가중치가 모두 반영된 실질 과금 요율(Luna Light 1.00×, Luna Med 2.61×, Terra Med 5.35×, Sol Med 18.04×, Sol Max 52.50×)을 전 문서 표준으로 채택.
-- **골든 스위칭 규칙 (`Luna High 6.00× > Terra Medium 5.35×`)**: Luna High(6.00×)가 Terra Medium(5.35×)보다 11% 더 비쌈을 규명하고, Luna Medium으로 부족한 복잡한 작업은 Luna High 대신 더 똑똑하고 저렴한 Terra Medium으로 즉시 스위칭하도록 라우팅 규칙 정립.
-- **실질 절감율 공식화**: Sol Medium(18.04×) 대비 Luna Light 위임 시 **94.5% 절감(1/18)**, Luna Medium 위임 시 **85.5% 절감(1/7)**, Terra Medium 위임 시 **70.3% 절감(1/3.4)**을 명시.
-- **Parent Execution Protocol (4단계 다운시프트 루프)**: Parent의 직접 코드 편집 도구 호출 전 Gate 확인 ➔ Task Capsule ➔ Spawn ➔ Verify 강제 절차 신설.
-- **손익분기점(BEP) 기반 즉시 호출 기준 (Downshift Mandatory Trigger Criteria)**: 상위 판단 완료 후 10줄 이상 코드 작성, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 무조건 하위 워커를 호출하도록 정량화.
-- **합리화 방지 테이블 및 Red Flags 보강**: "Luna High 선택에 따른 비용 폭탄 및 비효율" 등 실전 변명 차단.
+- **전용 경제학 참조 문서(`references/model-economics.md`) 신설 및 `SKILL.md` Token Diet**: 공식 크레딧 요율, 추정 소모 지수, 벤치마크 데이터 및 캐시 계산을 전용 참조 문서로 분리하여 `SKILL.md` 크기를 약 4KB(17%) 감축.
+- **Sol-Parent Golden Switch 규칙 정밀화**: Luna High(6.00×, 40 steps) 대비 Terra Medium(5.35×, 20 steps)의 시간 및 소모 효율 우위(CursorBench 3.2 근거)를 명시하고, Sol Parent 전용 규칙(Terra Parent는 Terra Direct)으로 분기.
+- **4~9줄 단일 파일 구간 정책 신설**: 3줄 이하(Parent Direct)와 10줄 이상(Threshold 다운시프트) 사이의 4~9줄 단일 파일 구간에 대해 무로직·무테스트 1턴 검증 시 Parent Direct 허용 조건 명시.
 
 ### 변경 (Changed)
-- **Frontmatter Description (SDO) 전면 개편**: 부정문 예외 조항을 제거하고, 상위 부모 모델이 코드 수정에 착수하기 직전 다운시프트를 강제하도록 행동 기반 트리거로 교체.
-- **Trivial Atomic Action 판별 엄격화**: 기존의 주관적 "비용 비교" 문구를 삭제하고, 단일 파일 3줄 이하·무로직·무테스트 1턴 검증의 3대 동시 만족 조건으로 엄격 한정(오버헤드 방지 목적).
-- **Spawn Contract 및 Invariant 7 최적화**: 기계적 조립용 Luna `low`(1.00×, 94.5% 절감) 기본, 경량 탐색 시 Luna `medium`(2.61×) 허용, Terra `medium`(5.35×, 70.3% 절감)을 고지능 워커로 한정.
-- 핵심 문서(`README.md`, `docs/codex-downshift-spec.md`, `SKILL.md`) 및 `C:\Users\callo\.gemini\config\skills\codex-downshift\` 전면 최신화 동기화.
+- **공식 요율과 추정 소모 지수 분리**: 공식 token-credit rate와 결합 추정치인 **Estimated Codex Consumption Index**를 엄격히 분리하고 `[!IMPORTANT]` 주의문구 명시.
+- **절감률 표현 객관화**: Sol Medium 단일 기준선 의존을 탈피하고, Sol Low(9.40×) 및 Sol Medium(18.04×) 대비 추정 지수상 상대 절감률을 객관적으로 병기.
+- **Default Downshift Threshold (Provisional BEP Heuristic) 명문화**: 10줄/테스트/다중파일 기준이 검증된 절대 손익분기점이 아닌 자가 구현 방지를 위한 보수적 기본 운영 heuristic임을 명시.
+- **프롬프트 캐시 계산 단위 보정**: Sol 40k cached context(0.4 credits) 및 Luna 3k uncached input(0.015 credits)의 크레딧 단위 오류 수정.
+- **Terra Child 기본 reasoning 단순화**: Terra Child의 자동 디스패치 reasoning effort를 `medium`으로 단일화하고 구 raw-token 배율 잔재 제거.
+- 핵심 문서(`README.md`, `docs/codex-downshift-spec.md`, `SKILL.md`, `delegation-examples.md`) 및 런타임 config 전면 동기화.
 
 ## [0.1.4] - 2026-09-02
 

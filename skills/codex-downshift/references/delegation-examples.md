@@ -206,15 +206,16 @@ Worktree:
 
 ---
 
-## 🧪 Scenario 9: High Reasoning Effort 필요 상황 (승인 프로토콜)
+## 🧪 Scenario 9: High Reasoning Effort 필요 상황 (예외적 사용자 승인 프로토콜)
 
-- **상황**: Sol 부모 모델이 로컬 코드베이스의 복잡한 비선형 의존성을 분석해야 하는 구현 작업을 마주하여 `medium`으로는 부족하고 `high` reasoning이 필요하다고 판단함.
+- **원칙**: `high` / `xhigh` / `max`는 normal downshift optimization path가 아니며, 자동 라우팅에서 절대 선택되지 않습니다. 오직 사용자가 명시적으로 요청하거나 승인한 **exceptional override**로만 동작합니다.
+- **상황**: Sol 부모 모델이 로컬 코드베이스의 복잡한 비선형 의존성을 분석해야 하는 특수 구현 작업을 마주하여, 표준 경로(`medium`)를 초과하는 `high` reasoning이 예외적으로 필요하다고 판단함.
 - **올바른 동작 흐름**:
-  1. **Parent Direct 우선 평가**: Sol이 직접 수행하는 것이 더 빠른지 검토.
-  2. **실익 확인**: 작업 범위가 방대하여 Terra Child (`high`)로 위임하는 실익이 명백함을 확인.
+  1. **Parent Direct 우선 평가**: Sol이 직접 수행하는 것이 더 단순하고 빠른지 최우선 검토.
+  2. **실익 확인**: 작업 범위가 매우 넓어 Terra Child (`high`)로 위임하는 실익이 명백함을 확인.
   3. **사용자 승인 요청 (In-Chat)**:
-     > *"본 작업은 4개 모듈의 비동기 락 의존성을 깊이 있게 분석해야 하므로 `gpt-5.6-terra` (high reasoning effort) 위임이 필요합니다. high reasoning effort 사용을 승인하시겠습니까?"*
-  4. 사용자가 승인하면 `reasoning_effort="high"`로 spawn. 미승인 시 Sol이 직접 수행.
+     > *"본 작업은 4개 모듈의 비동기 락 의존성을 깊이 있게 분석해야 하므로 표준 medium을 초과하는 `gpt-5.6-terra` (high reasoning effort) 예외 위임이 필요합니다. high reasoning effort 사용을 승인하시겠습니까?"*
+  4. 사용자가 명시적으로 승인하면 `reasoning_effort="high"`로 spawn. 미승인 시 Sol이 직접 수행.
 
 ---
 

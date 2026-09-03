@@ -122,9 +122,10 @@ Active Parent (Sol or Terra)
   │    YES ──────────────────────────────────────────→ Parent Direct (상위 추론/판단 직접 수행)
   │    NO (상위 판단 완료)
   ▼
-  ├─ 2. 다운시프트 손익분기점(BEP) 미달 (≤3줄 오타/상수 단발 수정)?
-  │    YES ──────────────────────────────────────────→ Parent Direct (오버헤드 방지)
-  │    NO (10줄 이상, 테스트 사이클, 다중 파일 등 BEP 충족)
+  ├─ 2. 사소한 단발 수정인가?
+  │    ├─ ≤3줄 오타/상수 수정 (무로직, 무테스트) ──────→ Parent Direct (오버헤드 방지)
+  │    ├─ 4~9줄 단일 파일 수정 (무로직, 무테스트, 1턴) ─→ Parent 선택 가능 (단, 테스트/탐색 필요 시 다운시프트)
+  │    └─ ≥10줄 OR 테스트 루프 OR 다중 파일 ──────────→ 다운시프트 평가 진입 (Threshold 충족)
   ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Gate A: Delegation Safety Gate                           │
@@ -141,30 +142,35 @@ Active Parent (Sol or Terra)
 │ Gate B: Decision Authority Gate                          │
 │                                                          │
 │ (Active Sol Parent)                                      │
-│ ├─ Semantic 닫힘 + Implementation-local 분석/선택 남음    │
-│ │  ─────────────────────────────────────────→ Terra Child│
+│ ├─ Implementation-local 분석/선택 남음                    │
+│ │  ──────────────────────────→ Terra Medium Child (5.35×)│
+│ ├─ Implementation 닫힘 + 경량 위치 탐색 필요              │
+│ │  ──────────────────────────→ Luna Medium Child (2.61×) │
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Child (low [1.00×])  │
+│    ──────────────────────────→ Luna Low Child (1.00×)    │
 │                                                          │
 │ (Active Terra Parent)                                    │
-│ ├─ Implementation까지 닫힌 기계적 조립/테스트              │
-│ │  ──────────────────────────→ Luna Child (low [1.00×])  │
-│ └─ 그 외 로컬 구현 작업                                  │
-│    ─────────────────────────────────────────→ Terra Direct│
+│ ├─ Implementation-local 분석/선택 남음                    │
+│ │  ──────────────────────────→ Terra Parent Direct       │
+│ ├─ Implementation 닫힘 + 경량 위치 탐색 필요              │
+│ │  ──────────────────────────→ Luna Medium Child (2.61×) │
+│ └─ Implementation까지 닫힌 기계적 조립/테스트              │
+│    ──────────────────────────→ Luna Low Child (1.00×)    │
 └──────────────────────────────────────────────────────────┘
 ```
 
-### 6.1 Downshift Mandatory Trigger (즉시 호출 기준: 손익분기점)
-상위 판단이 끝난 실행 작업 중 다음 3가지 중 하나라도 충족되면 다운시프트 손익분기점(BEP)을 초과하므로 **반드시 하위 워커를 호출**:
-1. **테스트/검증 루프**: 단위 테스트를 작성하거나 테스트 명령어를 실행해 결과를 검증해야 하는 작업.
-2. **코드 규모**: 10줄 이상(또는 함수/클래스 1개 단위)의 코드 작성/수정.
-3. **다중 파일 범위**: 2개 이상의 파일에 걸친 변경 (배치 위임).
+### 6.1 Default Downshift Threshold (Provisional BEP Heuristic)
+실사용 로그가 충분히 축적되기 전까지 다음 조건을 downshift 기본 임계값으로 사용한다:
+1. **테스트/검증 루프 (Test & Validation Loop)**: 단위 테스트를 작성하거나 테스트 명령어를 실행해 결과를 검증·수정해야 하는 모든 작업.
+2. **코드 규모 (Scale Threshold: 10줄 이상)**: 새로 작성하거나 변경할 코드가 **10줄 이상**(또는 함수/클래스 1개 단위)인 작업.
+3. **다중 파일 범위 (Multi-File Scope)**: 수정 대상이 **2개 이상의 파일**에 걸친 작업.
 
-### 6.2 Parent Direct 엄격 한정 조건
-오버헤드 방지를 위한 Parent 직접 수정은 아래 3조건을 **동시에 만족하는 경우에만 한정 허용**:
-1. 단일 파일 내 **3줄 이하** 수정.
-2. 로직/분기문(if/else/loop) 추가가 없는 오타, 상수/리터럴 1개 변경, 단순 import 추가.
-3. 수정 후 테스트 루프나 디버깅 없이 1턴에 검증 종료.
+> [!NOTE]
+> 위 임계값은 Codex가 공식적으로 보장한 경제적 손익분기점이 아니다. Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 보수적 기본 heuristic이다.
+
+### 6.2 Parent Direct 조건 및 4~9줄 구간 정책
+- **≤3줄 단발 수정**: 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수/리터럴 수정, 테스트 루프 없는 1턴 검증으로 엄격히 한정하여 캡슐 오버헤드를 방지한다.
+- **4~9줄 단일 파일 구간**: implementation closed 상태이고 테스트 루프나 추가 탐색 없이 1턴에 검증 가능한 경우에 한해 Parent Direct 선택이 허용될 수 있다. 단, **테스트/수정 사이클이 수반되면 4줄이라도 반드시 다운시프트**한다.
 
 ---
 
@@ -217,7 +223,7 @@ spawn_agent(
 spawn_agent(
     model = "gpt-5.6-terra",         # [필수] Terra 모델 명시
     fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
-    reasoning_effort = "low"|"medium", # [필수] Light(1.84×) ~ Medium(2.46×)
+    reasoning_effort = "medium",     # [필수] 기본값: medium
     task_name = "<task_name>",
     message = "<Task Capsule>"
 )
@@ -228,29 +234,46 @@ spawn_agent(
   - 타 모델로 우회하거나 `model`을 생략한 child를 재시도하지 않는다.
   - **현재 부모 모델(Sol/Terra)이 해당 작업을 직접 계속 수행한다.**
 
-### 8.2 GPT-5.6 실측 토큰·크레딧 경제학 매트릭스 및 Reasoning Effort 정책
+### 8.2 Estimated Codex Consumption Index 및 Reasoning Effort 정책
 
 #### 1) Codex 공식 크레딧 단가표
-| 모델 | Input (1M당) | Cached Input (1M당) | Output (1M당) |
+| 모델 | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
 | :--- | ---: | ---: | ---: |
 | **Luna** | **5** | **0.5** | **30** |
 | **Terra** | **50** (10×) | **5** (10×) | **300** (10×) |
 | **Sol** | **100** (20×) | **10** (20×) | **500** (16.7×) |
 
-#### 2) Codex 실질 세션 종합 요율표 (기준: Luna Light = 1.00×)
-실제 세션의 Input 프롬프트 + Cached 컨텍스트 + Output/추론 토큰의 복합 가중치가 모두 반영된 **실질 종합 과금 비율**입니다:
+#### 2) Estimated Codex Consumption Index (예상 실질 소모 지수)
+> [!IMPORTANT]
+> 아래 값은 OpenAI가 공개한 Plus/Pro Codex allowance 공식 환산식이 아니다.
+> OpenAI의 공식 token-credit rate와 Codex Radar / CursorBench의 공개 agent 사용량 관측치를 결합하여
+> 설정 간 상대적인 비용 효율을 비교하기 위해 만든 **추정 상대 소모 지수(Estimated Consumption Index)**이다.
+> 실제 5시간/주간 allowance 감소율은 context 크기, cache 비율, output, reasoning,
+> tool call, agent step, subagent 및 서버 측 metering 정책에 따라 달라질 수 있다.
 
 | 모델 \ 추론 | Light (`low`) | Medium (`medium`) | High (`high`) | XHigh | Max |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Luna** | 🟢 **1.00×** (디폴트) | 🟢 **2.61×** (경량 탐색) | 🟢 **6.00×** (비효율 금지) | 🟡 **8.77×** | 🟠 **18.31×** |
+| **Luna** | 🟢 **1.00×** (디폴트) | 🟢 **2.61×** (경량 탐색) | 🟢 **6.00×** (자동선택 금지) | 🟡 **8.77×** | 🟠 **18.31×** |
 | **Terra** | 🟢 **4.46×** | 🟢 **5.35×** (고지능 워커) | 🟡 **8.39×** | 🟠 **13.99×** | 🔴 **28.85×** |
 | **Sol** | 🟡 **9.40×** | 🟠 **18.04×** (부모 기준선) | 🔴 **25.63×** | 🔴 **35.62×** | 🔴 **52.50×** |
 
-#### 3) 실질 요율 기반 5대 핵심 운용 규칙
-- **Luna Light (1.00×) 디폴트 위임 (실질 94.5% 절감)**: Sol Medium(18.04×) 대비 실질 비용은 **1/18 (94.5% 절감)**이다. 10줄 이상의 기계적 구현/테스트는 무조건 Luna `low`를 디폴트로 호출한다.
-- **Luna Medium(2.61×)이 Terra Medium(5.35×)보다 2배 이상 저렴**: 경량 로컬 탐색도 Terra로 올리지 않고 Luna Medium(2.61×)을 우선 활용하여 비용을 51% 추가 절감한다.
-- **골든 스위칭 규칙: `Luna High (6.00×)` > `Terra Medium (5.35×)`**: 하위 모델 Luna에게 High 추론을 부여하는 것은 **비용도 11% 더 비싸고 지능도 떨어지는 비효율**이다. Luna Medium(2.61×)으로 감당하기 힘든 작업은 Luna High로 올리지 않고, **더 똑똑하고 저렴한 `Terra Medium (5.35×)`으로 즉시 스위칭**한다.
-- **Terra Medium (5.35×)의 정체성 (실질 70.3% 절감형 고지능 워커)**: 복잡한 로컬 알고리즘, 클래스 구조 설계에 한해 선택적으로 투입하여 Sol Medium 대비 70.3% 절감을 달성한다.
+#### 3) 부모 기준선별 예상 상대 절감률 비교
+| 자식 설정 | 예상 소모 지수 | vs Sol Low (9.40×) | vs Sol Medium (18.04×) | 주요 적용 작업 |
+| :--- | :---: | :---: | :---: | :--- |
+| **Luna Low** | **1.00×** | **~89.4% lower** | **~94.5% lower** | 확정된 기계적 조립, 단위 테스트, 정형 린트/수정 |
+| **Luna Medium** | **2.61×** | **~72.2% lower** | **~85.5% lower** | 구현 닫힘 + 경량 심볼/위치 로컬 탐색 |
+| **Terra Medium** | **5.35×** | **~43.1% lower** | **~70.3% lower** | 로컬 알고리즘/클래스 내부 설계 (Sol Parent 전용) |
+
+#### 4) 핵심 운용 규칙 및 벤치마크 근거
+- **Luna-First 원칙**: 구현이 닫힌 작업은 예상 소모 지수가 가장 낮은 Luna Low(1.00×) 또는 Luna Medium(2.61×)을 우선 활용한다. (Luna Medium은 구현 판단 권한을 확장하지 않는다).
+- **Luna High vs Terra Medium 및 Sol-Parent Golden Switch**:
+  - CursorBench 3.2 관측에서 Luna High는 Score 56.8% / Agent Steps 40이며, Terra Medium은 Score 50.3% / Agent Steps 20이다.
+  - Luna High는 일부 benchmark에서 높은 점수를 보일 수 있지만, 예상 소모 지수가 더 높고(6.00× vs 5.35×) 해결까지 필요한 Agent step이 2배(40 vs 20)에 달한다.
+  - 따라서 Sol Parent에서 Implementation-local 분석/선택이 필요한 작업은 Luna High 대신 **Terra Medium(5.35×, 20 steps)**을 사용하는 것이 시간과 예상 소모 효율 측면에서 더 적합하다.
+  - **Terra Parent의 경우**: Downshift Only 규칙에 따라 Terra Child를 생성할 수 없으므로, 로컬 구현 판단은 Golden Switch가 아닌 **Terra Parent Direct**로 직접 수행한다.
+- **프롬프트 캐시 단순 단가 비교 주의점**:
+  - 단순 token-rate 기준으로 Sol 세션 40k cached context를 읽는 비용은 약 0.4 credits이며, Luna fresh worker의 3k uncached input은 약 0.015 credits로 입력부만 비교 시 약 26.7배 차이가 난다.
+  - 단, 실제 작업 전체 비용은 output, reasoning, 추가 도구 호출 및 반복 스텝에 따라 달라지므로 전체 세션 비용으로 일반화하지 않는다.
 - **권한 불변 원칙**: Reasoning effort는 사고 깊이만 변경할 뿐, **Child에게 위임된 판단 권한(Decision Authority)을 절대 확장하지 않는다.**
 
 ---
@@ -358,8 +381,10 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 ## 14. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
 1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 개별 직접 수정하지 않고 하나의 Bounded Task Capsule로 묶어 Luna에게 일괄 위임한다.
-2. **손익분기점(BEP) 기반 즉시 호출 기준**: 상위 판단이 완료된 작업 중 10줄 이상 코딩, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 무조건 다운시프트를 발동한다. (Sol Medium 6.15× 대비 Luna Light 1.00×로 약 84% 절감 효과 달성).
-3. **Parent Direct 엄격 한정 조건**: 오버헤드 방지를 위한 부모 직접 수정은 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수/리터럴 수정, 테스트 루프 없는 1턴 검증으로 엄격히 한정한다.
+2. **Default Downshift Threshold (Provisional BEP Heuristic)**: 상위 판단이 완료된 작업 중 10줄 이상 코딩, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 다운시프트를 기본 수행한다. (예상 소모 지수 기준 Sol Low 9.40× 대비 약 89.4%, Sol Medium 18.04× 대비 약 94.5% 낮은 지수). 이는 공식 보장 손익분기점이 아닌 Parent의 직접 수정 합리화를 막기 위한 보수적 기본 heuristic이다.
+3. **Parent Direct 조건 및 4~9줄 구간 정책**: 
+   - 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수 수정, 테스트 루프 없는 1턴 검증은 캡슐 오버헤드 방지를 위해 Parent Direct를 적용한다.
+   - 4~9줄 단일 파일 구간은 implementation closed 상태이고 테스트 루프나 추가 탐색 없이 1턴에 검증 가능한 경우에 한해 Parent Direct 선택이 허용될 수 있다. (단, 테스트/수정 사이클 필요 시 4줄이라도 반드시 다운시프트).
 4. **우선순위 불변 원칙**: 단순 편의성이나 Latency보다 **Parent Usage 절감이 최우선**이다.
 
 ---

@@ -1,0 +1,86 @@
+# Model Economics & Estimated Consumption Index
+
+본 문서는 `codex-downshift` 스킬의 모델 라우팅, 추론 레벨 선택 및 비용 최적화 판단의 근거가 되는 공식 요율과 추정 소모 지수(Estimated Consumption Index)를 정리한 기술 참조 문서입니다.
+
+---
+
+## 1. OpenAI 공식 Codex Token-Credit 요율표
+
+OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다.
+
+| 모델 (Model) | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
+| :--- | ---: | ---: | ---: |
+| **Luna** (`gpt-5.6-luna`) | **5** | **0.5** | **30** |
+| **Terra** (`gpt-5.6-terra`) | **50** (10×) | **5** (10×) | **300** (10×) |
+| **Sol** (`gpt-5.6-sol`) | **100** (20×) | **10** (20×) | **500** (16.7×) |
+
+---
+
+## 2. Estimated Codex Consumption Index (예상 실질 소모 지수)
+
+> [!IMPORTANT]
+> 아래 값은 OpenAI가 공개한 Plus/Pro Codex allowance 공식 환산식이 아닙니다.
+> OpenAI의 공식 token-credit rate와 Codex Radar / CursorBench의 공개 agent 사용량 관측치를 결합하여
+> 설정 간 상대적인 비용 효율을 비교하기 위해 만든 **추정 상대 소모 지수(Estimated Consumption Index)**입니다.
+> 실제 5시간/주간 allowance 감소율은 context 크기, cache 비율, output, reasoning,
+> tool call, agent step, subagent 및 서버 측 metering 정책에 따라 달라질 수 있습니다.
+
+### 모델별·추론레벨별 예상 상대 소모 지수 (기준: Luna Light = 1.00×)
+
+| 모델 \ 추론 | Light (`low`) | Medium (`medium`) | High (`high`) | XHigh | Max |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Luna** | 🟢 **1.00×** | 🟢 **2.61×** | 🟢 **6.00×** | 🟡 **8.77×** | 🟠 **18.31×** |
+| **Terra** | 🟢 **4.46×** | 🟢 **5.35×** | 🟡 **8.39×** | 🟠 **13.99×** | 🔴 **28.85×** |
+| **Sol** | 🟡 **9.40×** | 🟠 **18.04×** | 🔴 **25.63×** | 🔴 **35.62×** | 🔴 **52.50×** |
+
+---
+
+## 3. 부모 기준선별 예상 상대 절감률 비교
+
+절감률은 Active Parent의 reasoning effort 설정에 따라 달라집니다. Sol Medium을 단일 고정 baseline으로 삼지 않고, 실제 부모 모델 설정에 맞추어 비교합니다.
+
+| 자식 설정 (Child Config) | 예상 소모 지수 | vs Sol Low (9.40×) 부모 | vs Sol Medium (18.04×) 부모 | 주요 적용 작업 |
+| :--- | :---: | :---: | :---: | :--- |
+| **Luna Low** | **1.00×** | **~89.4% lower** | **~94.5% lower** | 확정된 기계적 조립, 단위 테스트, 정형 린트/수정 |
+| **Luna Medium** | **2.61×** | **~72.2% lower** | **~85.5% lower** | 구현 닫힘 + 경량 심볼/위치 로컬 탐색 |
+| **Terra Medium** | **5.35×** | **~43.1% lower** | **~70.3% lower** | 로컬 알고리즘/클래스 내부 설계 (Sol Parent 전용) |
+
+*(※ 모든 절감률은 Estimated Consumption Index 기준 추정치이며, 공식 allowance 보증치가 아닙니다.)*
+
+---
+
+## 4. Luna High vs Terra Medium 비교 및 Sol-Parent Golden Switch
+
+### 1) CursorBench 3.2 관측 데이터
+- **Luna High (`high`)**: Score **56.8%**, Agent Steps **40**, 예상 소모 지수 **6.00×**
+- **Terra Medium (`medium`)**: Score **50.3%**, Agent Steps **20**, 예상 소모 지수 **5.35×**
+
+### 2) 분석 및 라우팅 근거
+- CursorBench 벤치마크 점수만 보면 Luna High가 Terra Medium보다 높게 나타날 수 있습니다.
+- 그러나 Luna High는 예상 소모 지수가 Terra Medium보다 높고(6.00× vs 5.35×), 해결까지 요구하는 **Agent step이 2배(40 vs 20)**에 달합니다.
+- 따라서 내부 알고리즘이나 클래스 구조 선택 등 Implementation-local decision이 필요한 작업에서는, Luna의 reasoning effort를 High로 올리는 것보다 **상위 티어 모델의 체급과 적은 step, 약간 더 낮은 예상 소모 지수를 갖춘 Terra Medium을 사용하는 것이 시간과 예상 allowance 효율 측면에서 훨씬 적합**합니다.
+
+### 3) Golden Switching의 Parent별 적용 범위 (중요)
+- **Sol Parent인 경우**:
+  - `Implementation-Local Decision Remains` ➔ **Terra Medium Child**로 Golden Switch 적용 가능.
+- **Terra Parent인 경우**:
+  - Downshift Only 원칙(`Terra Parent ➔ Terra Child` 금지)에 따라 Terra Child를 생성할 수 없습니다.
+  - 따라서 Terra Parent에서 구현 판단이 필요한 작업은 Golden Switch가 아니라 **Terra Parent Direct**로 직접 수행합니다.
+
+---
+
+## 5. 프롬프트 캐시 및 입력 토큰 단순 단가 비교
+
+단순 공식 토큰 단가 기준의 캐시 읽기 예시입니다:
+
+- **Sol 세션 (40,000 cached tokens)**:
+  $$\frac{40,000}{1,000,000} \times 10 = \mathbf{0.4\text{ credits}}$$
+- **Luna 독립 워커 (3,000 uncached input tokens)**:
+  $$\frac{3,000}{1,000,000} \times 5 = \mathbf{0.015\text{ credits}}$$
+- **비율**:
+  $$\frac{0.4}{0.015} \approx \mathbf{26.67\times}$$
+
+> [!NOTE]
+> 해당 입력 부분만 단순 비교하면 약 26.7배 차이가 납니다.
+> 단, 실제 작업 전체 비용은 output, reasoning, 추가 tool call 및 반복 agent step에 따라 달라지므로,
+> "세션 전체가 항상 26배 저렴하다"고 해석해서는 안 됩니다.
