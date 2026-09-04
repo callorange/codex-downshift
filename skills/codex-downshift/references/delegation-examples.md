@@ -50,12 +50,15 @@
       message = """TASK CAPSULE
   Role: You are a leaf worker.
   Goal: Implement OrderDiscountCalculator satisfying the fixed API contract.
-  Target / Scope: src/services/discount.py, tests/test_discount.py
+  Scope:
+  - Search: src/services/discount.py, tests/test_discount.py
+  - Modify: src/services/discount.py, tests/test_discount.py
   Decisions already made:
   - Fixed API: calculate_discount(order: Order) -> Decimal
   - Policy: VIP=20%, Regular=5%, Holiday Promo adds 5% max up to 25%. Raises InvalidOrderError if total <= 0.
   Delegated authority: Implementation-local architecture and algorithm structure inside discount.py.
   Must not decide: Do not alter the Public API signature, return types, or discount rate percentages.
+  Apply: Implementation-local choice
   Acceptance criteria:
   - [ ] All discount calculation rules pass unit tests.
   - [ ] InvalidOrderError raised on negative or zero total.
@@ -84,10 +87,14 @@
       message = """TASK CAPSULE
   Role: You are a leaf worker.
   Goal: Rename deprecated field 'user_id' to 'account_id' across 12 serializers and update tests.
-  Target / Scope: src/serializers/*.py, tests/test_serializers.py
+  Scope:
+  - Search: src/serializers/*.py, tests/test_serializers.py
+  - Modify: src/serializers/*.py, tests/test_serializers.py
   Decisions already made: All 12 serializers must use 'account_id: UUID'.
   Delegated authority: Predetermined execution only. Apply exact renaming.
   Must not decide: Do not add or remove any other fields.
+  Apply: All matches within scope
+  Rule: Rename only the deprecated `user_id` field to `account_id`.
   Acceptance criteria:
   - [ ] All 12 serializers use account_id.
   - [ ] pytest tests/test_serializers.py passes.
@@ -249,6 +256,7 @@ Worktree:
 ## 🧪 Scenario 14: Terra 위임이 경제적으로 나쁜 경우
 
 Sol이 이미 내부 알고리즘을 결정했고 한 함수와 결정적 테스트만 남았다면 Terra 준비·검증 오버헤드가 실행량과 비슷하다. Economic Gate에서 탈락하여 Parent Direct 또는 Luna로 라우팅한다.
+Parent Direct가 선택되면 delegation 목적의 Capsule은 emit하지 않고 Child도 spawn하지 않으며, Sol Parent가 직접 구현·검증한다.
 
 ## 🧪 Scenario 15: Terra 위임이 경제적인 경우
 

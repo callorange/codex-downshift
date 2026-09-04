@@ -1,6 +1,6 @@
 ---
 name: codex-downshift
-description: Use whenever operating as an Active Parent model (Sol or Terra) and about to implement, modify, refactor, or test code for a bounded task where requirements or external contracts are clear. Enforces offloading execution to lower-tier leaf workers (Luna or Terra) instead of directly editing code in the Parent session.
+description: Use when operating as an Active Parent model (Sol or Terra) on bounded implementation work where requirements or external contracts are clear. Evaluates safe and economical downshifting to Luna or Terra leaf workers while preserving Parent Direct when delegation overhead is not worthwhile.
 ---
 
 # Codex Downshift (Execution Delegator Skill)
@@ -38,13 +38,15 @@ description: Use whenever operating as an Active Parent model (Sol or Terra) and
 
 ## 🛑 The Parent Execution Protocol (4단계 다운시프트 루프)
 
-Parent는 소스 코드 편집 도구(`write_to_file`, `replace_file_content` 등)를 직접 호출하기 전에 **반드시** 아래 4단계를 순서대로 수행해야 합니다:
+Parent는 소스 코드 편집 도구(`write_to_file`, `replace_file_content` 등)를 직접 호출하기 전에 **반드시** 아래 1단계의 게이트 평가를 수행해야 합니다. 게이트 결과가 Child delegation이면 2–4단계를 이어서 수행하고, Parent Direct이면 정상적으로 short-circuit합니다:
 
-1. **Trigger & Gate Check**: 
+1. **Trigger & Gate Check**:
    - [선행 조건] 상위 요구사항/아키텍처/보안 판단이 Parent에 의해 완료되었는가? (미완료 시 Parent Direct로 추론 완료 우선)
    - [보조 신호] LOC·파일 수·테스트 패턴은 참고만 하며 필수 임계값이 아니다. 단일 deterministic validation은 trigger가 아니고, 예상 test/fix loop는 leverage의 증거이지 자동 위임 명령이 아니다.
    - ➔ Gate A(안전성) → Gate B(잔여 권한/후보 선택) → Economic Gate 순으로 평가한다.
-2. **Capsule Emission**: 
+   - **Parent Direct**: Gate A, Gate B, 또는 Economic Gate가 Parent Direct를 선택하면 delegation 목적의 Task Capsule을 작성하지 않고 Child를 spawn하지 않는다. Parent가 직접 구현하고 직접 검증한다.
+   - **Child delegation**: 위임이 선택된 경우에만 다음 단계를 수행한다.
+2. **Capsule Emission**:
    - [Task Capsule 표준 서식](references/task-capsule-template.md)에 따라 목표, 허용 범위, Acceptance Criteria, 검증 명령을 확정하여 프롬프트 작성.
 3. **Leaf Worker Spawn**: 
    - `spawn_agent`로 하위 모델을 명시하여 디스패치 (`fork_turns = "none"`, Luna는 `reasoning_effort = "low"`, Terra는 `medium`).
@@ -227,7 +229,7 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 | 에이전트의 핑계 | 현실 및 불변 규칙 |
 | :--- | :--- |
 | *"10줄 안팎의 작업이라 캡슐을 만들고 spawn하는 것보다 직접 고치는 게 빠릅니다"* | LOC/줄 수는 보조 참조입니다. 먼저 Gate A, Gate B, Economic Gate를 평가하고 overhead가 비슷하면 Parent Direct입니다. |
-| *"지금 한창 구현 흐름 중이니 이번 한 번만 직접 코딩할게요"* | **금지.** '이번 한 번만'은 세션 전체의 전면 자가 구현으로 변질됩니다. 코드 수정 도구 호출 전 Task Capsule을 작성하십시오. |
+| *"Gate 평가 없이 귀찮으니 그냥 내가 직접 코딩할게요"* | **금지.** Gate A / Gate B / Economic Gate 평가 없이 자의적으로 Parent Direct를 선택하지 마십시오. 다만 게이트 결과가 Parent Direct라면 Task Capsule과 Child Spawn을 생략하고 Parent가 직접 수행합니다. |
 | *"Luna가 복잡한 로직을 풀 수 있게 reasoning을 High로 올릴게요"* | **비효율.** Luna High(6.00×, 40 steps)는 Terra Medium(5.35×, 20 steps)보다 예상 소모 지수와 step 효율이 떨어집니다. Sol Parent에서는 Terra Medium을 호출하고, Terra Parent에서는 직접 수행하십시오. |
 | *"1줄짜리 오타/상수 수정인데 이것도 무조건 캡슐 만들어야 하나요?"* | **아닙니다.** 3줄 이하, 무로직, 무테스트 단발 수정은 캡슐 오버헤드 방지를 위해 Parent Direct가 원칙입니다. |
 | *"수정 파일이 많으니 Luna 대신 Terra로 보낼게요"* | 파일 수가 아니라 **남은 판단 권한**이 기준입니다. 패턴이 닫혀 있으면 10개 파일도 Luna로 일괄 배치 위임합니다. |
