@@ -2,6 +2,8 @@
 
 본 문서는 `codex-downshift` 스킬의 게이트 기반 라우팅(Gate A Safety ➔ Gate B Decision Authority ➔ Economic Gate), 4대 반환 규격 및 예외 처리 정책을 검증하기 위한 16개 핵심 실전 시나리오 가이드입니다.
 
+모든 후보는 Delegation Preparation Test 네 조건(Parent의 goal/scope/fixed decisions/acceptance 선확정, direct execution에 준하는 준비 분석 불필요, 의미 있는 bounded execution 대체, preparation plus verification이 대체 실행보다 명확히 작음)을 모두 충족할 때만 위임합니다. 그렇지 않으면 Parent Direct입니다.
+
 ---
 
 ## 🎯 핵심 시나리오 요약 매트릭스

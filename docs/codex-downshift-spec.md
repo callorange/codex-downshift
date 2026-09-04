@@ -158,20 +158,18 @@ Active Parent (Sol or Terra)
                              │ candidate selected
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│ Economic Gate: child execution materially exceeds        │
-│ parent preparation + verification?                        │
-│ YES → selected Child; overhead similar → Parent Direct    │
+│ Economic Gate: Delegation Preparation Test                │
+│ all four conditions true → selected Child; else Parent Direct│
 └──────────────────────────────────────────────────────────┘
 ```
 
 ### 6.1 Routing signals and Economic Gate
-LOC·파일 수·테스트 패턴은 secondary signal일 뿐 필수 threshold가 아니다. 단일 deterministic validation은 자동 위임 trigger가 아니며, 예상 test/fix loop는 leverage를 높이는 신호다. Gate A는 안전성, Gate B는 남은 권한별 후보를 결정하고 Economic Gate에서 준비·검증 오버헤드와 직접 수행 비용을 비교한다.
+LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않는다. trivial literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work 같은 관찰 가능한 작업 속성이 라우팅을 이끈다. Gate A와 Gate B 후 Economic Gate에서 Delegation Preparation Test 네 조건을 모두 확인한다.
 
 Luna Low는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule과 bounded Search가 필요한 작업이다. `all matches`는 Search 경계 전체를 검사하고 non-exhaustive examples를 전체 목록으로 오인하지 않는다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이며, Terra Parent는 직접 처리한다. 후보여도 경제성이 비슷하면 Parent Direct다.
 
-### 6.2 Parent Direct 조건 및 4~9줄 구간 정책
-- **≤3줄 단발 수정**: 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수/리터럴 수정, 테스트 루프 없는 1턴 검증으로 엄격히 한정하여 캡슐 오버헤드를 방지한다.
-- **4~9줄 단일 파일 구간**: implementation closed 상태라도 Economic Gate에서 준비·검증 오버헤드와 leverage를 비교해 Parent Direct 또는 후보 위임을 선택한다.
+### 6.2 Parent Direct 조건
+trivial literal/mechanical edit, high-consequence/irreversible work, 또는 Delegation Preparation Test를 충족하지 못한 작업은 Parent Direct로 처리한다. LOC·파일 수는 약한 secondary signal이며 경로를 독립적으로 결정하지 않는다.
 
 ---
 
@@ -388,10 +386,10 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 ## 14. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
 1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 개별 직접 수정하지 않고 하나의 Bounded Task Capsule로 묶어 Luna에게 일괄 위임한다.
-2. **Routing signals and Economic Gate**: LOC·파일 수·단일 deterministic validation은 secondary signal이다. 예상 test/fix loop는 leverage 증거지만 자동 위임 명령이 아니다. Gate A → Gate B → Economic Gate를 순서대로 평가하고, 준비·검증 오버헤드와 직접 수행 비용이 비슷하면 Parent Direct다.
-3. **Parent Direct 조건 및 4~9줄 구간 정책**: 
-   - 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수 수정, 테스트 루프 없는 1턴 검증은 캡슐 오버헤드 방지를 위해 Parent Direct를 적용한다.
-   - 4~9줄 단일 파일 구간도 Economic Gate에서 leverage를 확인해 Parent Direct 또는 위임을 선택한다.
+2. **Routing signals and Economic Gate**: LOC·파일 수·단일 deterministic validation은 secondary signal이다. 예상 test/fix loop는 leverage 증거지만 자동 위임 명령이 아니다. Gate A → Gate B → Economic Gate를 순서대로 평가하고 Delegation Preparation Test 네 조건을 모두 충족할 때만 위임하며, 아니면 Parent Direct다.
+3. **Parent Direct 조건**:
+   - trivial literal/mechanical edit는 Delegation Preparation Test가 위임을 정당화하지 않을 때 Parent Direct로 처리할 수 있다. LOC·파일 수 자체가 경로를 독립적으로 결정하지 않는다.
+   - 그 밖의 후보도 Delegation Preparation Test를 충족할 때만 위임하고, 아니면 Parent Direct로 처리한다.
 4. **우선순위 불변 원칙**: 단순 편의성이나 Latency보다 **Parent Usage 절감이 최우선**이다.
 
 ---

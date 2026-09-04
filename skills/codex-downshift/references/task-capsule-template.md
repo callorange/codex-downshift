@@ -9,7 +9,7 @@
 > - Terra Child 위임 시: 남은 작업이 Implementation-local 분석 및 선택에 한정되는가?
 > - Luna Child 위임 시: 구현 방법 및 패턴까지 확정되어 기계적 적용만 남았는가?
 > - 정확한 결과가 계약이라면 `Apply: Exact`와 필요한 고정 `Rule`/결과 형식이 제공되었는가?
-> - Economic Gate: 준비·검증 오버헤드보다 child가 대체할 실행량이 materially 큰가? 아니면 Parent Direct인가?
+> - Economic Gate (Delegation Preparation Test): 네 조건을 모두 충족하는가? 아니면 Parent Direct인가.
 
 ---
 

@@ -42,7 +42,7 @@ Parent는 소스 코드 편집 도구(`write_to_file`, `replace_file_content` �
 
 1. **Trigger & Gate Check**:
    - [선행 조건] 상위 요구사항/아키텍처/보안 판단이 Parent에 의해 완료되었는가? (미완료 시 Parent Direct로 추론 완료 우선)
-   - [보조 신호] LOC·파일 수·테스트 패턴은 참고만 하며 필수 임계값이 아니다. 단일 deterministic validation은 trigger가 아니고, 예상 test/fix loop는 leverage의 증거이지 자동 위임 명령이 아니다.
+   - [보조 신호] LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않는다. 작업 속성(사소한 literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work)을 관찰한다.
    - ➔ Gate A(안전성) → Gate B(잔여 권한/후보 선택) → Economic Gate 순으로 평가한다.
    - **Parent Direct**: Gate A, Gate B, 또는 Economic Gate가 Parent Direct를 선택하면 delegation 목적의 Task Capsule을 작성하지 않고 Child를 spawn하지 않는다. Parent가 직접 구현하고 직접 검증한다.
    - **Child delegation**: 위임이 선택된 경우에만 다음 단계를 수행한다.
@@ -101,28 +101,29 @@ Active Parent (Sol or Terra)
                              │ candidate selected
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│ Economic Gate: leverage must exceed preparation + verify   │
-│ If delegation overhead is similar to Parent Direct, stop.  │
+│ Economic Gate: Delegation Preparation Test                │
+│ all four conditions true → selected Child; else Parent Direct│
 └──────────────────────────────────────────────────────────┘
 ```
 
 ### 🚀 Routing Signals and Economic Gate
 
-LOC ≤3 / 4–9 / ≥10 구간은 규모를 가늠하는 **secondary reference**일 뿐 primary trigger가 아니다.
-
-예상되는 test/fix loop는 leverage를 높이는 긍정 신호지만 자동 위임 명령은 아니다.
+작업 속성이 라우팅의 주 기준이다. trivial literal/mechanical edit는 Parent Direct 후보이며, fixed-rule bounded execution은 Luna 후보, bounded search 또는 예상 test/fix loop는 경제성 평가 신호, implementation-local decision은 Terra 후보, high-consequence/irreversible work는 Parent Direct다. LOC·파일 수는 약한 secondary signal로만 참고한다.
 
 > [!NOTE]
-> 위 기준은 공식 보장 손익분기점이 아니며, Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 기본 운영 heuristic입니다.
-> LOC/파일/테스트 패턴은 secondary signal이다. Gate A는 안전성, Gate B는 권한별 후보, Economic Gate는 leverage 충분성을 결정한다.
+> Luna 2× 및 Terra 3×는 공식 보장 손익분기점이 아닌 Provisional Operational Heuristic이다. Gate A는 안전성, Gate B는 권한별 후보, Economic Gate는 아래 Delegation Preparation Test를 적용한다.
 
 단일 결정적 검증만 필요한 작업은 위임 트리거가 아니다. 반대로 테스트-수정 루프가 예상되면 실행량이 커져 경제성 평가 가치가 높다. LOC는 보조 지표일 뿐이다.
 
 ### 💰 Economic Gate and Delegation Preparation Test
 
-비공식 잠정 운영 휴리스틱 (Provisional Operational Heuristic)으로 Luna는 실행량 약 2배, Terra는 구현-로컬 분석·구현·검증량 약 3배의 leverage를 기대할 수 있다. 공식 요율과 Estimated Consumption Index는 [Model Economics](references/model-economics.md)의 값만 사용한다.
+Luna 2× 및 Terra 3×는 Provisional Operational Heuristic일 뿐 공식 break-even이나 threshold가 아니다. 공식 요율과 Estimated Consumption Index는 [Model Economics](references/model-economics.md)의 값만 사용한다.
 
-위임 전 다음 네 질문에 모두 `예`여야 한다: (1) 목표·범위·금지사항을 한 문장씩 고정했는가? (2) 자식이 물어볼 상위 의미/계약 판단이 없는가? (3) 검증 명령과 완료 기준이 결정적인가? (4) 준비+검증 오버헤드보다 자식이 대체할 실행이 materially 큰가? 아니면 Parent Direct.
+**Delegation Preparation Test:** 다음 네 조건에 모두 해당할 때만 위임한다: (1) Parent가 goal, scope, fixed decisions, acceptance를 이미 알고 있는가; (2) Child task 준비에 direct execution과 비교 가능한 분석이 필요하지 않은가; (3) Child가 의미 있는 bounded search, 반복, 구현 또는 test/fix work를 대체하는가; (4) Parent preparation plus verification이 대체되는 execution보다 명확히 작은가. 하나라도 아니면 Parent Direct다.
+
+### 📚 On-demand references
+
+`task-capsule-template.md`는 실제 Child delegation을 선택하고 Capsule을 작성할 때만 읽는다. `model-economics.md`는 Economic Gate에서 cost evidence 또는 reasoning/model-cost 비교가 필요할 때만 읽는다. `delegation-examples.md`는 core rules로 routing 또는 terminal-state edge case가 여전히 모호할 때만 읽는다. Core rules로 결정되면 모든 reference를 preload하지 않는다.
 
 ### 👁️ Spawn Visibility and Micro-batching
 
@@ -132,9 +133,8 @@ LOC ≤3 / 4–9 / ≥10 구간은 규모를 가늠하는 **secondary reference*
 
 **Profile semantics:** Implementation Closed + target locations closed이면 Luna Low 후보다. Implementation Closed + Match Rule Closed + target locations에 bounded search가 필요하면 Luna Medium 후보다. Luna는 Match Rule을 만들거나 넓히지 않으며, all-matches는 named/example 첫 발생에서 멈추지 않고 Search 경계 전체에 고정 Rule을 적용한다. semantic/architecture/product/compatibility/policy 판단이 필요하면 `NEEDS_PARENT_DECISION`이다. Terra는 절차를 과도하게 지정하지 않고 goal, fixed external contract, forbidden changes, acceptance와 local criteria(기존 패턴 선호, 최소 구현, Public API 보존)만 제공한다. Terra Parent의 implementation-local work는 Terra Parent Direct다.
 
-### 🔍 Parent Direct 허용 조건 및 4~9줄 구간 처리
-- **≤3줄 단발 수정**: 단일 파일 3줄 이하, 로직/분기 없는 오타/상수 변경, 무테스트 1턴 종료 건은 캡슐 오버헤드 방지를 위해 Parent Direct 처리.
-- **4~9줄 단일 파일 구간**: implementation closed 상태이고 1턴에 검증 가능한 경우 Parent Direct를 선택할 수 있다. 테스트/수정 사이클은 Economic Gate에서 leverage를 평가하는 신호일 뿐 자동 다운시프트 명령이 아니다.
+### 🔍 Parent Direct 조건
+- trivial literal/mechanical edit, high-consequence/irreversible work, 또는 Delegation Preparation Test를 충족하지 못한 작업은 Parent Direct다. LOC·파일 수만으로 경로를 결정하지 않는다.
 
 ---
 
@@ -231,7 +231,7 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 | *"10줄 안팎의 작업이라 캡슐을 만들고 spawn하는 것보다 직접 고치는 게 빠릅니다"* | LOC/줄 수는 보조 참조입니다. 먼저 Gate A, Gate B, Economic Gate를 평가하고 overhead가 비슷하면 Parent Direct입니다. |
 | *"Gate 평가 없이 귀찮으니 그냥 내가 직접 코딩할게요"* | **금지.** Gate A / Gate B / Economic Gate 평가 없이 자의적으로 Parent Direct를 선택하지 마십시오. 다만 게이트 결과가 Parent Direct라면 Task Capsule과 Child Spawn을 생략하고 Parent가 직접 수행합니다. |
 | *"Luna가 복잡한 로직을 풀 수 있게 reasoning을 High로 올릴게요"* | **비효율.** Luna High(6.00×, 40 steps)는 Terra Medium(5.35×, 20 steps)보다 예상 소모 지수와 step 효율이 떨어집니다. Sol Parent에서는 Terra Medium을 호출하고, Terra Parent에서는 직접 수행하십시오. |
-| *"1줄짜리 오타/상수 수정인데 이것도 무조건 캡슐 만들어야 하나요?"* | **아닙니다.** 3줄 이하, 무로직, 무테스트 단발 수정은 캡슐 오버헤드 방지를 위해 Parent Direct가 원칙입니다. |
+| *"1줄짜리 오타/상수 수정인데 이것도 무조건 캡슐 만들어야 하나요?"* | **아닙니다.** trivial literal/mechanical edit는 Delegation Preparation Test가 위임을 정당화하지 않을 때 Parent Direct로 처리할 수 있습니다. LOC 자체가 경로를 결정하지 않습니다. |
 | *"수정 파일이 많으니 Luna 대신 Terra로 보낼게요"* | 파일 수가 아니라 **남은 판단 권한**이 기준입니다. 패턴이 닫혀 있으면 10개 파일도 Luna로 일괄 배치 위임합니다. |
 | *"DB migration이지만 SQL이 확정되었으니 Luna에 위임할게요"* | Gate A(High Consequence) 위반입니다. 파괴적/운영 변경은 무조건 **Parent Direct**입니다. |
 | *"Terra child 생성이 실패했으니 Luna child로 재시도해볼게요"* | Fail-Closed 불변 규칙 위반입니다. spawn 실패 시 **Parent가 직접 수행**합니다. |

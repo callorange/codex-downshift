@@ -76,23 +76,21 @@ Active Parent (Sol or Terra)
                              │ candidate selected
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│ Economic Gate: child execution materially exceeds        │
-│ parent preparation + verification?                        │
-│ YES → selected Child; overhead similar → Parent Direct    │
+│ Economic Gate: Delegation Preparation Test                │
+│ all four conditions true → selected Child; else Parent Direct│
 └──────────────────────────────────────────────────────────┘
 ```
 
 ### 🚀 Routing signals and Economic Gate
-LOC·파일 수·테스트 패턴은 secondary signal일 뿐 필수 threshold가 아닙니다. 단일 deterministic validation은 자동 위임 trigger가 아니며, 예상 test/fix loop는 leverage를 높이는 신호입니다. Gate A는 안전성, Gate B는 남은 권한별 후보를 결정하고 Economic Gate에서 준비·검증 오버헤드와 직접 수행 비용을 비교합니다.
+LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않습니다. trivial literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work 같은 관찰 가능한 작업 속성이 라우팅을 이끕니다. Gate A와 Gate B 후 Economic Gate에서 Delegation Preparation Test 네 조건을 모두 확인합니다.
 
 Luna Low는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule 및 bounded Search가 필요한 작업입니다. `all matches`는 Search 경계 전체를 검사하며 non-exhaustive examples를 전체 목록으로 오인하지 않습니다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이고, Terra Parent는 직접 처리합니다. 후보여도 경제성이 비슷하면 Parent Direct입니다.
 
 > [!NOTE]
 > Luna 2× 및 Terra 3×는 공식 break-even이나 token formula가 아닌 비공식 잠정 운영 휴리스틱입니다. 상세 계약은 [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md)과 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참조하세요.
 
-### 🔍 Parent Direct 조건 및 4~9줄 구간 정책
-- **≤3줄 단발 수정**: 단일 파일 내 3줄 이하, 로직/분기문 추가 없는 단순 오타/상수 1개 변경, 1턴 검증 종료 건은 캡슐 오버헤드 방지를 위해 Parent Direct 처리.
-- **4~9줄 단일 파일 구간**: implementation closed 상태라도 Economic Gate에서 준비·검증 오버헤드와 leverage를 비교해 Parent Direct 또는 후보 위임을 선택합니다.
+### 🔍 Parent Direct 조건
+trivial literal/mechanical edit, high-consequence/irreversible work, 또는 Delegation Preparation Test를 충족하지 못한 작업은 Parent Direct입니다. LOC·파일 수만으로 경로를 결정하지 않습니다.
 
 ---
 
