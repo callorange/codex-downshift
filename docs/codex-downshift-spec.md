@@ -155,14 +155,19 @@ Active Parent (Sol or Terra)
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
 │    ──────────────────────────→ Luna Low Child (1.00×)    │
 └──────────────────────────────────────────────────────────┘
+                             │ candidate selected
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│ Economic Gate: child execution materially exceeds        │
+│ parent preparation + verification?                        │
+│ YES → selected Child; overhead similar → Parent Direct    │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### 6.1 Routing signals and Economic Gate
 LOC·파일 수·테스트 패턴은 secondary signal일 뿐 필수 threshold가 아니다. 단일 deterministic validation은 자동 위임 trigger가 아니며, 예상 test/fix loop는 leverage를 높이는 신호다. Gate A는 안전성, Gate B는 남은 권한별 후보를 결정하고 Economic Gate에서 준비·검증 오버헤드와 직접 수행 비용을 비교한다.
 
 Luna Low는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule과 bounded Search가 필요한 작업이다. `all matches`는 Search 경계 전체를 검사하고 non-exhaustive examples를 전체 목록으로 오인하지 않는다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이며, Terra Parent는 직접 처리한다. 후보여도 경제성이 비슷하면 Parent Direct다.
-
-> [!NOTE]
 
 ### 6.2 Parent Direct 조건 및 4~9줄 구간 정책
 - **≤3줄 단발 수정**: 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수/리터럴 수정, 테스트 루프 없는 1턴 검증으로 엄격히 한정하여 캡슐 오버헤드를 방지한다.

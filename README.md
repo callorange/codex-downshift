@@ -73,6 +73,13 @@ Active Parent (Sol or Terra)
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
 │    ──────────────────────────→ Luna Low Child (1.00×)    │
 └──────────────────────────────────────────────────────────┘
+                             │ candidate selected
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│ Economic Gate: child execution materially exceeds        │
+│ parent preparation + verification?                        │
+│ YES → selected Child; overhead similar → Parent Direct    │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### 🚀 Routing signals and Economic Gate
