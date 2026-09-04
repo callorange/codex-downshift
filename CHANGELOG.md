@@ -16,6 +16,8 @@
 - **Sol-Parent Golden Switch 규칙 정밀화**: Luna High(6.00×, 40 steps) 대비 Terra Medium(5.35×, 20 steps)의 시간 및 소모 효율 우위(CursorBench 3.2 근거)를 명시하고, Sol Parent 전용 규칙(Terra Parent는 Terra Direct)으로 분기.
 
 ### 변경 (Changed)
+- **스킬 문서 구조화**: 불변 규칙과 실행 단계를 제목으로 구분하고, 조건·권한·동작·fallback 및 모델별 지침을 묶어 표현. 긴 합리화 방지 표를 사례별 설명으로 전환하고 코드 블록·비용 수치·frontmatter·출력 형식은 보존.
+- **README 사용 흐름 개선 및 상세 내용 보존**: 빠른 시작·사용 예시와 함께 라우팅 도식, spawn 계약, 비용·절감률 비교표, 캐시 계산 및 Task Capsule 서식을 제공. 비용 snapshot과 참조 근거를 표시하고 수동 설치 경로와 공유 경로 설명을 공식 문서에 맞춰 수정.
 - **라우팅 정책 동기화**: Gate A → Gate B → Economic Gate로 전환하고 LOC threshold·단일 deterministic validation과 test/fix loop를 자동 위임 조건이 아닌 보조 신호로 구분.
 - **공식 요율과 추정 소모 지수 분리**: 공식 token-credit rate와 결합 추정치인 **Estimated Codex Consumption Index**를 엄격히 분리하고 `[!IMPORTANT]` 주의문구 명시.
 - **절감률 표현 객관화**: Sol Medium 단일 기준선 의존을 탈피하고, Sol Low(9.40×) 및 Sol Medium(18.04×) 대비 추정 지수상 상대 절감률을 객관적으로 병기.

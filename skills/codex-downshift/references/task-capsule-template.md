@@ -17,7 +17,13 @@
 
 ### Compactness
 
-이 template은 상세하지만 실제 emitted Capsule은 **Minimum Sufficient Context**만 사용한다. 모든 필드는 작업에 필요한 경우에만 작성하며, capsule 작성에 새 분석·상세 설계가 필요해지면 Economic Gate에서 Parent Direct를 선택한다.
+**작성 범위**
+
+이 template은 상세하지만 실제 emitted Capsule은 **Minimum Sufficient Context**만 사용한다.
+
+**필드 선택과 중단 조건**
+
+모든 필드는 작업에 필요한 경우에만 작성하며, capsule 작성에 새 분석·상세 설계가 필요해지면 Economic Gate에서 Parent Direct를 선택한다.
 
 ```text
 TASK CAPSULE
@@ -81,9 +87,28 @@ Return protocol:
 - NEEDS_PARENT_ACTION
 ```
 
-Profile guidance: Luna Low는 target locations closed, Luna Medium은 closed Match Rule + bounded Search다. Luna는 rule을 발명/확장하지 않고 non-exhaustive examples에서도 Search 경계의 모든 매치를 검사하며 semantic·architecture·product·compatibility·policy 판단은 `NEEDS_PARENT_DECISION`이다. Terra에는 goal, fixed external contract, forbidden changes, acceptance, 그리고 기존 패턴 선호·최소 구현·Public API 보존의 local criteria만 주고 절차를 과도하게 고정하지 않는다.
+### Profile guidance
 
-Micro-batch completion format:
+#### Luna — profile 선택
+
+Luna Low는 target locations closed, Luna Medium은 closed Match Rule + bounded Search다.
+
+#### Luna — 검색과 판단의 경계
+
+Luna는 rule을 발명/확장하지 않고 non-exhaustive examples에서도 Search 경계의 모든 매치를 검사하며 semantic·architecture·product·compatibility·policy 판단은 `NEEDS_PARENT_DECISION`이다.
+
+#### Terra — 전달할 계약
+
+Terra에는 다음만 주고 절차를 과도하게 고정하지 않는다:
+
+- goal
+- fixed external contract
+- forbidden changes
+- acceptance
+- 기존 패턴 선호·최소 구현·Public API 보존의 local criteria
+
+### Micro-batch completion format
+
 ```text
 TASK_COMPLETED
 Items:
@@ -92,7 +117,10 @@ Items:
 Modified files: [all paths]
 Validation: <command> -> PASSED
 ```
-미완료 항목은 전체를 `TASK_COMPLETED`로 표시하지 않는다. 판단이 필요하면 기존 네 상태 중 하나를 사용하고 item statuses와 Worktree를 함께 보고한다.
+**미완료·판단 필요 시**
+
+미완료 항목은 전체를 `TASK_COMPLETED`로 표시하지 않는다.
+판단이 필요하면 기존 네 상태 중 하나를 사용하고 item statuses와 Worktree를 함께 보고한다.
 
 ---
 

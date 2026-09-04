@@ -2,7 +2,16 @@
 
 본 문서는 `codex-downshift` 스킬의 게이트 기반 라우팅(Gate A Safety ➔ Gate B Decision Authority ➔ Economic Gate), 4대 반환 규격 및 예외 처리 정책을 검증하기 위한 16개 핵심 실전 시나리오 가이드입니다.
 
-모든 후보는 Delegation Preparation Test 네 조건(Parent의 goal/scope/fixed decisions/acceptance 선확정, direct execution에 준하는 준비 분석 불필요, 의미 있는 bounded execution 대체, preparation plus verification이 대체 실행보다 명확히 작음)을 모두 충족할 때만 위임합니다. 그렇지 않으면 Parent Direct입니다.
+**모든 위임 시나리오의 공통 전제**
+
+모든 후보는 Delegation Preparation Test 네 조건을 모두 충족할 때만 위임합니다:
+
+1. Parent의 goal/scope/fixed decisions/acceptance 선확정
+2. direct execution에 준하는 준비 분석 불필요
+3. 의미 있는 bounded execution 대체
+4. preparation plus verification이 대체 실행보다 명확히 작음
+
+그렇지 않으면 Parent Direct입니다.
 
 ---
 
@@ -261,20 +270,39 @@ Worktree:
 
 ## 🧪 Scenario 13: Luna Micro-batch
 
-서로 다른 4개 독립 변경(문서 오타, 고정 import 정리, 테스트 fixture 상수 교체, 명시된 docstring 추가)을 Luna Low micro-batch로 묶을 수 있다. 결과는 항목별 checkmark로 보고한다. 하나라도 판단이 필요하면 전체를 TASK_COMPLETED로 표시하지 않는다. 12개 serializer의 `user_id → account_id`처럼 하나의 고정 규칙을 반복하는 작업은 micro-batch가 아니라 repeated fixed-rule batch다.
+- **대상**: 서로 다른 4개 독립 변경(문서 오타, 고정 import 정리, 테스트 fixture 상수 교체, 명시된 docstring 추가)을 Luna Low micro-batch로 묶을 수 있다.
+- **결과 보고**: 결과는 항목별 checkmark로 보고한다.
+- **판단 필요 시**: 하나라도 판단이 필요하면 전체를 TASK_COMPLETED로 표시하지 않는다.
+- **구별할 작업**: 12개 serializer의 `user_id → account_id`처럼 하나의 고정 규칙을 반복하는 작업은 micro-batch가 아니라 repeated fixed-rule batch다.
 
 ## 🧪 Scenario 14: Terra 위임이 경제적으로 나쁜 경우
 
-Sol이 이미 내부 알고리즘을 결정했고 한 함수와 결정적 테스트만 남았다면 Terra 준비·검증 오버헤드가 실행량과 비슷하다. Economic Gate에서 탈락하여 Parent Direct 또는 Luna로 라우팅한다.
-Parent Direct가 선택되면 delegation 목적의 Capsule은 emit하지 않고 Child도 spawn하지 않으며, Sol Parent가 직접 구현·검증한다.
+- **상황**: Sol이 이미 내부 알고리즘을 결정했고 한 함수와 결정적 테스트만 남았다면 Terra 준비·검증 오버헤드가 실행량과 비슷하다.
+- **라우팅**: Economic Gate에서 탈락하여 Parent Direct 또는 Luna로 라우팅한다.
+- **Parent Direct 선택 후**: Parent Direct가 선택되면 delegation 목적의 Capsule은 emit하지 않고 Child도 spawn하지 않으며, Sol Parent가 직접 구현·검증한다.
 
 ## 🧪 Scenario 15: Terra 위임이 경제적인 경우
 
-외부 API 계약과 acceptance는 고정됐지만 여러 모듈의 내부 자료구조 선택·구현·테스트 루프가 남은 Sol 작업은 Gate A/B를 통과할 수 있다. 짧은 공개 표시 후 Terra Medium Child로 위임하고 Parent가 diff와 claim-matched fresh verification을 수행한다.
+- **상황·후보 판단**: 외부 API 계약과 acceptance는 고정됐지만 여러 모듈의 내부 자료구조 선택·구현·테스트 루프가 남은 Sol 작업은 Gate A/B를 통과할 수 있다.
+- **위임·검증**: 짧은 공개 표시 후 Terra Medium Child로 위임하고 Parent가 diff와 claim-matched fresh verification을 수행한다.
 
 ## 🧪 Scenario 16: Routing notice
 
-Gate A → Gate B → Economic Gate routing 평가를 수행했으면, 부모는 최종 결정을 정확히 한 번 짧게 표시한다. Child delegation은 실제 spawn 직전에 `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule`처럼 표시한다. Parent Direct는 `[codex-downshift] → Parent Direct | update_auth_policy | Gate A: high-consequence 작업`처럼 첫 결정적 gate 또는 이유만 표시한다. 전체 capsule은 노출하지 않으며, spawn 실패 시에도 추가 routing notice를 출력하지 않고 Parent가 직접 수행한다.
+**적용 조건·횟수**
+
+Gate A → Gate B → Economic Gate routing 평가를 수행했으면, 부모는 최종 결정을 정확히 한 번 짧게 표시한다.
+
+**Child delegation**
+
+Child delegation은 실제 spawn 직전에 `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule`처럼 표시한다.
+
+**Parent Direct**
+
+Parent Direct는 `[codex-downshift] → Parent Direct | update_auth_policy | Gate A: high-consequence 작업`처럼 첫 결정적 gate 또는 이유만 표시한다.
+
+**노출 제한·spawn 실패**
+
+전체 capsule은 노출하지 않으며, spawn 실패 시에도 추가 routing notice를 출력하지 않고 Parent가 직접 수행한다.
 
 ## 🧪 A–F: Compact routing examples
 

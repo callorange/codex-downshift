@@ -6,6 +6,47 @@
 
 ---
 
+## 빠른 시작
+
+### 준비 사항
+
+- Sol 또는 Terra를 부모 모델로 사용하는 Codex 환경이 필요합니다.
+- 위임 실행에는 모델과 reasoning effort를 지정할 수 있는 Native Subagent 기능이 필요합니다. 부모 모델을 확인할 수 없거나 자식 생성에 실패하면 부모가 직접 처리합니다.
+- 아래 CLI 설치에는 Node.js와 `npx`가 필요합니다. 스킬 자체는 Markdown 지침으로 구성되어 별도의 데몬이나 실행 서버를 요구하지 않습니다.
+
+### 설치
+
+전역 또는 프로젝트 설치 중 사용할 범위를 선택합니다.
+
+```bash
+# 전역 설치
+npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex --global
+
+# 현재 프로젝트에 설치
+npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex
+```
+
+명령과 옵션은 [skills CLI 문서](https://github.com/vercel-labs/skills#readme)를 참고하세요. CLI가 출력하는 실제 설치 경로를 확인하세요.
+
+수동 설치는 이 저장소의 `skills/codex-downshift/` 폴더 전체를 `<project-root>/.agents/skills/codex-downshift/`에 복사합니다. `SKILL.md`와 `references/`를 함께 유지해야 합니다. 사용자 전역 수동 설치 경로는 `~/.agents/skills/codex-downshift/`입니다. 이 경로는 다른 에이전트도 읽을 수 있으므로 Codex 전용 격리 경로로 간주하지 않습니다. 경로 규칙은 [Codex 스킬 문서](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills)를 참고하세요.
+
+### 사용 예시
+
+Codex에 스킬 이름과 함께 작업 범위, 유지할 동작, 검증 기준을 전달합니다. 다음은 요청 예시이며 경로와 명령은 작업 프로젝트에 맞게 바꿉니다.
+
+```text
+codex-downshift 스킬을 사용해줘.
+src/formatters/에서 기존 문자열 포맷 규칙을 따르도록 반복 구현을 수정해줘.
+공개 함수의 인자와 반환값은 유지하고, tests/formatters/의 관련 테스트로 검증해줘.
+위임 조건을 충족하는 작업만 하위 모델에 맡겨줘.
+```
+
+부모는 요구사항을 정리하고 위임 가능 여부를 판단합니다. 위임하는 경우 Task Capsule 작성과 자식 모델 선택까지 수행하므로 사용자가 spawn 파라미터를 직접 작성할 필요는 없습니다. 준비·검증 비용에 비해 실행량이 작으면 **Parent Direct**로 처리하는 것이 정상입니다.
+
+[위임 기준](#위임-기준) · [비용 비교와 실행 계약](#-native-subagent-spawn-contract--비용-모델) · [지원 모델](#-지원-모델-및-위임-매트릭스) · [업데이트](#-업데이트-updating) · [참조 문서](#-문서-및-참조-자료)
+
+---
+
 ## 💡 왜 Router가 아니라 "Downshift(Delegator)"인가?
 
 본 프로젝트는 모델 간에 사용자를 임의로 스위칭하거나 복잡한 라우팅 규칙을 적용하는 일반적인 Model Router가 아닙니다.
@@ -31,6 +72,51 @@
 
 > [!NOTE]
 > 상향 에스컬레이션(`Luna/Terra ➔ Sol`)이나 동일 티어 재위임(`Terra Parent ➔ Terra Child`, `Sol Parent ➔ Sol Child`)은 절대 발생하지 않습니다.
+
+---
+
+## 위임 기준
+
+먼저 현재 runtime/session 정보로 실제 부모 모델을 확인하고, 부모가 요구사항·공개 계약·보안 등 상위 판단을 확정합니다. 그다음 아래 순서로 평가합니다.
+
+| 단계 | 확인할 내용 | 통과하지 못하면 |
+| :--- | :--- | :--- |
+| **Gate A — 안전성** | 수정 범위와 영향이 명확하고, 객관적으로 검증할 수 있으며, 실패 영향이 국소적·가역적인가? | Parent Direct |
+| **Gate B — 판단 권한** | 구현 방법까지 확정되었는가, 아니면 고정된 외부 계약 안에서 내부 구현 선택이 남아 있는가? | 부모 권한을 벗어나는 위임 없이 직접 처리 |
+| **Economic Gate — 경제성** | 부모의 준비·검증 비용이 자식에게 맡길 실행량보다 명확히 작은가? | Parent Direct |
+
+Economic Gate는 다음 네 조건을 **모두** 요구합니다.
+
+1. 부모가 목표, 범위, 확정된 결정, 완료 기준을 이미 알고 있다.
+2. 위임 준비에 직접 실행과 맞먹는 분석이 필요하지 않다.
+3. 자식이 의미 있는 범위 내 탐색, 반복 구현 또는 테스트·수정 작업을 대신한다.
+4. 부모의 준비와 검증 부담이 대체되는 실행 부담보다 명확히 작다.
+
+파일 수나 코드 줄 수만으로 위임을 결정하지 않습니다. 단순 오타 수정, DB migration, 보안·권한·배포 변경 등은 부모가 직접 처리합니다.
+
+### 작업별 후보 예시
+
+아래는 Gate A를 통과했을 때의 후보입니다. 실제 위임은 Economic Gate까지 통과해야 합니다.
+
+| 작업 상태 | Sol 부모 | Terra 부모 |
+| :--- | :--- | :--- |
+| 구현 방법과 수정 위치가 모두 확정됨 | Luna `low` | Luna `low` |
+| 구현 방법과 매칭 규칙은 확정되었으나 제한된 범위에서 위치 탐색 필요 | Luna `medium` | Luna `medium` |
+| 외부 동작은 확정되었으나 내부 알고리즘·구현 선택이 남음 | Terra `medium` | Parent Direct |
+| 제품 동작·공개 API·보안 판단이 미결 | Parent Direct | Parent Direct |
+
+Luna `medium`은 탐색 여유를 늘리며 구현 판단 권한은 확대하지 않습니다. `all matches` 요청은 지정한 검색 범위 전체에 고정 규칙을 적용합니다. `high` 이상은 자동 선택하지 않습니다.
+
+### Routing Notice
+
+라우팅을 실제 평가하면 최종 결정을 한 번 표시합니다. 다음은 출력 예시입니다.
+
+```text
+[codex-downshift] → gpt-5.6-luna (low) | formatter_cleanup | 구현과 수정 위치 확정, 반복 실행 위임
+[codex-downshift] → Parent Direct | typo_fix | 준비·검증 부담이 직접 실행과 비슷함
+```
+
+스킬이 적용되지 않은 요청에는 notice가 없으며, spawn 실패 시 추가 routing notice 없이 부모가 직접 처리합니다. 상세 계약은 [SKILL.md](skills/codex-downshift/SKILL.md)를 따릅니다.
 
 ---
 
@@ -124,6 +210,9 @@ spawn_agent(
 ### ⚙️ Estimated Codex Consumption Index 및 비용 모델
 
 #### 1) Codex 공식 크레딧 단가표
+
+아래 수치와 비교는 프로젝트의 **2026-09-03 snapshot**을 복원한 것입니다. 요율 출처와 추정 지수의 해석 범위는 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참고하세요.
+
 | 모델 | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
 | :--- | ---: | ---: | ---: |
 | **Luna** | **5** | **0.5** | **30** |
@@ -164,26 +253,6 @@ spawn_agent(
 
 ---
 
-## 💻 설치 (Installation)
-
-### 1. Agent Skills 표준 CLI로 설치 (권장)
-
-```bash
-# 글로벌 Codex 스킬로 설치
-npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex --global
-
-# 또는 현재 프로젝트에 로컬 스킬로 설치
-npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex
-```
-
-### 2. 수동 설치 및 경로 격리 정책
-
-- **글로벌 스킬 설치 (전역 격리)**: `~/.codex/skills/codex-downshift/`
-  > 타 에이전트(Claude Code, Antigravity 등)가 전역 `$HOME/.agents/skills/`를 조회하여 Codex 전용 스킬을 오인식하는 문제를 방지하기 위해 Codex 전용 디렉터리에 격리 설치합니다.
-- **프로젝트 로컬 설치**: `<project-root>/.agents/skills/codex-downshift/`
-
----
-
 ## 🔄 업데이트 (Updating)
 
 ```bash
@@ -196,7 +265,7 @@ npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent
 
 ---
 
-## 📋 Task Capsule & 4대 반환 프로토콜
+## Task Capsule과 결과 검증
 
 ### 1. Task Capsule 핵심 서식
 ```text
@@ -225,11 +294,17 @@ Worker constraints: Leaf worker only. No subagent spawning. No destructive rollb
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
 ```
 
-### 2. 4대 반환 프로토콜
-- **`TASK_COMPLETED`**: 다중 Validation 증거와 Acceptance 대조 완료 보고
-- **`TASK_FAILED`**: 1회 복구 실패 또는 미시도 후 작업트리를 보존하며 실패 상세 보고
-- **`NEEDS_PARENT_DECISION`**: 새 설계 판단/모호성 직면 시 부모에게 제어권 반환
-- **`NEEDS_PARENT_ACTION`**: git push, deploy 등 외부 부수효과 필요 시 부모에게 제어권 반환
+
+부모는 위임할 때 목표, 검색·수정 범위, 확정된 결정, 금지 사항, 완료 기준과 검증 명령을 [Task Capsule](skills/codex-downshift/references/task-capsule-template.md)로 전달합니다. 자식은 부모 대화를 상속하지 않는 독립 컨텍스트(`fork_turns = "none"`)에서 지정된 모델과 reasoning effort로 실행되며, 추가 에이전트를 생성할 수 없습니다.
+
+| 반환 상태 | 의미 |
+| :--- | :--- |
+| `TASK_COMPLETED` | 완료 기준 충족과 검증 통과 증거를 보고 |
+| `TASK_FAILED` | 복구 미시도 또는 최대 1회 복구 실패 후 작업트리와 실패 원인을 보존하여 보고 |
+| `NEEDS_PARENT_DECISION` | 위임 범위를 넘는 새로운 설계·동작 판단이 필요 |
+| `NEEDS_PARENT_ACTION` | push, deploy 등 부모의 권한 또는 외부 작업이 필요 |
+
+부모는 자식의 성공 보고 후에도 diff와 완료 기준을 확인하고, 최종 보고 범위에 맞는 최소한의 검증을 직접 수행합니다. spawn 호출 규격은 [SKILL.md](skills/codex-downshift/SKILL.md), 전체 캡슐 서식과 반환 필드는 [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md)을 참고하세요.
 
 ---
 
@@ -259,8 +334,9 @@ codex-downshift/
 
 ## 📖 문서 및 참조 자료
 
+- [SKILL.md (실행 규칙 원본)](skills/codex-downshift/SKILL.md)
 - [Project Specification (기획 명세)](docs/codex-downshift-spec.md)
-- [Delegation Examples & Behavioral Scenarios (11대 실전 시나리오)](skills/codex-downshift/references/delegation-examples.md)
+- [Delegation Examples & Behavioral Scenarios (실전 시나리오)](skills/codex-downshift/references/delegation-examples.md)
 - [Model Economics & Estimated Consumption Index (비용 모델)](skills/codex-downshift/references/model-economics.md)
 - [Task Capsule & Terminal Return Protocols (프롬프트 서식)](skills/codex-downshift/references/task-capsule-template.md)
 - [Changelog (변경 이력)](CHANGELOG.md)
@@ -277,4 +353,3 @@ Parts of the delegation safety design and execution constraints were inspired by
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
-
