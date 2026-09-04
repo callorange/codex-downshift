@@ -132,9 +132,9 @@ Luna 2× 및 Terra 3×는 Provisional Operational Heuristic일 뿐 공식 break-
 
 `task-capsule-template.md`는 실제 Child delegation을 선택하고 Capsule을 작성할 때만 읽는다. `model-economics.md`는 Economic Gate에서 cost evidence 또는 reasoning/model-cost 비교가 필요할 때만 읽는다. `delegation-examples.md`는 core rules로 routing 또는 terminal-state edge case가 여전히 모호할 때만 읽는다. Core rules로 결정되면 모든 reference를 preload하지 않는다.
 
-### 👁️ Spawn Visibility and Micro-batching
+### 👁️ Routing Notice and Micro-batching
 
-Active Parent Resolution → Gate A → Gate B → Economic Gate를 거쳐 실제 Child가 선택된 뒤, 실제 spawn 직전에만 사용자에게 짧게 표시한다: `[codex-downshift] → <child-model> (<effort>) | <task_name> | <brief reason>`. `<child-model>`은 현재 Parent가 아니라 실제 spawn할 Child model이다. 전체 capsule은 출력하지 않는다. spawn 실패 시 `[codex-downshift] spawn failed → Parent Direct`를 표시한다.
+Active Parent Resolution → Gate A → Gate B → Economic Gate routing 평가를 실제로 수행한 경우에만, 최종 routing 결정을 사용자에게 정확히 한 번 표시한다: `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`. Child delegation이면 실제 spawn 직전에 기존 형식으로 표시하며, `<model>`은 현재 Parent가 아니라 실제 spawn할 Child model이다. Parent Direct이면 Child를 spawn하지 않아도 같은 형식으로 `[codex-downshift] → Parent Direct | <task_name> | <first decisive gate or brief reason>`를 표시한다. Parent Direct notice는 Gate A, Gate B 또는 Economic Gate 중 최종 결정을 만든 첫 번째 결정적 이유만 짧게 담고, 모든 gate 평가나 상세 추론을 나열하지 않는다. 스킬이 적용되지 않아 routing 평가를 수행하지 않은 요청에는 표시하지 않으며, spawn 실패 시에도 추가 routing notice를 출력하지 않는다. 전체 capsule은 출력하지 않는다.
 
 서로 독립적인 3–5개 안팎의 저위험·가역적·Implementation-Closed 항목이 같은 Luna model/effort와 bounded scope를 공유하고, 의존성·아키텍처·제품·보안·Public API 판단이 없으면 하나의 micro-batch로 coalesce할 수 있다. 각 항목의 checkmark 결과를 반환하고 하나라도 판단이 필요하면 네 terminal state를 보존하며 worktree를 명확히 보고한다. 이는 하나의 고정 규칙을 반복 적용하는 pattern batch와 구별한다.
 

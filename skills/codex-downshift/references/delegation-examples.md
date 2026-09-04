@@ -272,9 +272,9 @@ Parent Direct가 선택되면 delegation 목적의 Capsule은 emit하지 않고 
 
 외부 API 계약과 acceptance는 고정됐지만 여러 모듈의 내부 자료구조 선택·구현·테스트 루프가 남은 Sol 작업은 Gate A/B를 통과할 수 있다. 짧은 공개 표시 후 Terra Medium Child로 위임하고 Parent가 diff와 claim-matched fresh verification을 수행한다.
 
-## 🧪 Scenario 16: Spawn visibility
+## 🧪 Scenario 16: Routing notice
 
-실제 spawn 직전에 부모는 `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule`처럼 짧게 표시한다. 전체 capsule은 노출하지 않는다. spawn 실패 시 `[codex-downshift] spawn failed → Parent Direct`를 표시하고 다른 child로 우회하지 않는다.
+Gate A → Gate B → Economic Gate routing 평가를 수행했으면, 부모는 최종 결정을 정확히 한 번 짧게 표시한다. Child delegation은 실제 spawn 직전에 `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule`처럼 표시한다. Parent Direct는 `[codex-downshift] → Parent Direct | update_auth_policy | Gate A: high-consequence 작업`처럼 첫 결정적 gate 또는 이유만 표시한다. 전체 capsule은 노출하지 않으며, spawn 실패 시에도 추가 routing notice를 출력하지 않고 Parent가 직접 수행한다.
 
 ## 🧪 A–F: Compact routing examples
 
@@ -283,4 +283,4 @@ Parent Direct가 선택되면 delegation 목적의 Capsule은 emit하지 않고 
 - **C Luna micro-batch**: 위 Scenario 13의 서로 다른 3–4개 독립 변경을 같은 Luna Low로 itemize한다.
 - **D Poor Terra**: Sol이 구현을 이미 상세히 고정한 단일 함수는 Terra가 경제적이지 않다.
 - **E Good Terra**: 외부 API contract는 고정됐지만 자료구조 선택·구현·테스트 루프가 남으면 Terra가 local criteria로 판단한다.
-- **F Visibility**: `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule`; 실패 시 `[codex-downshift] spawn failed → Parent Direct`.
+- **F Routing notice**: `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule` 또는 `[codex-downshift] → Parent Direct | single_literal | Economic Gate: delegation overhead`를 최종 routing 결정마다 한 번 표시한다.

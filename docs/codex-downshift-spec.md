@@ -171,6 +171,9 @@ Luna Low는 구현과 target locations가 닫힌 기계적 실행, Luna Medium�
 ### 6.2 Parent Direct 조건
 trivial literal/mechanical edit, high-consequence/irreversible work, 또는 Delegation Preparation Test를 충족하지 못한 작업은 Parent Direct로 처리한다. LOC·파일 수는 약한 secondary signal이며 경로를 독립적으로 결정하지 않는다.
 
+### 6.3 Routing Notice
+Gate A → Gate B → Economic Gate routing 평가를 실제로 수행했을 때만 최종 결정 하나를 `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>` 형식으로 정확히 한 번 사용자에게 표시한다. Child delegation은 spawn 직전 기존 notice를 사용한다. Parent Direct도 `[codex-downshift] → Parent Direct | <task_name> | <first decisive gate or brief reason>`로 표시하되, Gate A·Gate B·Economic Gate 전체가 아니라 최종 결정을 만든 첫 번째 결정적 gate 또는 이유만 짧게 담는다. 스킬이 적용되지 않아 routing 평가가 없으면 notice를 출력하지 않으며, spawn 실패도 추가 routing notice를 만들지 않는다. 출력의 canonical 규칙은 `skills/codex-downshift/SKILL.md`다.
+
 ---
 
 ## 7. 프로젝트 파일 구조

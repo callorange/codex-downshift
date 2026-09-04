@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 추가 (Added)
+- **Parent Direct routing notice**: Gate A → Gate B → Economic Gate 평가를 수행한 최종 Parent Direct도 기존 Spawn Notice 호환 형식으로 한 번 표시하고, Child delegation·비적용 요청·spawn 실패의 notice 횟수 규칙을 명시.
 - **Economic Gate 및 준비 테스트**: Parent 준비·Child 실행·Parent 검증의 Effective Downshift Cost와 Parent Direct Cost를 비교하고, 2× Luna/3× Terra를 비공식 잠정 운영 휴리스틱으로 명시.
 - **Luna all-matches 안전장치 및 micro-batch**: bounded Search 전체 매치와 non-exhaustive examples 규칙, 항목별 완료 형식을 추가.
 - **Spawn visibility 및 최소 capsule 문맥**: `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`과 Search/Modify/Apply 및 Minimum Sufficient Context를 명시.
