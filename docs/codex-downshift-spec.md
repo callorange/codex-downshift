@@ -353,6 +353,15 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 ## 13. Task Capsule 표준 서식 & 4대 Terminal Return Protocols
 
 ### 13.1 Task Capsule 핵심 서식
+
+`Apply`는 지정 target 또는 Search 범위 전체의 처리 여부를 정하고, `Delegated authority`는 그 범위 안의 구현 재량을 정한다.
+Terra의 implementation-local choice도 `Apply: Exact`와 함께 사용할 수 있다. 고정 결과는 `Rule`과 acceptance에 명시한다.
+
+여러 산출물·all-matches 작업에서 대상별 확인이 필요할 때만 선택적 completion set을 사용한다.
+알려진 대상과 범위 내 탐색으로 발견한 대상의 처리 결과(`modified` 또는 근거가 있는 `not modified`) 및 필요한 탐색 근거를 보고한다.
+검증 명령이 없더라도 관찰 가능한 확인 절차·통과 기준과 실제 결과가 필요하며, 필요한 검증을 수행하지 못한 상태를 완료로 보고하지 않는다.
+상세 서식은 [Task Capsule Template](../skills/codex-downshift/references/task-capsule-template.md)을 따른다.
+
 ```text
 TASK CAPSULE
 Role: You are a leaf worker.
@@ -363,7 +372,7 @@ Scope:
 Decisions already made: <부모 모델이 이미 확정한 요구사항, API, 동작 결정>
 Delegated authority: <Luna: Predetermined execution / Terra: Implementation-local choice>
 Must not decide: <부모 모델 고유의 판단 영역>
-Apply: <Exact | All matches within scope | Implementation-local choice>
+Apply: <Exact | All matches within scope>
 Rule: <필요한 경우 parent-fixed rule 또는 고정 결과 형식>
 Preserve: <유지해야 하는 기존 동작/호환성>
 Do not touch: <수정 금지 영역>
@@ -371,8 +380,8 @@ Acceptance criteria:
 - [ ] <유지해야 할 의미·동작 불변조건>
 - [ ] <기계적 검증 결과>
 Validation:
-- <검증 명령 1>
-- <검증 명령 2>
+- <검증 명령 또는 관찰 가능한 확인 절차·통과 기준 1>
+- <검증 명령 또는 관찰 가능한 확인 절차·통과 기준 2>
 Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
 Worker constraints: Leaf worker only. Do not spawn agents. Do not perform destructive rollbacks.
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
@@ -388,7 +397,7 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 
 ## 14. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
-1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 개별 직접 수정하지 않고 하나의 Bounded Task Capsule로 묶어 Luna에게 일괄 위임한다.
+1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 하나의 bounded batch 후보로 묶을 수 있다. Gate A를 통과하고 Gate B에서 구현 방법이 확정된 Luna 후보로 판단한 뒤, Economic Gate까지 통과할 때만 Bounded Task Capsule을 작성하여 일괄 위임한다. 조건을 충족하지 못하면 Parent Direct로 처리한다.
 2. **Routing signals and Economic Gate**: LOC·파일 수·단일 deterministic validation은 secondary signal이다. 예상 test/fix loop는 leverage 증거지만 자동 위임 명령이 아니다. Gate A → Gate B → Economic Gate를 순서대로 평가하고 Delegation Preparation Test 네 조건을 모두 충족할 때만 위임하며, 아니면 Parent Direct다.
 3. **Parent Direct 조건**:
    - trivial literal/mechanical edit는 Delegation Preparation Test가 위임을 정당화하지 않을 때 Parent Direct로 처리할 수 있다. LOC·파일 수 자체가 경로를 독립적으로 결정하지 않는다.

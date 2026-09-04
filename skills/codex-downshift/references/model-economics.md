@@ -137,12 +137,12 @@ Parent preparation의 output/reasoning이 child prompt 비용을 초과할 수�
 
 ### 저비용 Delegation Preparation Test
 
-1. 이미 무엇을 물어야 할지 알고 있는가?
-2. 작업 자체에 맞먹는 상세한 새 분석이 필요한가? 필요하면 Parent Direct.
-3. child가 repetition/search/test/fix 같은 meaningful execution을 대체하는가?
-4. 기대 leverage가 preparation+verification을 초과하는가?
+1. Parent가 goal, scope, fixed decisions, acceptance를 이미 알고 있는가?
+2. Child task 준비에 direct execution과 비교 가능한 분석이 필요하지 않은가?
+3. Child가 의미 있는 bounded search, 반복, 구현 또는 test/fix work를 대체하는가?
+4. Parent preparation plus verification이 대체되는 execution보다 명확히 작은가?
 
-하나라도 아니면 Parent Direct.
+네 질문 모두 예일 때만 위임한다. 하나라도 아니면 Parent Direct.
 
 ### 휴리스틱의 의미와 적용 우선순위
 

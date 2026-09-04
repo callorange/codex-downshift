@@ -26,10 +26,15 @@
 | **5** | 구현 판단 잔여 작업 (Terra 부모) | **Terra** | 🛑 **Downshift Only ➔ Terra Direct** | Terra 부모는 Terra child를 부르지 않고 직접 수행 |
 | **6** | Child 작업 중 새 설계 판단 직면 | **Child** | 🛑 **`NEEDS_PARENT_DECISION`** | 하위 워커 임의 판단 금지, 미결 사항 보고 후 부모 판단 |
 | **7** | Child 외부 부수효과 필요 직면 | **Child** | 🛑 **`NEEDS_PARENT_ACTION`** | git push/deploy 등 외부 권한 작업 시 부모에게 제어권 반환 |
-| **8** | 1회 복구 시도 후에도 검증 실패 | **Child** | 🛑 **`TASK_FAILED`** | 무한 루프 금지, 작업트리 보존 후 실패 상세 보고 |
+| **8** | 검증 실패 후 1회 복구 실패 또는 복구 부적절로 미시도 | **Child** | 🛑 **`TASK_FAILED`** | 무한 루프 금지. 복구 시도 여부·미시도 사유와 실패 원인을 보고하고 작업트리 보존 |
 | **9** | `high`/`xhigh`/`max` reasoning 필요 | **Sol/Terra** | ⚙️ **User Approval Protocol** | 자동 spawn 금지, Parent Direct 우선 검토 후 사용자 승인 요청 |
 | **10**| Child spawn 실패 / 런타임 오류 | **Sol/Terra** | 🛡️ **Fail-Closed Fallback** | 타 모델 우회/재시도 없이 부모 모델이 직접 수행 |
 | **11**| 정상 완료 보고 수신 | **Sol/Terra** | 🔍 **Claim-Matched Fresh Verification** | `TASK_COMPLETED` 수신 후 Parent 최소 직접 검증 후 보고 |
+| **12** | 로직·테스트가 없는 작은 오타 수정 | **Sol/Terra** | 🛑 **Economic Gate ➔ Parent Direct** | capsule/child 비용이 대체 실행량보다 큰 경우 직접 처리; 줄 수 자체가 결정 기준은 아님 |
+| **13** | 독립적인 확정 변경의 micro-batch | **Sol/Terra** | 🟢 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Luna Low. 항목별 결과를 보고하고 하나라도 판단이 필요하면 전체 완료로 표시하지 않음 |
+| **14** | 구현이 이미 확정되고 위임 경제성이 부족함 | **Sol** | 🛑 **Gate B: Luna 후보 ➔ Economic Gate 탈락** | Terra 후보가 아니며 Luna 경제성도 부족하면 Parent Direct. 다른 모델로 우회하지 않음 |
+| **15** | 고정 외부 계약 안의 내부 구현·테스트 루프 | **Sol** | 🟡 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Terra Medium. Parent가 diff와 claim-matched fresh verification 수행 |
+| **16** | 최종 routing 결정 표시 | **Sol/Terra** | 👁️ **Routing Notice** | 평가한 결정마다 한 번; Child는 spawn 직전, Parent Direct는 첫 결정적 이유 표시. 전체 capsule 비노출, spawn 실패 시 추가 notice 없음 |
 
 ---
 
@@ -69,7 +74,7 @@
   - Policy: VIP=20%, Regular=5%, Holiday Promo adds 5% max up to 25%. Raises InvalidOrderError if total <= 0.
   Delegated authority: Implementation-local architecture and algorithm structure inside discount.py.
   Must not decide: Do not alter the Public API signature, return types, or discount rate percentages.
-  Apply: Implementation-local choice
+  Apply: Exact
   Acceptance criteria:
   - [ ] All discount calculation rules pass unit tests.
   - [ ] InvalidOrderError raised on negative or zero total.
@@ -114,6 +119,12 @@
   Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION"""
   )
   ```
+
+**이 all-matches 작업의 완료 근거**
+
+완료 보고에는 Search 범위 전체에 고정 Rule을 적용한 검색 결과와 대상별 처리 상태를 포함한다.
+수정하지 않은 대상은 이미 규칙을 만족하는 등 사유를 남기고, 가능하면 재검색으로 의도하지 않은 잔여 매치를 확인한다.
+테스트 통과만으로 검색 범위 전체의 확인을 대신하지 않는다.
 
 ---
 
@@ -278,7 +289,8 @@ Worktree:
 ## 🧪 Scenario 14: Terra 위임이 경제적으로 나쁜 경우
 
 - **상황**: Sol이 이미 내부 알고리즘을 결정했고 한 함수와 결정적 테스트만 남았다면 Terra 준비·검증 오버헤드가 실행량과 비슷하다.
-- **라우팅**: Economic Gate에서 탈락하여 Parent Direct 또는 Luna로 라우팅한다.
+- **Gate B — 후보 선택**: 구현 방법이 이미 확정되었으므로 Terra 후보가 아니다. Gate A 통과 후 Luna 후보로 경제성을 평가한다.
+- **Economic Gate — 위임 여부**: Luna 준비·검증 부담도 대체 실행량보다 명확히 작지 않으면 Parent Direct다. 이 예시는 그 조건을 충족하지 못하는 경우이며, gate 실패 후 다른 모델로 우회하지 않는다.
 - **Parent Direct 선택 후**: Parent Direct가 선택되면 delegation 목적의 Capsule은 emit하지 않고 Child도 spawn하지 않으며, Sol Parent가 직접 구현·검증한다.
 
 ## 🧪 Scenario 15: Terra 위임이 경제적인 경우
@@ -307,7 +319,7 @@ Parent Direct는 `[codex-downshift] → Parent Direct | update_auth_policy | Gat
 ## 🧪 A–F: Compact routing examples
 
 - **A Luna**: non-exhaustive Examples가 있어도 Search scope 전체의 문서 규칙을 all matches로 적용한다. 첫 예시에서 멈추지 않는다.
-- **B Parent Direct**: 작은 함수 1개와 pytest 한 번은 capsule/spawn overhead가 커 Parent Direct다.
+- **B Parent Direct**: 작은 함수 1개와 pytest 한 번이 남은 작업에서 capsule 준비·검증 부담이 대체 실행량보다 명확히 작지 않으면 Parent Direct다. 함수 수나 검증 횟수만으로 결정하지 않는다.
 - **C Luna micro-batch**: 위 Scenario 13의 서로 다른 3–4개 독립 변경을 같은 Luna Low로 itemize한다.
 - **D Poor Terra**: Sol이 구현을 이미 상세히 고정한 단일 함수는 Terra가 경제적이지 않다.
 - **E Good Terra**: 외부 API contract는 고정됐지만 자료구조 선택·구현·테스트 루프가 남으면 Terra가 local criteria로 판단한다.

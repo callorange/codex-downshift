@@ -160,14 +160,14 @@ Active Parent (confirmed Sol or Terra)
 
 ### 🚀 Routing Signals and Economic Gate
 
-작업 속성이 라우팅의 주 기준이다.
+작업 속성이 라우팅의 주 기준이다. 아래 후보는 Gate A를 통과한 경우에 한하며, 실제 위임은 Economic Gate까지 통과해야 한다.
 
 | 관찰한 작업 속성 | 라우팅에서의 의미 |
 | --- | --- |
 | trivial literal/mechanical edit | Parent Direct 후보 |
 | fixed-rule bounded execution | Luna 후보 |
 | bounded search 또는 예상 test/fix loop | 경제성 평가 신호 |
-| implementation-local decision | Terra 후보 |
+| implementation-local decision | Sol Parent에서만 Terra 후보. Terra Parent는 Parent Direct. |
 | high-consequence/irreversible work | Parent Direct |
 
 LOC·파일 수는 약한 secondary signal로만 참고한다.
@@ -204,28 +204,24 @@ Core rules로 결정되면 모든 reference를 preload하지 않는다.
 
 ### 👁️ Routing Notice
 
-**적용 조건·횟수**
+Active Parent Resolution → Gate A → Gate B → Economic Gate routing 평가를 실제로 수행한 경우에만, 최종 routing 결정을 사용자에게 정확히 한 번 표시한다.
 
-Active Parent Resolution → Gate A → Gate B → Economic Gate routing 평가를 실제로 수행한 경우에만, 최종 routing 결정을 사용자에게 정확히 한 번 표시한다:
+| 상황 | 출력 시점·횟수 | 표시 내용과 제한 |
+| --- | --- | --- |
+| Child delegation 선택 | 실제 spawn 직전 한 번 | 아래 Child 형식 사용. `<model>`은 현재 Parent가 아니라 실제 spawn할 Child model이다. |
+| Parent Direct 선택 | 최종 결정 시 한 번; Child spawn 불필요 | 아래 Parent Direct 형식 사용. Gate A, Gate B 또는 Economic Gate 중 최종 결정을 만든 첫 번째 결정적 이유만 짧게 담는다. |
+| 스킬이 적용되지 않아 routing 평가를 수행하지 않음 | 출력하지 않음 | routing notice 없음 |
+| Child spawn 실패 | 추가 routing notice 없음 | Fail-Closed 규칙에 따라 Parent가 직접 수행한다. |
 
-`[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`.
+**Child 형식**
 
-**Child delegation**
+`[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`
 
-Child delegation이면 실제 spawn 직전에 기존 형식으로 표시하며, `<model>`은 현재 Parent가 아니라 실제 spawn할 Child model이다.
-
-**Parent Direct**
-
-Parent Direct이면 Child를 spawn하지 않아도 같은 형식으로 다음을 표시한다:
+**Parent Direct 형식**
 
 `[codex-downshift] → Parent Direct | <task_name> | <first decisive gate or brief reason>`
 
-Parent Direct notice는 Gate A, Gate B 또는 Economic Gate 중 최종 결정을 만든 첫 번째 결정적 이유만 짧게 담고, 모든 gate 평가나 상세 추론을 나열하지 않는다.
-
-**출력하지 않는 내용·경우**
-
-- 스킬이 적용되지 않아 routing 평가를 수행하지 않은 요청에는 표시하지 않으며, spawn 실패 시에도 추가 routing notice를 출력하지 않는다.
-- 전체 capsule은 출력하지 않는다.
+Parent Direct notice에 모든 gate 평가나 상세 추론을 나열하지 않는다. 전체 capsule은 출력하지 않는다.
 
 ### Micro-batching
 
@@ -247,27 +243,28 @@ Parent Direct notice는 Gate A, Gate B 또는 Economic Gate 중 최종 결정을
 
 ### Profile semantics
 
-#### Luna — 후보 선택
+아래는 Gate A를 통과한 작업의 후보이며, 실제 위임은 Economic Gate까지 통과해야 한다.
 
-- Implementation Closed + target locations closed이면 Luna Low 후보다.
-- Implementation Closed + Match Rule Closed + target locations에 bounded search가 필요하면 Luna Medium 후보다.
+| 후보 | 필요한 상태 | 허용되는 구현 재량 | Parent 제한 |
+| --- | --- | --- | --- |
+| Luna Low | Implementation Closed + target locations closed | 확정된 구현을 지정 위치에 적용 | Sol 또는 Terra Parent |
+| Luna Medium | Implementation Closed + Match Rule Closed + target locations에 bounded search 필요 | 고정 Rule로 위치 탐색·적용; 구현 판단 권한 확대 없음 | Sol 또는 Terra Parent |
+| Terra Medium | 의미·외부 계약 확정 + implementation-local 선택 잔여 | 고정 외부 계약 안의 내부 구현 분석·선택 | Sol Parent 전용. Terra Parent의 implementation-local work는 Parent Direct. |
 
-#### Luna — 범위와 판단 권한
+**Luna 공통 경계**
 
-- Luna는 Match Rule을 만들거나 넓히지 않으며, all-matches는 named/example 첫 발생에서 멈추지 않고 Search 경계 전체에 고정 Rule을 적용한다.
-- semantic/architecture/product/compatibility/policy 판단이 필요하면 `NEEDS_PARENT_DECISION`이다.
+Luna는 Match Rule을 만들거나 넓히지 않으며, all-matches는 named/example 첫 발생에서 멈추지 않고 Search 경계 전체에 고정 Rule을 적용한다.
+semantic/architecture/product/compatibility/policy 판단이 필요하면 `NEEDS_PARENT_DECISION`이다.
 
-#### Terra — 전달할 계약과 Parent 제한
+**Terra에 전달할 계약**
 
-Terra는 절차를 과도하게 지정하지 않고 다음만 제공한다:
+공통 Scope·Apply·검증·worker 제한·반환 계약을 유지하면서, Terra의 구현 지침에는 다음을 제공하고 절차를 과도하게 지정하지 않는다:
 
 - goal
 - fixed external contract
 - forbidden changes
 - acceptance
 - local criteria(기존 패턴 선호, 최소 구현, Public API 보존)
-
-Terra Parent의 implementation-local work는 Terra Parent Direct다.
 
 ### 🔍 Parent Direct 조건
 
@@ -339,6 +336,8 @@ spawn_agent(
 **실제 전달할 문맥**
 
 실제 emitted capsule은 **Minimum Sufficient Context**만 포함하고 무관한 필드는 생략합니다.
+`Apply`는 지정 target 또는 Search 범위 전체의 처리 여부를, `Delegated authority`는 그 범위 안의 구현 재량을 정합니다.
+여러 산출물·all-matches 작업에서 대상별 확인이 필요할 때만 선택적 completion set을 사용합니다.
 
 **모델별 권한**
 
@@ -353,10 +352,12 @@ spawn_agent(
 
 모든 Child 작업은 반드시 다음 4가지 상태 중 하나로 종료해야 합니다. Child는 자의적인 rollback(`git reset --hard` 등)을 하지 않고 현재 상태를 보존하여 보고합니다.
 
-1. **`TASK_COMPLETED`**: Acceptance criteria 충족 및 검증 통과 증거 보고.
-2. **`TASK_FAILED`**: 1회 복구 실패 또는 복구 미시도 후 작업트리 보존 및 실패 원인 상세 보고.
-3. **`NEEDS_PARENT_DECISION`**: 작업 도중 위임 범위를 넘는 새로운 설계/동작 판단 직면 시 보고 후 제어권 반환.
-4. **`NEEDS_PARENT_ACTION`**: `git push`, `deploy`, 비밀값 등 외부 권한 작업 필요 시 보고 후 제어권 반환.
+| 반환 상태 | 반환 조건 | 필요한 보고·후속 동작 |
+| --- | --- | --- |
+| `TASK_COMPLETED` | Acceptance criteria 충족 및 검증 통과 | 완료 기준 대조와 검증 증거 보고 |
+| `TASK_FAILED` | 1회 복구 실패 또는 복구 미시도 | 작업트리 보존, 실패 원인 및 복구 시도 여부·미시도 사유 상세 보고 |
+| `NEEDS_PARENT_DECISION` | 위임 범위를 넘는 새로운 설계/동작 판단 필요 | 미결 판단과 위임 권한을 넘는 이유를 보고하고 Parent에게 제어권 반환 |
+| `NEEDS_PARENT_ACTION` | `git push`, `deploy`, 비밀값 등 외부 권한 작업 필요 | 필요한 외부 작업과 그 전까지 완료한 작업을 보고하고 Parent에게 제어권 반환 |
 
 *(상세 서식 및 예시는 [Task Capsule Template](references/task-capsule-template.md) 참조)*
 
@@ -366,7 +367,8 @@ spawn_agent(
 
 Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 완료를 확정합니다:
 1. `git diff` 및 수정 파일 목록 검토.
-2. Task Capsule의 Acceptance 충족 여부 확인.
+2. Task Capsule의 Acceptance 충족 여부 확인. Completion set을 사용했다면 대상별 처리 결과와 필요한 검색 완료 근거도 확인한다.
+   검증은 명령 또는 관찰 가능한 확인 절차와 실제 결과로 뒷받침하며, 필요한 검증을 수행하지 못했다면 완료로 보고하지 않는다.
 3. **Claim-Verification Scope Matching**:
    - **원칙**: `Verification scope MUST match the completion claim scope.`
    - Parent가 사용자에게 보고하려는 완료 범위에 정확히 비례하는 **Minimum Sufficient Fresh Verification을 직접 실행**.

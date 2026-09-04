@@ -267,6 +267,10 @@ npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent
 
 ## Task Capsule과 결과 검증
 
+`Apply`는 처리할 대상 범위, `Delegated authority`는 그 안에서 허용되는 구현 재량을 뜻합니다. 고정 결과가 필요하면 `Rule`과 acceptance에 명시합니다.
+
+여러 산출물·all-matches 작업에서 대상별 확인이 필요할 때만 completion set과 탐색·처리 근거를 사용합니다. 검증 명령이 없더라도 관찰 가능한 확인 절차와 통과 기준은 필요합니다. 상세 서식은 [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md)을 따릅니다.
+
 ### 1. Task Capsule 핵심 서식
 ```text
 TASK CAPSULE
@@ -279,7 +283,7 @@ Scope:
 Decisions already made: <부모가 확정한 요구사항, API, 동작 결정>
 Delegated authority: <Luna: Predetermined execution / Terra: Implementation-local choice>
 Must not decide: <부모 모델 고유의 판단 영역>
-Apply: <Exact | All matches within scope | Implementation-local choice>
+Apply: <Exact | All matches within scope>
 Rule: <필요한 경우 parent-fixed rule>
 Preserve: <유지해야 하는 기존 동작/호환성>
 Do not touch: <수정 금지 영역>
@@ -287,8 +291,8 @@ Acceptance criteria:
 - [ ] <유지해야 할 의미·동작 불변조건>
 - [ ] <기계적 검증 결과>
 Validation:
-- <검증 명령 1>
-- <검증 명령 2>
+- <검증 명령 또는 관찰 가능한 확인 절차·통과 기준 1>
+- <검증 명령 또는 관찰 가능한 확인 절차·통과 기준 2>
 Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED.
 Worker constraints: Leaf worker only. No subagent spawning. No destructive rollbacks.
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
