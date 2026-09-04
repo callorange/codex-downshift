@@ -2,7 +2,7 @@
 
 > **Keep the parent model in control, downshift bounded execution to Luna & Terra.**
 
-`codex-downshift`는 OpenAI Codex에서 **Sol** 또는 **Terra**를 주력(부모) 모델로 사용할 때, 사전에 검증된 2단계 안전 게이트(Gate A Safety ➔ Gate B Decision Authority)에 따라 충분히 결정된 실행 작업만을 **Luna** (`gpt-5.6-luna`) 또는 **Terra** (`gpt-5.6-terra`) 서브에이전트로 다운시프트(하향 위임)하여 Codex 사용량과 반복 비용을 절감하는 경량 Agent Skill입니다.
+`codex-downshift`는 OpenAI Codex에서 **Sol** 또는 **Terra**를 주력(부모) 모델로 사용할 때, Gate A Safety → Gate B Decision Authority → Economic Gate를 통과한 실행 작업만을 **Luna** (`gpt-5.6-luna`) 또는 **Terra** (`gpt-5.6-terra`) 서브에이전트로 다운시프트(하향 위임)하여 Codex 사용량과 반복 비용을 절감하는 경량 Agent Skill입니다.
 
 ---
 
@@ -13,7 +13,7 @@
 1. **Parent Authority (부모 모델의 판단권 유지)**: 요구사항 해석, 아키텍처 설계, Public API, 보안, 비즈니스 결정 등 고난도 추론은 사용자가 선택한 Active Parent(Sol/Terra)가 끝까지 책임지며, Parent 역할 자체는 Child에게 위임되지 않습니다.
 2. **단방향 하향 위임 (Downshift Only)**: 상위 부모 모델의 판단이 끝난 실행 작업만 하위 모델(`Sol ➔ Terra/Luna`, `Terra ➔ Luna`)로 내려보냅니다.
 3. **Leaf Worker / No Chaining**: 모든 자식 워커는 Leaf Worker로 동작하며 다른 에이전트 생성이나 다단계 체이닝(`Sol ➔ Terra ➔ Luna`)이 엄격히 금지됩니다.
-4. **Safety Before Routing (2단계 게이트)**: Bounded, Verifiable, Limited Consequence(저위험/가역적)를 만족하는 작업만 위임하며, DB migration이나 보안 등 High Consequence 작업은 구현이 닫혀 있어도 **부모 모델이 직접 수행**합니다.
+4. **Safety Before Routing (Gate A → Gate B → Economic Gate)**: Bounded, Verifiable, Limited Consequence(저위험/가역적)를 먼저 확인하고, 남은 권한에 맞는 후보를 고른 뒤 준비·검증보다 leverage가 클 때만 위임합니다. DB migration이나 보안 등 High Consequence 작업은 구현이 닫혀 있어도 **부모 모델이 직접 수행**합니다.
 5. **Fail-Closed Fallback**: Child spawn 실패 또는 라우팅 모호 시 타 모델 우회 없이 **부모 모델이 직접 수행**합니다.
 6. **Evidence Before Completion**: Parent는 Child의 성공 보고를 맹신하지 않고, 자신의 완료 보고 범위와 일치하는 독립적인 **Minimum Sufficient Fresh Verification을 직접 수행**합니다.
 
@@ -34,7 +34,7 @@
 
 ---
 
-## 🧭 2단계 결정적 라우팅 파이프라인 (Routing Pipeline)
+## 🧭 결정적 라우팅 파이프라인 (Gate A → Gate B → Economic Gate)
 
 ```text
 Active Parent (Sol or Terra)
@@ -42,11 +42,6 @@ Active Parent (Sol or Terra)
   ├─ 1. 상위 판단 미결 (Semantic / Architecture / Security)?
   │    YES ──────────────────────────────────────────→ Parent Direct (상위 추론/판단 직접 수행)
   │    NO (상위 판단 완료)
-  ▼
-  ├─ 2. 사소한 단발 수정인가?
-  │    ├─ ≤3줄 오타/상수 수정 (무로직, 무테스트) ──────→ Parent Direct (오버헤드 방지)
-  │    ├─ 4~9줄 단일 파일 수정 (무로직, 무테스트, 1턴) ─→ Parent 선택 가능 (단, 테스트/탐색 필요 시 다운시프트)
-  │    └─ ≥10줄 OR 테스트 루프 OR 다중 파일 ──────────→ 다운시프트 평가 진입 (Threshold 충족)
   ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Gate A: Delegation Safety Gate                           │
@@ -80,19 +75,17 @@ Active Parent (Sol or Terra)
 └──────────────────────────────────────────────────────────┘
 ```
 
-### 🚀 Default Downshift Threshold (Provisional BEP Heuristic)
-실사용 로그가 충분히 축적되기 전까지 다음 조건을 downshift 기본 임계값으로 사용합니다:
-1. **테스트/검증 루프**: 단위 테스트를 작성하거나 테스트 명령어를 실행해 결과를 검증해야 하는 작업.
-2. **코드 규모**: 10줄 이상(또는 함수/클래스 1개 단위)의 코드 작성/수정.
-3. **다중 파일 범위**: 2개 이상의 파일에 걸친 변경 (배치 위임).
+### 🚀 Routing signals and Economic Gate
+LOC·파일 수·테스트 패턴은 secondary signal일 뿐 필수 threshold가 아닙니다. 단일 deterministic validation은 자동 위임 trigger가 아니며, 예상 test/fix loop는 leverage를 높이는 신호입니다. Gate A는 안전성, Gate B는 남은 권한별 후보를 결정하고 Economic Gate에서 준비·검증 오버헤드와 직접 수행 비용을 비교합니다.
+
+Luna Low는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule 및 bounded Search가 필요한 작업입니다. `all matches`는 Search 경계 전체를 검사하며 non-exhaustive examples를 전체 목록으로 오인하지 않습니다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이고, Terra Parent는 직접 처리합니다. 후보여도 경제성이 비슷하면 Parent Direct입니다.
 
 > [!NOTE]
-> 위 임계값은 Codex가 공식적으로 보장한 경제적 손익분기점이 아닙니다. Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 보수적 기본 heuristic입니다.
-> Threshold는 다운시프트 평가 진입 여부를 결정합니다. Gate A는 위임 자체의 허용 여부를 결정하며, Gate A를 통과한 경우 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정합니다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
+> Luna 2× 및 Terra 3×는 공식 break-even이나 token formula가 아닌 비공식 잠정 운영 휴리스틱입니다. 상세 계약은 [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md)과 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참조하세요.
 
 ### 🔍 Parent Direct 조건 및 4~9줄 구간 정책
 - **≤3줄 단발 수정**: 단일 파일 내 3줄 이하, 로직/분기문 추가 없는 단순 오타/상수 1개 변경, 1턴 검증 종료 건은 캡슐 오버헤드 방지를 위해 Parent Direct 처리.
-- **4~9줄 단일 파일 구간**: implementation closed 상태이고 테스트 루프나 추가 탐색 없이 1턴에 검증 가능한 경우에 한해 Parent Direct 선택 가능. 단, **테스트/수정 사이클이 필요하면 4줄이라도 반드시 다운시프트**.
+- **4~9줄 단일 파일 구간**: implementation closed 상태라도 Economic Gate에서 준비·검증 오버헤드와 leverage를 비교해 Parent Direct 또는 후보 위임을 선택합니다.
 
 ---
 
@@ -203,11 +196,14 @@ TASK CAPSULE
 
 Role: You are a leaf worker.
 Goal: <명확한 단일 작업 목표>
-Target / Scope: <허용된 파일 / 심볼 경로>
+Scope:
+- Search: <검색 대상 경로/심볼; optional>
+- Modify: <수정 허용 파일·심볼; optional>
 Decisions already made: <부모가 확정한 요구사항, API, 동작 결정>
 Delegated authority: <Luna: Predetermined execution / Terra: Implementation-local choice>
 Must not decide: <부모 모델 고유의 판단 영역>
-Exact change: <결과 형태가 계약인 경우 필수: final text 또는 고정 변환 규칙>
+Apply: <Exact | All matches within scope | Implementation-local choice>
+Rule: <필요한 경우 parent-fixed rule>
 Preserve: <유지해야 하는 기존 동작/호환성>
 Do not touch: <수정 금지 영역>
 Acceptance criteria:
@@ -266,7 +262,7 @@ codex-downshift/
 
 ## 🙏 Acknowledgements
 
-Parts of the delegation safety design and execution constraints were inspired by [codex-auto-model-router](https://github.com/orange-the-weak/codex-auto-model-router), particularly its bounded task delegation, task capsule structure, validation budget, and fail-safe execution concepts. `codex-downshift` was independently redesigned and implemented to serve as a lightweight, instruction-only skill focusing strictly on Parent-controlled downshifting with Tiered Downshift and 2-stage safety gates.
+Parts of the delegation safety design and execution constraints were inspired by [codex-auto-model-router](https://github.com/orange-the-weak/codex-auto-model-router), particularly its bounded task delegation, task capsule structure, validation budget, and fail-safe execution concepts. `codex-downshift` was independently redesigned and implemented to serve as a lightweight, instruction-only skill focusing strictly on Parent-controlled downshifting with Tiered Downshift and Gate A → Gate B → Economic Gate.
 
 ---
 

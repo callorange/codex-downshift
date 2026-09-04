@@ -127,5 +127,5 @@ Parent preparation의 output/reasoning이 child prompt 비용을 초과할 수�
 
 저비용 Delegation Preparation Test: (1) 이미 무엇을 물어야 할지 알고 있는가? (2) 작업 자체에 맞먹는 상세한 새 분석이 필요한가? 필요하면 Parent Direct. (3) child가 repetition/search/test/fix 같은 meaningful execution을 대체하는가? (4) 기대 leverage가 preparation+verification을 초과하는가? 하나라도 아니면 Parent Direct.
 
-비공식 관측 휴리스틱은 Luna가 고정 실행량 약 **2×**, Terra가 구현-local 분석+구현+검증량 약 **3×** leverage를 낼 수 있다는 뜻일 뿐이다. Luna/Terra 선택은 이 heuristic이 아니라 Gate A와 Gate B의 권한 판정이 우선이다. LOC는 secondary reference이며, 단일 deterministic validation은 trigger가 아니고 예상되는 test/fix loop는 높은 위임 가치 신호다.
+비공식 잠정 운영 휴리스틱 (Provisional Operational Heuristic)은 Luna가 고정 실행량 약 **2×**, Terra가 구현-local 분석+구현+검증량 약 **3×** leverage를 낼 수 있다는 뜻일 뿐이다. Luna/Terra 선택은 이 heuristic이 아니라 Gate A와 Gate B의 권한 판정이 우선이다. LOC는 secondary reference이며, 단일 deterministic validation은 trigger가 아니고 예상되는 test/fix loop는 높은 위임 가치 신호다.
 이는 공식 break-even 또는 token formula가 아니며, 실제 로그가 쌓이면 재검토한다.

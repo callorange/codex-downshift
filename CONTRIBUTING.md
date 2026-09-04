@@ -2,7 +2,7 @@
 
 `codex-downshift` 프로젝트에 관심을 가져주셔서 감사합니다!
 
-본 프로젝트는 OpenAI Codex 환경에서 Sol 또는 Terra를 Active Parent로 유지하면서, 2단계 안전 게이트와 Decision Authority에 따라 bounded execution 작업을 Terra (`gpt-5.6-terra`) 또는 Luna (`gpt-5.6-luna`) Child로 하향 위임하여 사용량과 비용을 절감하는 순수 마크다운 기반의 경량 스킬입니다.
+본 프로젝트는 OpenAI Codex 환경에서 Sol 또는 Terra를 Active Parent로 유지하면서, Gate A → Gate B → Economic Gate와 Decision Authority에 따라 bounded execution 작업을 Terra (`gpt-5.6-terra`) 또는 Luna (`gpt-5.6-luna`) Child로 하향 위임하여 사용량과 비용을 절감하는 순수 마크다운 기반의 경량 스킬입니다. LOC·파일 수·단일 deterministic validation은 secondary signal이며, 준비·검증 오버헤드가 비슷하면 Parent Direct로 처리합니다.
 
 ---
 

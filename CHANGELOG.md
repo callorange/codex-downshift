@@ -8,11 +8,15 @@
 ## [Unreleased]
 
 ### 추가 (Added)
+- **Economic Gate 및 준비 테스트**: Parent 준비·Child 실행·Parent 검증의 Effective Downshift Cost와 Parent Direct Cost를 비교하고, 2× Luna/3× Terra를 비공식 잠정 운영 휴리스틱으로 명시.
+- **Luna all-matches 안전장치 및 micro-batch**: bounded Search 전체 매치와 non-exhaustive examples 규칙, 항목별 완료 형식을 추가.
+- **Spawn visibility 및 최소 capsule 문맥**: `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`과 Search/Modify/Apply 및 Minimum Sufficient Context를 명시.
 - **전용 경제학 참조 문서(`references/model-economics.md`) 신설 및 `SKILL.md` Token Diet**: 공식 크레딧 요율, 추정 소모 지수, 벤치마크 데이터 및 캐시 계산을 전용 참조 문서로 분리하여 `SKILL.md` 크기를 약 4KB(17%) 감축.
 - **Sol-Parent Golden Switch 규칙 정밀화**: Luna High(6.00×, 40 steps) 대비 Terra Medium(5.35×, 20 steps)의 시간 및 소모 효율 우위(CursorBench 3.2 근거)를 명시하고, Sol Parent 전용 규칙(Terra Parent는 Terra Direct)으로 분기.
 - **4~9줄 단일 파일 구간 정책 신설**: 3줄 이하(Parent Direct)와 10줄 이상(Threshold 다운시프트) 사이의 4~9줄 단일 파일 구간에 대해 무로직·무테스트 1턴 검증 시 Parent Direct 허용 조건 명시.
 
 ### 변경 (Changed)
+- **라우팅 정책 동기화**: Gate A → Gate B → Economic Gate로 전환하고 LOC threshold·단일 deterministic validation과 test/fix loop를 자동 위임 조건이 아닌 보조 신호로 구분.
 - **공식 요율과 추정 소모 지수 분리**: 공식 token-credit rate와 결합 추정치인 **Estimated Codex Consumption Index**를 엄격히 분리하고 `[!IMPORTANT]` 주의문구 명시.
 - **절감률 표현 객관화**: Sol Medium 단일 기준선 의존을 탈피하고, Sol Low(9.40×) 및 Sol Medium(18.04×) 대비 추정 지수상 상대 절감률을 객관적으로 병기.
 - **Default Downshift Threshold (Provisional BEP Heuristic) 명문화**: 10줄/테스트/다중파일 기준이 검증된 절대 손익분기점이 아닌 자가 구현 방지를 위한 보수적 기본 운영 heuristic임을 명시.

@@ -104,7 +104,7 @@ Active Parent (Sol or Terra)
 └──────────────────────────────────────────────────────────┘
 ```
 
-### 🚀 Default Downshift Threshold (Provisional BEP Heuristic)
+### 🚀 Routing Signals and Economic Gate
 
 LOC ≤3 / 4–9 / ≥10 구간은 규모를 가늠하는 **secondary reference**일 뿐 primary trigger가 아니다.
 
@@ -118,7 +118,7 @@ LOC ≤3 / 4–9 / ≥10 구간은 규모를 가늠하는 **secondary reference*
 
 ### 💰 Economic Gate and Delegation Preparation Test
 
-비공식 운영 휴리스틱으로 Luna는 실행량 약 2배, Terra는 구현-로컬 분석·구현·검증량 약 3배의 leverage를 기대할 수 있다. 공식 요율과 Estimated Consumption Index는 [Model Economics](references/model-economics.md)의 값만 사용한다.
+비공식 잠정 운영 휴리스틱 (Provisional Operational Heuristic)으로 Luna는 실행량 약 2배, Terra는 구현-로컬 분석·구현·검증량 약 3배의 leverage를 기대할 수 있다. 공식 요율과 Estimated Consumption Index는 [Model Economics](references/model-economics.md)의 값만 사용한다.
 
 위임 전 다음 네 질문에 모두 `예`여야 한다: (1) 목표·범위·금지사항을 한 문장씩 고정했는가? (2) 자식이 물어볼 상위 의미/계약 판단이 없는가? (3) 검증 명령과 완료 기준이 결정적인가? (4) 준비+검증 오버헤드보다 자식이 대체할 실행이 materially 큰가? 아니면 Parent Direct.
 
@@ -237,7 +237,7 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 | *"Child가 다 통과했다고 보고했으니 그대로 완료 처리할게요"* | Blind Trust 금지. Parent가 직접 자신의 claim에 맞는 fresh verification을 수행해야 합니다. |
 
 ### 🚩 Red Flags - STOP and Correct
-- ❌ 10줄 이상 코드 작성이나 테스트 검증이 필요한 작업을 Parent가 직접 수정함
+- ❌ LOC·파일 수·단일 deterministic validation만으로 위임 여부를 자동 결정하거나, Economic Gate 없이 Parent/Child 경로를 선택함
 - ❌ 자동 경로에서 Luna에게 `high` reasoning effort를 지정함
 - ❌ Terra Parent가 Terra Child를 spawn 시도함 (Downshift Only 위반)
 - ❌ Gate A(Safety)를 건너뛰고 Gate B로 직행함

@@ -1,6 +1,6 @@
 # codex-downshift — Project Specification
 
-> Status: v0.1.4 implemented / Tiered Downshift & 2-Stage Safety Gates established
+> Status: v0.1.4 implemented / Tiered Downshift & Gate A → Gate B → Economic Gate established
 > Target: OpenAI Codex  
 > Artifact purpose: Antigravity 등 코딩 에이전트가 이 문서를 기반으로 프로젝트를 생성·구현·유지보수할 수 있도록 하는 통합 기획 명세서
 
@@ -17,7 +17,7 @@
 > A lightweight Codex skill that keeps Sol or Terra as the parent and offloads (downshifts) bounded execution tasks to Luna (`gpt-5.6-luna`) or Terra (`gpt-5.6-terra`) to reduce usage and costs.
 
 **한국어**
-> Sol 또는 Terra를 부모 모델로 유지하면서, 2단계 안전 게이트를 통과한 실행 작업만을 Luna (`gpt-5.6-luna`) 또는 Terra (`gpt-5.6-terra`)로 다운시프트(하향 위임)해 Codex 사용량을 절감하는 경량 Skill.
+> Sol 또는 Terra를 부모 모델로 유지하면서 Gate A → Gate B → Economic Gate를 통과한 실행 작업만을 Luna (`gpt-5.6-luna`) 또는 Terra (`gpt-5.6-terra`)로 다운시프트(하향 위임)해 Codex 사용량을 절감하는 경량 Skill.
 
 ### 이름 선정 이유
 
@@ -42,7 +42,7 @@
 
 > **현재 부모 모델이 처리하려는 하위 작업 중, 상위 판단을 다시 하지 않고 하위 워커가 안전하게 실행할 수 있는 작업이 있는가?**
 
-- 있다면: 2단계 안전 게이트(Gate A Safety ➔ Gate B Decision Authority)를 거쳐 적합한 하위 모델(Luna 또는 Terra)에 위임한다.
+- 있다면: Gate A Safety ➔ Gate B Decision Authority ➔ Economic Gate를 거쳐 적합한 하위 모델(Luna 또는 Terra)에 위임하거나, 경제성이 비슷하면 Parent Direct로 처리한다.
 - 없다면: 현재 부모 모델이 직접 처리한다.
 
 ---
@@ -84,7 +84,7 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
    - **허용**: `Sol Parent ➔ Terra Child`, `Sol Parent ➔ Luna Child`, `Terra Parent ➔ Luna Child`
    - **금지**: `Sol Parent ➔ Sol Child`, `Terra Parent ➔ Terra Child`, `Terra Child ➔ Sol`, `Luna Child ➔ Terra/Sol`
    - *(단, Child가 `NEEDS_PARENT_*` 또는 `TASK_FAILED`로 Parent에게 제어권을 반환하는 것은 상향 위임이 아니며 정상 프로토콜임)*
-3. **Safety Before Routing (2단계 게이트)**: 모델 선택 전에 반드시 **Gate A (Delegation Safety Gate)**를 먼저 통과해야 한다. 저위험·가역적·검증 가능한 작업이 아니면 모델 판단 없이 무조건 **Parent Direct**.
+3. **Safety Before Routing (Gate A → Gate B → Economic Gate)**: 모델 선택 전에 **Gate A (Delegation Safety Gate)**를 통과하고, Gate B에서 남은 권한별 후보를 고른 뒤 Economic Gate에서 준비·검증 오버헤드보다 leverage가 클 때만 위임한다. 저위험·가역적·검증 가능한 작업이 아니면 **Parent Direct**.
 4. **Role-Based Child Delegated Authority (역할별 위임 권한)**:
    - **Luna Child**: `Semantic Closed` + `External Contract Closed` + `Implementation Closed`. 구현 패턴과 방법까지 확정된 기계적 실행 전담.
    - **Terra Child**: `Semantic Closed` + `External Contract Closed` + `Implementation-Local Decision Remains`. 외부 계약은 확정되었으나 내부 구현 분석 및 선택이 필요한 경우 전담 (Sol Parent 전용).
@@ -116,7 +116,7 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
 
 ---
 
-## 6. 2단계 결정적 라우팅 파이프라인 (Gate A & Gate B)
+## 6. 결정적 라우팅 파이프라인 (Gate A → Gate B → Economic Gate)
 
 ```text
 Active Parent (Sol or Terra)
@@ -124,11 +124,6 @@ Active Parent (Sol or Terra)
   ├─ 1. 상위 판단 미결 (Semantic / Architecture / Security)?
   │    YES ──────────────────────────────────────────→ Parent Direct (상위 추론/판단 직접 수행)
   │    NO (상위 판단 완료)
-  ▼
-  ├─ 2. 사소한 단발 수정인가?
-  │    ├─ ≤3줄 오타/상수 수정 (무로직, 무테스트) ──────→ Parent Direct (오버헤드 방지)
-  │    ├─ 4~9줄 단일 파일 수정 (무로직, 무테스트, 1턴) ─→ Parent 선택 가능 (단, 테스트/탐색 필요 시 다운시프트)
-  │    └─ ≥10줄 OR 테스트 루프 OR 다중 파일 ──────────→ 다운시프트 평가 진입 (Threshold 충족)
   ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Gate A: Delegation Safety Gate                           │
@@ -162,19 +157,16 @@ Active Parent (Sol or Terra)
 └──────────────────────────────────────────────────────────┘
 ```
 
-### 6.1 Default Downshift Threshold (Provisional BEP Heuristic)
-실사용 로그가 충분히 축적되기 전까지 다음 조건을 downshift 기본 임계값으로 사용한다:
-1. **테스트/검증 루프 (Test & Validation Loop)**: 단위 테스트를 작성하거나 테스트 명령어를 실행해 결과를 검증·수정해야 하는 모든 작업.
-2. **코드 규모 (Scale Threshold: 10줄 이상)**: 새로 작성하거나 변경할 코드가 **10줄 이상**(또는 함수/클래스 1개 단위)인 작업.
-3. **다중 파일 범위 (Multi-File Scope)**: 수정 대상이 **2개 이상의 파일**에 걸친 작업.
+### 6.1 Routing signals and Economic Gate
+LOC·파일 수·테스트 패턴은 secondary signal일 뿐 필수 threshold가 아니다. 단일 deterministic validation은 자동 위임 trigger가 아니며, 예상 test/fix loop는 leverage를 높이는 신호다. Gate A는 안전성, Gate B는 남은 권한별 후보를 결정하고 Economic Gate에서 준비·검증 오버헤드와 직접 수행 비용을 비교한다.
+
+Luna Low는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule과 bounded Search가 필요한 작업이다. `all matches`는 Search 경계 전체를 검사하고 non-exhaustive examples를 전체 목록으로 오인하지 않는다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이며, Terra Parent는 직접 처리한다. 후보여도 경제성이 비슷하면 Parent Direct다.
 
 > [!NOTE]
-> 위 임계값은 Codex가 공식적으로 보장한 경제적 손익분기점이 아니다. Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 보수적 기본 heuristic이다.
-> Threshold는 다운시프트 평가 진입 여부를 결정한다. Gate A는 위임 자체의 허용 여부를 결정하며, Gate A를 통과한 경우 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정한다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
 
 ### 6.2 Parent Direct 조건 및 4~9줄 구간 정책
 - **≤3줄 단발 수정**: 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수/리터럴 수정, 테스트 루프 없는 1턴 검증으로 엄격히 한정하여 캡슐 오버헤드를 방지한다.
-- **4~9줄 단일 파일 구간**: implementation closed 상태이고 테스트 루프나 추가 탐색 없이 1턴에 검증 가능한 경우에 한해 Parent Direct 선택이 허용될 수 있다. 단, **테스트/수정 사이클이 수반되면 4줄이라도 반드시 다운시프트**한다.
+- **4~9줄 단일 파일 구간**: implementation closed 상태라도 Economic Gate에서 준비·검증 오버헤드와 leverage를 비교해 Parent Direct 또는 후보 위임을 선택한다.
 
 ---
 
@@ -339,10 +331,12 @@ Improve the readability of UserService.create_user docstring.
 TASK CAPSULE
 Role: You are a leaf worker.
 Goal: Update docstring for UserService.create_user.
-Target: src/services/user_service.py :: UserService.create_user
-Exact change: Replace the existing docstring with the provided Google Style docstring verbatim.
+Scope:
+- Search: src/services/user_service.py :: UserService.create_user
+- Modify: src/services/user_service.py :: UserService.create_user
+Apply: Exact. Rule: Replace the existing docstring with the provided Google Style docstring verbatim.
 Preserve: Signature, implementation, and type hints.
-Acceptance criteria: Docstring matches Exact change verbatim; ruff check passes.
+Acceptance criteria: Docstring matches the fixed Rule; ruff check passes.
 Validation: ruff check src/services/user_service.py
 Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
@@ -357,11 +351,14 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 TASK CAPSULE
 Role: You are a leaf worker.
 Goal: <명확한 단일 작업 목표>
-Target / Scope: <허용된 파일 / 심볼 경로>
+Scope:
+- Search: <검색 대상 경로/심볼; optional>
+- Modify: <수정 허용 파일·심볼; optional>
 Decisions already made: <부모 모델이 이미 확정한 요구사항, API, 동작 결정>
 Delegated authority: <Luna: Predetermined execution / Terra: Implementation-local choice>
 Must not decide: <부모 모델 고유의 판단 영역>
-Exact change: <결과 형태가 계약인 경우 필수: final text 또는 고정 변환 규칙>
+Apply: <Exact | All matches within scope | Implementation-local choice>
+Rule: <필요한 경우 parent-fixed rule 또는 고정 결과 형식>
 Preserve: <유지해야 하는 기존 동작/호환성>
 Do not touch: <수정 금지 영역>
 Acceptance criteria:
@@ -386,10 +383,10 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 ## 14. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
 
 1. **배치 위임 원칙 (Batching)**: 서로 관련된 여러 개의 작고 명확한 작업은 개별 직접 수정하지 않고 하나의 Bounded Task Capsule로 묶어 Luna에게 일괄 위임한다.
-2. **Default Downshift Threshold (Provisional BEP Heuristic)**: 상위 판단이 완료된 작업 중 10줄 이상 코딩, 단위 테스트/검증 루프 수반, 다중 파일 변경 시 다운시프트 평가로 진입한다. 이는 공식 보장 손익분기점이 아닌 Parent의 직접 수정 합리화를 막기 위한 보수적 기본 heuristic이다. Threshold는 다운시프트 평가 진입 여부를 결정한다. Gate A는 위임 자체의 허용 여부를 결정하며, Gate A를 통과한 경우 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정한다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
+2. **Routing signals and Economic Gate**: LOC·파일 수·단일 deterministic validation은 secondary signal이다. 예상 test/fix loop는 leverage 증거지만 자동 위임 명령이 아니다. Gate A → Gate B → Economic Gate를 순서대로 평가하고, 준비·검증 오버헤드와 직접 수행 비용이 비슷하면 Parent Direct다.
 3. **Parent Direct 조건 및 4~9줄 구간 정책**: 
    - 단일 파일 3줄 이하, 로직/분기 추가 없는 단순 오타/상수 수정, 테스트 루프 없는 1턴 검증은 캡슐 오버헤드 방지를 위해 Parent Direct를 적용한다.
-   - 4~9줄 단일 파일 구간은 implementation closed 상태이고 테스트 루프나 추가 탐색 없이 1턴에 검증 가능한 경우에 한해 Parent Direct 선택이 허용될 수 있다. (단, 테스트/수정 사이클 필요 시 4줄이라도 반드시 다운시프트).
+   - 4~9줄 단일 파일 구간도 Economic Gate에서 leverage를 확인해 Parent Direct 또는 위임을 선택한다.
 4. **우선순위 불변 원칙**: 단순 편의성이나 Latency보다 **Parent Usage 절감이 최우선**이다.
 
 ---
@@ -466,7 +463,7 @@ Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으�
 
 ## 22. Acknowledgements & References
 
-Parts of the delegation safety design and execution constraints were inspired by [codex-auto-model-router](https://github.com/orange-the-weak/codex-auto-model-router), particularly its bounded task delegation, task capsule structure, validation budget, and fail-safe execution concepts. `codex-downshift` was independently redesigned and implemented to serve as a lightweight, instruction-only skill focusing strictly on Parent-controlled downshifting with Tiered Downshift and 2-stage safety gates.
+Parts of the delegation safety design and execution constraints were inspired by [codex-auto-model-router](https://github.com/orange-the-weak/codex-auto-model-router), particularly its bounded task delegation, task capsule structure, validation budget, and fail-safe execution concepts. `codex-downshift` was independently redesigned and implemented to serve as a lightweight, instruction-only skill focusing strictly on Parent-controlled downshifting with Tiered Downshift and Gate A → Gate B → Economic Gate.
 
 ---
 
@@ -475,4 +472,4 @@ Parts of the delegation safety design and execution constraints were inspired by
 > **Keep the user's Sol or Terra parent in control, and offload bounded execution work to Luna & Terra.**
 
 한국어:
-> **사용자가 선택한 Sol 또는 Terra의 판단권은 유지하고, 2단계 안전 게이트를 통과한 실행 작업만 Luna 또는 Terra에 안전하게 하향 위임한다.**
+> **사용자가 선택한 Sol 또는 Terra의 판단권은 유지하고, Gate A → Gate B → Economic Gate를 통과한 실행 작업만 Luna 또는 Terra에 안전하게 하향 위임한다.**

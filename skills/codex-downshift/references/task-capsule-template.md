@@ -8,7 +8,8 @@
 > - Gate B (Authority): 결과의 의미·외부 계약이 확정되었는가?
 > - Terra Child 위임 시: 남은 작업이 Implementation-local 분석 및 선택에 한정되는가?
 > - Luna Child 위임 시: 구현 방법 및 패턴까지 확정되어 기계적 적용만 남았는가?
-> - 정확한 표현/분류가 계약이라면 `Exact change`가 제공되었는가?
+> - 정확한 결과가 계약이라면 `Apply: Exact`와 필요한 고정 `Rule`/결과 형식이 제공되었는가?
+> - Economic Gate: 준비·검증 오버헤드보다 child가 대체할 실행량이 materially 큰가? 아니면 Parent Direct인가?
 
 ---
 
@@ -48,6 +49,9 @@ Must not decide:
 Apply: [Exact | All matches within scope | Implementation-local choice]
 Rule: [optional parent-fixed rule]
 Examples: [optional; explicitly exhaustive or non-exhaustive]
+
+Items (micro-batch only; omit for a general single task):
+- [item]: Target [path/symbol]; Fixed change [rule]; Acceptance [check]
 
 Preserve / Do not touch:
 - [반드시 유지해야 하는 기존 동작, 호환성, 타입 힌트]
