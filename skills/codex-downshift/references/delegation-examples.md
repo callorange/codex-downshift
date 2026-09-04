@@ -135,6 +135,14 @@
 - **올바른 동작**:
   - ✅ **Terra 부모 모델이 직접 분석하고 구현을 수행합니다.**
 
+### Failure Case: Active Parent identity를 잘못 추정한 Terra Child spawn
+
+- **Failure**: Terra Parent를 Sol이라고 잘못 가정해 Terra Medium Child를 spawn함.
+- **Expected**:
+  - Terra Parent + Implementation-local decision remains ➔ Parent Direct.
+  - Terra Parent + Implementation Closed ➔ Luna candidate.
+- **Rule**: Active Parent identity를 추정하지 않는다. Terra Child는 Active Parent가 Sol임을 current runtime/session model 정보로 positive confirmation한 경우에만 허용한다.
+
 ---
 
 ## 🧪 Scenario 6: Child 작업 중 새 설계 판단 직면 (`NEEDS_PARENT_DECISION`)

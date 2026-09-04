@@ -41,6 +41,7 @@ description: Use when operating as an Active Parent model (Sol or Terra) on boun
 Parent는 소스 코드 편집 도구(`write_to_file`, `replace_file_content` 등)를 직접 호출하기 전에 **반드시** 아래 1단계의 게이트 평가를 수행해야 합니다. 게이트 결과가 Child delegation이면 2–4단계를 이어서 수행하고, Parent Direct이면 정상적으로 short-circuit합니다:
 
 1. **Trigger & Gate Check**:
+   - **Active Parent Resolution (hard precondition, not a new gate)**: Child 모델을 선택하거나 spawn하기 전에 현재 session/runtime model 정보로 실제 Active Parent를 확인한다. task complexity, 이전 turn, 예상 default, repository context, 또는 가정으로 Parent 모델을 추정해서는 안 된다. Terra Child는 **(1) Gate B가 Implementation-local Decision Remains를 가리키고 (2) Active Parent가 Sol임을 positive confirmation한 경우**에만 eligible하다. Active Parent가 Terra이면 Terra Child는 ineligible이며, Active Parent를 신뢰성 있게 확인할 수 없으면 Terra Child를 spawn하지 않고 Parent Direct로 fail closed한다.
    - [선행 조건] 상위 요구사항/아키텍처/보안 판단이 Parent에 의해 완료되었는가? (미완료 시 Parent Direct로 추론 완료 우선)
    - [보조 신호] LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않는다. 작업 속성(사소한 literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work)을 관찰한다.
    - ➔ Gate A(안전성) → Gate B(잔여 권한/후보 선택) → Economic Gate 순으로 평가한다.
@@ -59,7 +60,13 @@ Parent는 소스 코드 편집 도구(`write_to_file`, `replace_file_content` �
 ## 🧭 2. 게이트 기반 결정적 라우팅 파이프라인 (Routing Pipeline)
 
 ```text
-Active Parent (Sol or Terra)
+Active Parent Resolution (hard precondition, not a new gate)
+  │ current runtime/session model로 actual Parent 확인
+  ├─ Sol positive confirmation ───────────────────────────→ Sol routing
+  ├─ Terra positive confirmation ─────────────────────────→ Terra routing
+  └─ Cannot reliably determine ───────────────────────────→ Parent Direct (Terra Child fail-closed)
+  │
+Active Parent (confirmed Sol or Terra)
   │
   ├─ 1. 상위 판단 미결 (Semantic / Architecture / Security)?
   │    YES ──────────────────────────────────────────→ Parent Direct (상위 추론/판단 직접 수행)
@@ -127,7 +134,7 @@ Luna 2× 및 Terra 3×는 Provisional Operational Heuristic일 뿐 공식 break-
 
 ### 👁️ Spawn Visibility and Micro-batching
 
-실제 spawn 직전에 반드시 사용자에게 짧게 표시한다: `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`. 전체 capsule은 출력하지 않는다. spawn 실패 시 `[codex-downshift] spawn failed → Parent Direct`를 표시한다.
+Active Parent Resolution → Gate A → Gate B → Economic Gate를 거쳐 실제 Child가 선택된 뒤, 실제 spawn 직전에만 사용자에게 짧게 표시한다: `[codex-downshift] → <child-model> (<effort>) | <task_name> | <brief reason>`. `<child-model>`은 현재 Parent가 아니라 실제 spawn할 Child model이다. 전체 capsule은 출력하지 않는다. spawn 실패 시 `[codex-downshift] spawn failed → Parent Direct`를 표시한다.
 
 서로 독립적인 3–5개 안팎의 저위험·가역적·Implementation-Closed 항목이 같은 Luna model/effort와 bounded scope를 공유하고, 의존성·아키텍처·제품·보안·Public API 판단이 없으면 하나의 micro-batch로 coalesce할 수 있다. 각 항목의 checkmark 결과를 반환하고 하나라도 판단이 필요하면 네 terminal state를 보존하며 worktree를 명확히 보고한다. 이는 하나의 고정 규칙을 반복 적용하는 pattern batch와 구별한다.
 
@@ -235,6 +242,7 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 | *"수정 파일이 많으니 Luna 대신 Terra로 보낼게요"* | 파일 수가 아니라 **남은 판단 권한**이 기준입니다. 패턴이 닫혀 있으면 10개 파일도 Luna로 일괄 배치 위임합니다. |
 | *"DB migration이지만 SQL이 확정되었으니 Luna에 위임할게요"* | Gate A(High Consequence) 위반입니다. 파괴적/운영 변경은 무조건 **Parent Direct**입니다. |
 | *"Terra child 생성이 실패했으니 Luna child로 재시도해볼게요"* | Fail-Closed 불변 규칙 위반입니다. spawn 실패 시 **Parent가 직접 수행**합니다. |
+| *"기본값이 Sol일 것 같으니 Terra child를 선택할게요"* | **금지.** Active Parent는 현재 runtime/session model 정보로 positive confirmation해야 합니다. 확인할 수 없으면 Terra Child를 선택하지 않고 Parent Direct로 fail closed합니다. |
 | *"Validation이 또 실패했지만 한 번만 더 고쳐볼게요"* | Recovery는 **최대 1회**입니다. 2차 실패 시 즉시 `TASK_FAILED`로 반환해야 합니다. |
 | *"Child가 다 통과했다고 보고했으니 그대로 완료 처리할게요"* | Blind Trust 금지. Parent가 직접 자신의 claim에 맞는 fresh verification을 수행해야 합니다. |
 
@@ -242,6 +250,7 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 - ❌ LOC·파일 수·단일 deterministic validation만으로 위임 여부를 자동 결정하거나, Economic Gate 없이 Parent/Child 경로를 선택함
 - ❌ 자동 경로에서 Luna에게 `high` reasoning effort를 지정함
 - ❌ Terra Parent가 Terra Child를 spawn 시도함 (Downshift Only 위반)
+- ❌ task/context/default의 추정만으로 Terra Child를 선택함 (Sol Parent positive confirmation 필요)
 - ❌ Gate A(Safety)를 건너뛰고 Gate B로 직행함
 - ❌ DB 마이그레이션, 보안, 배포 작업이 Child에 위임됨
 - ❌ Sol 자식에서 Sol이 생성되거나 Terra 자식에서 Terra가 생성됨 (모델 상속 실패)
