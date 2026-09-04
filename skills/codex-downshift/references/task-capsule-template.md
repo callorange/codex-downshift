@@ -14,18 +14,24 @@
 
 ## 📋 1. Standard Task Capsule Template
 
+### Compactness
+
+이 template은 상세하지만 실제 emitted Capsule은 **Minimum Sufficient Context**만 사용한다. 모든 필드는 작업에 필요한 경우에만 작성하며, capsule 작성에 새 분석·상세 설계가 필요해지면 Economic Gate에서 Parent Direct를 선택한다.
+
 ```text
 TASK CAPSULE
 
-Role:
-You are a leaf worker.
+Worker profile: [Luna | Terra]
+Role: You are a leaf worker.
 
 Goal:
 [작업을 통해 완성해야 하는 명확한 단일 목표]
 
-Target / Scope:
-- Code: [수정할 파일 경로 및 심볼/함수/클래스]
-- Test: [수정 또는 추가할 테스트 파일 경로]
+Scope:
+- Search: [검색 대상 경로/심볼; optional]
+- Modify: [수정 허용 파일·심볼; optional]
+
+Intent / Why: [선택; 목적을 이해하는 데 필요할 때만]
 
 Decisions already made:
 - [부모 모델이 이미 확정한 요구사항, API, 동작, 호환성 결정 1]
@@ -39,24 +45,21 @@ or
 Must not decide:
 - [부모 모델 고유의 판단 영역: Architecture, Public API, Product Policy, Security, Scope 확장 등]
 
-Exact change:
-[정확한 결과 형태가 계약이면 필수: final text, before/after 또는 고정 변환 규칙]
+Apply: [Exact | All matches within scope | Implementation-local choice]
+Rule: [optional parent-fixed rule]
+Examples: [optional; explicitly exhaustive or non-exhaustive]
 
-Preserve:
+Preserve / Do not touch:
 - [반드시 유지해야 하는 기존 동작, 호환성, 타입 힌트]
 - [유지해야 하는 네이밍 및 인터페이스 규칙]
 
-Do not touch:
-- [작업 범위 밖의 파일 및 모듈]
 
 Acceptance criteria:
 - [ ] [유지해야 할 의미·동작·호환성 불변조건 1]
 - [ ] [유지해야 할 의미·동작·호환성 불변조건 2]
 - [ ] [테스트·lint·typecheck 등 기계적 검증 결과]
 
-Validation:
-- [검증 명령 1 (예: pytest tests/test_foo.py)]
-- [검증 명령 2 (예: ruff check src/foo.py)]
+Validation: [선택; 검증 명령 1, 2...]
 
 Recovery policy:
 At most ONE recovery attempt when appropriate. If recovery is not appropriate (e.g. env/dependency issue) or validation still fails, return TASK_FAILED immediately. Do not enter recursive retry loops.
@@ -73,6 +76,19 @@ Return protocol:
 - NEEDS_PARENT_DECISION
 - NEEDS_PARENT_ACTION
 ```
+
+Profile guidance: Luna Low는 target locations closed, Luna Medium은 closed Match Rule + bounded Search다. Luna는 rule을 발명/확장하지 않고 non-exhaustive examples에서도 Search 경계의 모든 매치를 검사하며 semantic·architecture·product·compatibility·policy 판단은 `NEEDS_PARENT_DECISION`이다. Terra에는 goal, fixed external contract, forbidden changes, acceptance, 그리고 기존 패턴 선호·최소 구현·Public API 보존의 local criteria만 주고 절차를 과도하게 고정하지 않는다.
+
+Micro-batch completion format:
+```text
+TASK_COMPLETED
+Items:
+- [x] item-1 — modified: path/to/file
+- [x] item-2 — modified: path/to/file
+Modified files: [all paths]
+Validation: <command> -> PASSED
+```
+미완료 항목은 전체를 `TASK_COMPLETED`로 표시하지 않는다. 판단이 필요하면 기존 네 상태 중 하나를 사용하고 item statuses와 Worktree를 함께 보고한다.
 
 ---
 

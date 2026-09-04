@@ -18,9 +18,9 @@ description: Use whenever operating as an Active Parent model (Sol or Terra) and
    - **허용**: `Sol Parent ➔ Terra Child`, `Sol Parent ➔ Luna Child`, `Terra Parent ➔ Luna Child`
    - **금지**: `Sol Parent ➔ Sol Child`, `Terra Parent ➔ Terra Child`, `Terra Child ➔ Sol`, `Luna Child ➔ Terra/Sol`
    - *(단, Child가 `NEEDS_PARENT_*` 또는 `TASK_FAILED`로 Parent에게 제어권을 반환하는 것은 상향 위임이 아니며 정상 프로토콜임)*
-3. **Safety Before Routing (2단계 게이트)**: 모델 선택 전에 반드시 **Gate A (Delegation Safety Gate)**를 먼저 통과해야 한다. 저위험·가역적·검증 가능한 작업이 아니면 모델 판단 없이 무조건 **Parent Direct**.
+3. **Safety Before Routing (Gate A)**: 모델 선택 전에 반드시 **Gate A (Delegation Safety Gate)**를 먼저 통과해야 한다. 저위험·가역적·검증 가능한 작업이 아니면 모델 판단 없이 무조건 **Parent Direct**.
 4. **Role-Based Child Delegated Authority (역할별 위임 권한)**:
-   - **Luna Child**: `Semantic Closed` + `External Contract Closed` + `Implementation Closed`. 구현 패턴과 방법까지 확정된 기계적 실행 전담.
+   - **Luna Child**: `Semantic Closed` + `External Contract Closed` + `Implementation Closed`. 구현 패턴과 방법까지 확정된 기계적 실행 전담. Parent가 `all matches`를 요구하면 검색 범위 전체를 exhaustive하게 확인하며, non-exhaustive examples를 전체 목록으로 오인하지 않는다. Match가 정책/의미 판단을 요구하면 `NEEDS_PARENT_DECISION`으로 반환한다.
    - **Terra Child**: `Semantic Closed` + `External Contract Closed` + `Implementation-Local Decision Remains`. 외부 계약은 확정되었으나 내부 구현 분석 및 선택이 필요한 경우 전담 (Sol Parent 전용).
 5. **Leaf Worker / No Chaining**: 모든 Child는 Leaf Worker이며 다른 agent나 model을 spawn/invoke/delegate할 수 없다. `Sol ➔ Terra ➔ Luna` 다단계 체이닝 금지.
 6. **Fail Closed**: Child spawn 실패, 라우팅 모호성, 또는 권한 불확실 시 다른 하위 모델로 우회하지 않고 **부모 모델이 직접 수행**.
@@ -42,8 +42,8 @@ Parent는 소스 코드 편집 도구(`write_to_file`, `replace_file_content` �
 
 1. **Trigger & Gate Check**: 
    - [선행 조건] 상위 요구사항/아키텍처/보안 판단이 Parent에 의해 완료되었는가? (미완료 시 Parent Direct로 추론 완료 우선)
-   - [임계값 대조] 10줄 이상, 테스트 사이클 수반, 또는 다중 파일인가? (Default Downshift Threshold 충족 확인)
-   - ➔ 충족 시 Gate A(안전성) 통과 확인 후 Gate B(잔여 권한)로 워커 모델 결정.
+   - [보조 신호] LOC·파일 수·테스트 패턴은 참고만 하며 필수 임계값이 아니다. 단일 deterministic validation은 trigger가 아니고, 예상 test/fix loop는 leverage의 증거이지 자동 위임 명령이 아니다.
+   - ➔ Gate A(안전성) → Gate B(잔여 권한/후보 선택) → Economic Gate 순으로 평가한다.
 2. **Capsule Emission**: 
    - [Task Capsule 표준 서식](references/task-capsule-template.md)에 따라 목표, 허용 범위, Acceptance Criteria, 검증 명령을 확정하여 프롬프트 작성.
 3. **Leaf Worker Spawn**: 
@@ -54,7 +54,7 @@ Parent는 소스 코드 편집 도구(`write_to_file`, `replace_file_content` �
 
 ---
 
-## 🧭 2. 2단계 결정적 라우팅 파이프라인 (Routing Pipeline)
+## 🧭 2. 게이트 기반 결정적 라우팅 파이프라인 (Routing Pipeline)
 
 ```text
 Active Parent (Sol or Terra)
@@ -63,10 +63,8 @@ Active Parent (Sol or Terra)
   │    YES ──────────────────────────────────────────→ Parent Direct (상위 추론/판단 직접 수행)
   │    NO (상위 판단 완료)
   ▼
-  ├─ 2. 사소한 단발 수정인가?
-  │    ├─ ≤3줄 오타/상수 수정 (무로직, 무테스트) ──────→ Parent Direct (오버헤드 방지)
-  │    ├─ 4~9줄 단일 파일 수정 (무로직, 무테스트, 1턴) ─→ Parent 선택 가능 (단, 테스트/탐색 필요 시 다운시프트)
-  │    └─ ≥10줄 OR 테스트 루프 OR 다중 파일 ──────────→ 다운시프트 평가 진입 (Threshold 충족)
+  ├─ 2. 작업 크기/검증 패턴은 보조 참조만 사용
+  │    └─ 단일 deterministic validation은 강제 trigger가 아님
   ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Gate A: Delegation Safety Gate                           │
@@ -98,23 +96,43 @@ Active Parent (Sol or Terra)
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
 │    ──────────────────────────→ Luna Low Child (1.00×)    │
 └──────────────────────────────────────────────────────────┘
+                             │ candidate selected
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│ Economic Gate: leverage must exceed preparation + verify   │
+│ If delegation overhead is similar to Parent Direct, stop.  │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### 🚀 Default Downshift Threshold (Provisional BEP Heuristic)
 
-Parent의 자의적인 직접 구현 합리화를 방지하기 위해 실사용 로그 축적 전까지 다음 보수적 기본 휴리스틱을 다운시프트 기본 임계값으로 적용합니다:
+LOC ≤3 / 4–9 / ≥10 구간은 규모를 가늠하는 **secondary reference**일 뿐 primary trigger가 아니다.
 
-1. **테스트/검증 사이클 (Test & Validation Loop)**: 단위 테스트를 작성하거나 테스트 명령어를 실행해 결과를 검증·수정해야 하는 모든 작업.
-2. **코드 규모 (Scale Threshold: 10줄 이상)**: 새로 작성하거나 변경할 코드가 **10줄 이상**(또는 함수/클래스 1개 단위)인 작업.
-3. **다중 파일 범위 (Multi-File Scope)**: 수정 대상이 **2개 이상의 파일**에 걸쳐 있는 작업.
+예상되는 test/fix loop는 leverage를 높이는 긍정 신호지만 자동 위임 명령은 아니다.
 
 > [!NOTE]
 > 위 기준은 공식 보장 손익분기점이 아니며, Parent가 사소한 실행까지 계속 직접 수행하는 것을 막기 위한 기본 운영 heuristic입니다.
-> Threshold는 다운시프트 평가 진입 여부를 결정합니다. Gate A는 위임 자체의 허용 여부를 결정하며, Gate A를 통과한 경우 Gate B가 남은 Decision Authority에 따라 최종 실행 경로를 결정합니다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`).
+> LOC/파일/테스트 패턴은 secondary signal이다. Gate A는 안전성, Gate B는 권한별 후보, Economic Gate는 leverage 충분성을 결정한다.
+
+단일 결정적 검증만 필요한 작업은 위임 트리거가 아니다. 반대로 테스트-수정 루프가 예상되면 실행량이 커져 경제성 평가 가치가 높다. LOC는 보조 지표일 뿐이다.
+
+### 💰 Economic Gate and Delegation Preparation Test
+
+비공식 운영 휴리스틱으로 Luna는 실행량 약 2배, Terra는 구현-로컬 분석·구현·검증량 약 3배의 leverage를 기대할 수 있다. 공식 요율과 Estimated Consumption Index는 [Model Economics](references/model-economics.md)의 값만 사용한다.
+
+위임 전 다음 네 질문에 모두 `예`여야 한다: (1) 목표·범위·금지사항을 한 문장씩 고정했는가? (2) 자식이 물어볼 상위 의미/계약 판단이 없는가? (3) 검증 명령과 완료 기준이 결정적인가? (4) 준비+검증 오버헤드보다 자식이 대체할 실행이 materially 큰가? 아니면 Parent Direct.
+
+### 👁️ Spawn Visibility and Micro-batching
+
+실제 spawn 직전에 반드시 사용자에게 짧게 표시한다: `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`. 전체 capsule은 출력하지 않는다. spawn 실패 시 `[codex-downshift] spawn failed → Parent Direct`를 표시한다.
+
+서로 독립적인 3–5개 안팎의 저위험·가역적·Implementation-Closed 항목이 같은 Luna model/effort와 bounded scope를 공유하고, 의존성·아키텍처·제품·보안·Public API 판단이 없으면 하나의 micro-batch로 coalesce할 수 있다. 각 항목의 checkmark 결과를 반환하고 하나라도 판단이 필요하면 네 terminal state를 보존하며 worktree를 명확히 보고한다. 이는 하나의 고정 규칙을 반복 적용하는 pattern batch와 구별한다.
+
+**Profile semantics:** Implementation Closed + target locations closed이면 Luna Low 후보다. Implementation Closed + Match Rule Closed + target locations에 bounded search가 필요하면 Luna Medium 후보다. Luna는 Match Rule을 만들거나 넓히지 않으며, all-matches는 named/example 첫 발생에서 멈추지 않고 Search 경계 전체에 고정 Rule을 적용한다. semantic/architecture/product/compatibility/policy 판단이 필요하면 `NEEDS_PARENT_DECISION`이다. Terra는 절차를 과도하게 지정하지 않고 goal, fixed external contract, forbidden changes, acceptance와 local criteria(기존 패턴 선호, 최소 구현, Public API 보존)만 제공한다. Terra Parent의 implementation-local work는 Terra Parent Direct다.
 
 ### 🔍 Parent Direct 허용 조건 및 4~9줄 구간 처리
 - **≤3줄 단발 수정**: 단일 파일 3줄 이하, 로직/분기 없는 오타/상수 변경, 무테스트 1턴 종료 건은 캡슐 오버헤드 방지를 위해 Parent Direct 처리.
-- **4~9줄 단일 파일 구간**: implementation closed 상태이고 테스트 루프나 추가 탐색 없이 1턴에 검증 가능한 경우에 한해 Parent Direct 선택 가능. 단, **테스트/수정 사이클이 필요하면 4줄이라도 반드시 다운시프트**.
+- **4~9줄 단일 파일 구간**: implementation closed 상태이고 1턴에 검증 가능한 경우 Parent Direct를 선택할 수 있다. 테스트/수정 사이클은 Economic Gate에서 leverage를 평가하는 신호일 뿐 자동 다운시프트 명령이 아니다.
 
 ---
 
@@ -174,36 +192,7 @@ spawn_agent(
 
 ## 📋 5. Task Capsule 표준 구조
 
-부모 모델은 자식 워커에게 권한 경계가 명확히 정의된 최소한의 완결된(Self-Contained) 지침을 전달합니다.
-
-```text
-TASK CAPSULE
-
-Role: You are a leaf worker.
-Goal: <명확한 단일 작업 목표>
-Target / Scope: <허용된 파일 / 클래스 / 함수 / 심볼 경로>
-Decisions already made: <부모 모델이 이미 확정한 요구사항, API, 동작, 호환성 결정>
-Delegated authority:
-- Luna: Predetermined execution only (or bounded local exploration)
-- Terra: Implementation-local analysis and choice allowed within fixed contracts
-Must not decide: <부모 모델 고유의 판단 영역 (Architecture, Public API, Security 등)>
-Exact change: <결과 형태 자체가 계약인 경우: final text, before/after 또는 변환 규칙>
-Preserve: <유지해야 하는 기존 동작, 호환성, 타입 힌트>
-Do not touch: <수정 금지 영역>
-Acceptance criteria:
-- [ ] <유지해야 할 의미·동작·호환성 불변조건>
-- [ ] <기계적 검증 결과>
-Validation:
-- <검증 명령 (예: pytest tests/test_foo.py)>
-Recovery policy:
-- At most ONE recovery attempt when appropriate.
-- If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
-Worker constraints:
-- Do not spawn or delegate to other agents.
-- Do not perform external side-effects or destructive operations.
-Return protocol:
-- TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
-```
+부모 모델은 [Task Capsule Template](references/task-capsule-template.md)을 canonical SSOT로 사용합니다. 실제 emitted capsule은 **Minimum Sufficient Context**만 포함하고 무관한 필드는 생략합니다. Luna는 Low(닫힌 target) 또는 Medium(닫힌 rule + bounded search), Terra는 고정 외부 계약 안의 implementation-local choice이며 Terra Parent는 직접 수행합니다. 상세 필드와 4대 반환 프로토콜을 중복 기재하지 않습니다.
 
 ---
 
@@ -237,7 +226,7 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 ### 📋 Rationalization Table
 | 에이전트의 핑계 | 현실 및 불변 규칙 |
 | :--- | :--- |
-| *"10줄 안팎의 작업이라 캡슐을 만들고 spawn하는 것보다 직접 고치는 게 빠릅니다"* | **금지.** 10줄 이상 또는 테스트/검증 루프는 Default Downshift Threshold를 충족합니다. 먼저 Gate A에서 위임 안전성을 평가하십시오. **Gate A 실패 시 Parent Direct**, Gate A를 통과한 경우에만 Gate B에서 남은 Decision Authority에 따라 Luna Low / Luna Medium / Terra Medium 또는 Terra Parent Direct 경로를 결정합니다. Threshold 자체는 Child 모델을 결정하지 않습니다 (`Threshold decides whether to evaluate downshift. Gate A decides whether delegation is allowed. If Gate A passes, Gate B decides the execution path based on remaining Decision Authority.`). |
+| *"10줄 안팎의 작업이라 캡슐을 만들고 spawn하는 것보다 직접 고치는 게 빠릅니다"* | LOC/줄 수는 보조 참조입니다. 먼저 Gate A, Gate B, Economic Gate를 평가하고 overhead가 비슷하면 Parent Direct입니다. |
 | *"지금 한창 구현 흐름 중이니 이번 한 번만 직접 코딩할게요"* | **금지.** '이번 한 번만'은 세션 전체의 전면 자가 구현으로 변질됩니다. 코드 수정 도구 호출 전 Task Capsule을 작성하십시오. |
 | *"Luna가 복잡한 로직을 풀 수 있게 reasoning을 High로 올릴게요"* | **비효율.** Luna High(6.00×, 40 steps)는 Terra Medium(5.35×, 20 steps)보다 예상 소모 지수와 step 효율이 떨어집니다. Sol Parent에서는 Terra Medium을 호출하고, Terra Parent에서는 직접 수행하십시오. |
 | *"1줄짜리 오타/상수 수정인데 이것도 무조건 캡슐 만들어야 하나요?"* | **아닙니다.** 3줄 이하, 무로직, 무테스트 단발 수정은 캡슐 오버헤드 방지를 위해 Parent Direct가 원칙입니다. |
@@ -263,6 +252,6 @@ Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 �
 
 ## 📚 9. 참조 문서
 - [Model Economics & Estimated Consumption Index](references/model-economics.md)
-- [위임 모범 사례 및 11대 실전 시나리오](references/delegation-examples.md)
+- [위임 모범 사례 및 16개 실전 시나리오](references/delegation-examples.md)
 - [Task Capsule 및 4대 반환 프로토콜 표준 서식](references/task-capsule-template.md)
 - [프로젝트 상세 기획 명세서](../../docs/codex-downshift-spec.md)

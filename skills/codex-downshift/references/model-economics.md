@@ -114,3 +114,18 @@ Snapshot date: **2026-09-03**
 `Estimated Codex Consumption Index`는 위 공식 token-credit rate와 공개 benchmark / agent usage 관측치를 조합한 상대 비교용 추정치입니다.
 
 OpenAI가 공개한 Plus/Pro의 5시간 또는 주간 allowance 공식 차감 배율이 아니며, benchmark 결과나 Codex metering 정책이 변경되면 지수를 다시 계산해야 합니다.
+
+## 7. Effective Downshift Economics (Non-official Heuristics)
+
+공식 token-credit 요율과 위 Estimated Consumption Index 표는 변경하지 않는다. 다음은 라우팅 판단을 위한 운영 모델이며 allowance 보장이 아니다.
+
+**Effective Downshift Cost** = Parent Delegation Preparation + Child Execution + Parent Verification
+
+**Parent Direct Cost** = Parent Analysis + Parent Implementation + Parent Validation
+
+Parent preparation의 output/reasoning이 child prompt 비용을 초과할 수도 있다. 과도하게 상세한 Capsule은 savings를 없앤다. 위임은 child가 대체하는 실행량이 부모의 준비·검증 오버헤드보다 materially 클 때만 경제적이다. 시키는 데 드는 일이 직접 하는 일과 비슷하면 위임하지 않는다.
+
+저비용 Delegation Preparation Test: (1) 이미 무엇을 물어야 할지 알고 있는가? (2) 작업 자체에 맞먹는 상세한 새 분석이 필요한가? 필요하면 Parent Direct. (3) child가 repetition/search/test/fix 같은 meaningful execution을 대체하는가? (4) 기대 leverage가 preparation+verification을 초과하는가? 하나라도 아니면 Parent Direct.
+
+비공식 관측 휴리스틱은 Luna가 고정 실행량 약 **2×**, Terra가 구현-local 분석+구현+검증량 약 **3×** leverage를 낼 수 있다는 뜻일 뿐이다. Luna/Terra 선택은 이 heuristic이 아니라 Gate A와 Gate B의 권한 판정이 우선이다. LOC는 secondary reference이며, 단일 deterministic validation은 trigger가 아니고 예상되는 test/fix loop는 높은 위임 가치 신호다.
+이는 공식 break-even 또는 token formula가 아니며, 실제 로그가 쌓이면 재검토한다.

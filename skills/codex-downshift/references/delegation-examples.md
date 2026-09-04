@@ -1,6 +1,6 @@
 # Delegation Examples & Behavioral Scenarios
 
-본 문서는 `codex-downshift` 스킬의 2단계 라우팅 파이프라인(Gate A Safety ➔ Gate B Decision Authority), 4대 반환 규격 및 예외 처리 정책을 검증하기 위한 11대 핵심 실전 시나리오 가이드입니다.
+본 문서는 `codex-downshift` 스킬의 게이트 기반 라우팅(Gate A Safety ➔ Gate B Decision Authority ➔ Economic Gate), 4대 반환 규격 및 예외 처리 정책을 검증하기 위한 16개 핵심 실전 시나리오 가이드입니다.
 
 ---
 
@@ -9,9 +9,9 @@
 | 번호 | 시나리오 상황 | 부모 모델 | 라우팅 / 동작 | 기대 결과 |
 | :---: | :--- | :---: | :---: | :--- |
 | **1** | DB Migration 등 High Consequence 작업 | **Sol/Terra** | 🛑 **Gate A 차단 ➔ Parent Direct** | 구현이 닫혀 있어도 파괴적/운영 변경이므로 부모 직접 수행 |
-| **2** | 계약 확정 + 구현 로컬 판단 잔여 | **Sol** | 🟡 **Gate B ➔ Terra Child 위임** | `gpt-5.6-terra` child 생성 (`reasoning_effort="medium"`) |
-| **3** | 다중 파일 확정 패턴 기계적 적용 | **Sol** | 🟢 **Gate B ➔ Luna Child 위임** | `gpt-5.6-luna` child 생성 (파일 수와 무관하게 Luna) |
-| **4** | 확정된 docstring / 린트 / 테스트 수정 | **Terra** | 🟢 **Gate B ➔ Luna Child 위임** | `gpt-5.6-luna` child 생성 (`reasoning_effort="low"` [1.00×]) |
+| **2** | 계약 확정 + 구현 로컬 판단 잔여 | **Sol** | 🟡 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 `gpt-5.6-terra` medium |
+| **3** | 다중 파일 확정 패턴 기계적 적용 | **Sol** | 🟢 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 `gpt-5.6-luna` |
+| **4** | 확정된 docstring / 린트 / 테스트 수정 | **Terra** | 🟢 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 Luna Low |
 | **5** | 구현 판단 잔여 작업 (Terra 부모) | **Terra** | 🛑 **Downshift Only ➔ Terra Direct** | Terra 부모는 Terra child를 부르지 않고 직접 수행 |
 | **6** | Child 작업 중 새 설계 판단 직면 | **Child** | 🛑 **`NEEDS_PARENT_DECISION`** | 하위 워커 임의 판단 금지, 미결 사항 보고 후 부모 판단 |
 | **7** | Child 외부 부수효과 필요 직면 | **Child** | 🛑 **`NEEDS_PARENT_ACTION`** | git push/deploy 등 외부 권한 작업 시 부모에게 제어권 반환 |
@@ -236,5 +236,33 @@ Worktree:
   1. `git diff`를 열어 실제 변경된 코드가 Acceptance에 부합하는지 확인.
   2. **Fresh Verification 직접 실행**: 회귀 테스트 `pytest tests/test_email_validator.py`를 직접 실행하여 `PASSED` 증거 확보.
   3. **정직하고 정확한 완료 보고**:
-     > *"이메일 유효성 검증 로직이 성공적으로 구현되었습니다. 변경된 회귀 테스트를 부모 모델이 직접 재검증하여 통과를 확인했습니다 (Child는 전체 린트 통과를 보고함)."*
+      > *"이메일 유효성 검증 로직이 성공적으로 구현되었습니다. 변경된 회귀 테스트를 부모 모델이 직접 재검증하여 통과를 확인했습니다 (Child는 전체 린트 통과를 보고함)."*
 
+## 🧪 Scenario 12: 작은 Parent Direct 작업
+
+단일 파일의 3줄 오타 수정처럼 로직·테스트가 없는 작업은 capsule/child 비용이 더 크므로 Parent Direct로 처리한다.
+
+## 🧪 Scenario 13: Luna Micro-batch
+
+서로 다른 4개 독립 변경(문서 오타, 고정 import 정리, 테스트 fixture 상수 교체, 명시된 docstring 추가)을 Luna Low micro-batch로 묶을 수 있다. 결과는 항목별 checkmark로 보고한다. 하나라도 판단이 필요하면 전체를 TASK_COMPLETED로 표시하지 않는다. 12개 serializer의 `user_id → account_id`처럼 하나의 고정 규칙을 반복하는 작업은 micro-batch가 아니라 repeated fixed-rule batch다.
+
+## 🧪 Scenario 14: Terra 위임이 경제적으로 나쁜 경우
+
+Sol이 이미 내부 알고리즘을 결정했고 한 함수와 결정적 테스트만 남았다면 Terra 준비·검증 오버헤드가 실행량과 비슷하다. Economic Gate에서 탈락하여 Parent Direct 또는 Luna로 라우팅한다.
+
+## 🧪 Scenario 15: Terra 위임이 경제적인 경우
+
+외부 API 계약과 acceptance는 고정됐지만 여러 모듈의 내부 자료구조 선택·구현·테스트 루프가 남은 Sol 작업은 Gate A/B를 통과할 수 있다. 짧은 공개 표시 후 Terra Medium Child로 위임하고 Parent가 diff와 claim-matched fresh verification을 수행한다.
+
+## 🧪 Scenario 16: Spawn visibility
+
+실제 spawn 직전에 부모는 `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule`처럼 짧게 표시한다. 전체 capsule은 노출하지 않는다. spawn 실패 시 `[codex-downshift] spawn failed → Parent Direct`를 표시하고 다른 child로 우회하지 않는다.
+
+## 🧪 A–F: Compact routing examples
+
+- **A Luna**: non-exhaustive Examples가 있어도 Search scope 전체의 문서 규칙을 all matches로 적용한다. 첫 예시에서 멈추지 않는다.
+- **B Parent Direct**: 작은 함수 1개와 pytest 한 번은 capsule/spawn overhead가 커 Parent Direct다.
+- **C Luna micro-batch**: 위 Scenario 13의 서로 다른 3–4개 독립 변경을 같은 Luna Low로 itemize한다.
+- **D Poor Terra**: Sol이 구현을 이미 상세히 고정한 단일 함수는 Terra가 경제적이지 않다.
+- **E Good Terra**: 외부 API contract는 고정됐지만 자료구조 선택·구현·테스트 루프가 남으면 Terra가 local criteria로 판단한다.
+- **F Visibility**: `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule`; 실패 시 `[codex-downshift] spawn failed → Parent Direct`.
