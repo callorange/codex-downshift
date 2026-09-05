@@ -28,7 +28,15 @@ npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent
 
 명령과 옵션은 [skills CLI 문서](https://github.com/vercel-labs/skills#readme)를 참고하세요. CLI가 출력하는 실제 설치 경로를 확인하세요.
 
-수동 설치는 이 저장소의 `skills/codex-downshift/` 폴더 전체를 `<project-root>/.agents/skills/codex-downshift/`에 복사합니다. `SKILL.md`와 `references/`를 함께 유지해야 합니다. 사용자 전역 수동 설치 경로는 `~/.agents/skills/codex-downshift/`입니다. 이 경로는 다른 에이전트도 읽을 수 있으므로 Codex 전용 격리 경로로 간주하지 않습니다. 경로 규칙은 [Codex 스킬 문서](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills)를 참고하세요.
+| 설치 방식 | 경로·확인 기준 |
+| --- | --- |
+| 프로젝트 수동 설치 | `<project-root>/.agents/skills/codex-downshift/` |
+| 사용자 수동 설치 | `~/.agents/skills/codex-downshift/` — 공식 Codex 로컬 탐색 경로 |
+| skills CLI의 Codex 설치 | CLI 문서는 프로젝트 `.agents/skills/`, 전역 `~/.codex/skills/`로 표기한다. 설치 버전·방식에 따른 실제 경로와 링크 대상은 CLI 출력으로 확인한다. |
+
+수동 설치는 이 저장소의 `skills/codex-downshift/` 폴더 전체를 복사하고 `SKILL.md`와 `references/`를 함께 유지한다.
+CLI의 agent 선택이나 경로 이름만으로 다른 에이전트와의 격리를 보장하지 않는다. CLI는 공용 원본을 가리키는 symlink 또는 복사 방식을 사용할 수 있다.
+확인일: **2026-09-04**. 근거: [Codex 로컬 스킬 탐색](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills), [skills CLI 설치 방식·에이전트별 경로](https://github.com/vercel-labs/skills#supported-agents).
 
 ### 사용 예시
 
@@ -62,6 +70,10 @@ src/formatters/에서 기존 문자열 포맷 규칙을 따르도록 반복 구�
 
 ## 📊 지원 모델 및 위임 매트릭스
 
+이 스킬은 이미 선택된 Parent를 유지하고 실행 작업만 하향 위임합니다.
+사용자가 모델 설정을 비교할 때 참고할 비용·역할·경험 기반 평가는
+[모델 경제성 가이드](skills/codex-downshift/references/model-economics.md#8-active-parent-recommendation-non-official-heuristics)에 정리했습니다.
+
 | 부모 모델 (Active Parent) | 위임 대상 (Child) | 대상 작업 (Decision Authority) |
 | :--- | :--- | :--- |
 | **Sol** | ✅ **`gpt-5.6-luna`** | `Semantic Closed` + `Implementation Closed` (단순 TDD 반복, docstring, 정형 린트/타입 수정 등 기계적 실행) |
@@ -85,14 +97,15 @@ src/formatters/에서 기존 문자열 포맷 규칙을 따르도록 반복 구�
 | **Gate B — 판단 권한** | 구현 방법까지 확정되었는가, 아니면 고정된 외부 계약 안에서 내부 구현 선택이 남아 있는가? | 부모 권한을 벗어나는 위임 없이 직접 처리 |
 | **Economic Gate — 경제성** | 부모의 준비·검증 비용이 자식에게 맡길 실행량보다 명확히 작은가? | Parent Direct |
 
-Economic Gate는 다음 네 조건을 **모두** 요구합니다.
+Economic Gate는 다음 네 조건을 **모두** 요구합니다. 이를 통과해도 추가 재지시·재작업·검증 부담이 실행 절감분을 상쇄하면 Parent Direct입니다.
 
 1. 부모가 목표, 범위, 확정된 결정, 완료 기준을 이미 알고 있다.
 2. 위임 준비에 직접 실행과 맞먹는 분석이 필요하지 않다.
 3. 자식이 의미 있는 범위 내 탐색, 반복 구현 또는 테스트·수정 작업을 대신한다.
 4. 부모의 준비와 검증 부담이 대체되는 실행 부담보다 명확히 작다.
 
-파일 수나 코드 줄 수만으로 위임을 결정하지 않습니다. 단순 오타 수정, DB migration, 보안·권한·배포 변경 등은 부모가 직접 처리합니다.
+파일 수나 코드 줄 수만으로 위임을 결정하지 않습니다. DB migration, 보안·권한·배포 변경 등 고위험 작업은 Gate A에서 부모가 직접 처리합니다.
+저위험·가역적인 단순 오타 수정은 Gate A 통과 후 Gate B에서 후보를 선정하고, Economic Gate에서 위임 이점이 확인되지 않으면 부모가 직접 처리합니다.
 
 ### 작업별 후보 예시
 
@@ -100,12 +113,12 @@ Economic Gate는 다음 네 조건을 **모두** 요구합니다.
 
 | 작업 상태 | Sol 부모 | Terra 부모 |
 | :--- | :--- | :--- |
-| 구현 방법과 수정 위치가 모두 확정됨 | Luna `low` | Luna `low` |
-| 구현 방법과 매칭 규칙은 확정되었으나 제한된 범위에서 위치 탐색 필요 | Luna `medium` | Luna `medium` |
-| 외부 동작은 확정되었으나 내부 알고리즘·구현 선택이 남음 | Terra `medium` | Parent Direct |
+| 구현 방법과 수정 위치가 모두 확정됨 | Luna Light | Luna Light |
+| 구현 방법과 매칭 규칙은 확정되었으나 제한된 범위에서 위치 탐색 필요 | Luna Medium | Luna Medium |
+| 외부 동작은 확정되었으나 내부 알고리즘·구현 선택이 남음 | Terra Medium | Parent Direct |
 | 제품 동작·공개 API·보안 판단이 미결 | Parent Direct | Parent Direct |
 
-Luna `medium`은 탐색 여유를 늘리며 구현 판단 권한은 확대하지 않습니다. `all matches` 요청은 지정한 검색 범위 전체에 고정 규칙을 적용합니다. `high` 이상은 자동 선택하지 않습니다.
+Luna Medium은 탐색 여유를 늘리며 구현 판단 권한은 확대하지 않습니다. `all matches` 요청은 지정한 검색 범위 전체에 고정 규칙을 적용합니다. High 이상은 자동 선택하지 않습니다.
 
 ### Routing Notice
 
@@ -149,7 +162,7 @@ Active Parent (Sol or Terra)
 │ ├─ Implementation 닫힘 + 경량 위치 탐색 필요              │
 │ │  ──────────────────────────→ Luna Medium Child (2.61×) │
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Low Child (1.00×)    │
+│    ──────────────────────────→ Luna Light Child (1.00×)  │
 │                                                          │
 │ (Active Terra Parent)                                    │
 │ ├─ Implementation-local 분석/선택 남음                    │
@@ -157,26 +170,29 @@ Active Parent (Sol or Terra)
 │ ├─ Implementation 닫힘 + 경량 위치 탐색 필요              │
 │ │  ──────────────────────────→ Luna Medium Child (2.61×) │
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Low Child (1.00×)    │
+│    ──────────────────────────→ Luna Light Child (1.00×)  │
 └──────────────────────────────────────────────────────────┘
                              │ candidate selected
                              ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Economic Gate: Delegation Preparation Test                │
-│ all four conditions true → selected Child; else Parent Direct│
+│ Four preparation conditions pass AND net benefit remains │
+│ → selected Child; otherwise → Parent Direct              │
 └──────────────────────────────────────────────────────────┘
 ```
 
 ### 🚀 Routing signals and Economic Gate
 LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않습니다. trivial literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work 같은 관찰 가능한 작업 속성이 라우팅을 이끕니다. Gate A와 Gate B 후 Economic Gate에서 Delegation Preparation Test 네 조건을 모두 확인합니다.
 
-Luna Low는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule 및 bounded Search가 필요한 작업입니다. `all matches`는 Search 경계 전체를 검사하며 non-exhaustive examples를 전체 목록으로 오인하지 않습니다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이고, Terra Parent는 직접 처리합니다. 후보여도 경제성이 비슷하면 Parent Direct입니다.
+Luna Light는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule 및 bounded Search가 필요한 작업입니다. `all matches`는 Search 경계 전체를 검사하며 non-exhaustive examples를 전체 목록으로 오인하지 않습니다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이고, Terra Parent는 직접 처리합니다. 후보여도 경제성이 비슷하면 Parent Direct입니다.
 
 > [!NOTE]
-> Luna 2× 및 Terra 3×는 공식 break-even이나 token formula가 아닌 비공식 잠정 운영 휴리스틱입니다. 상세 계약은 [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md)과 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참조하세요.
+> 경제성은 Delegation Preparation Test로 판단하며, 근거 미확정의 운영 가설을 라우팅 기준으로 사용하지 않습니다. 상세 계약과 근거는 [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md)과 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참조하세요.
 
 ### 🔍 Parent Direct 조건
-trivial literal/mechanical edit, high-consequence/irreversible work, 또는 Delegation Preparation Test를 충족하지 못한 작업은 Parent Direct입니다. LOC·파일 수만으로 경로를 결정하지 않습니다.
+- high-consequence/irreversible work는 Gate A에서 Parent Direct입니다.
+- 저위험·가역적인 trivial literal/mechanical edit는 Gate A 통과 후 Gate B에서 후보를 선정합니다. Economic Gate의 Delegation Preparation Test를 충족하지 못하면 Parent Direct입니다.
+- LOC·파일 수만으로 경로를 결정하지 않습니다.
 
 ### 👁️ Routing Notice
 Gate A → Gate B → Economic Gate를 실제로 평가한 routing 결정은 사용자에게 정확히 한 번 `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>` 형식으로 표시합니다. Child delegation은 기존 Spawn Notice를 사용하고, Parent Direct도 `[codex-downshift] → Parent Direct | <task_name> | <first decisive gate or brief reason>`로 표시합니다. 결정적 gate 또는 이유만 짧게 표시하며, 스킬이 적용되지 않아 routing 평가가 없었거나 spawn이 실패한 경우에는 추가 routing notice를 출력하지 않습니다. Canonical 규칙은 [SKILL.md](skills/codex-downshift/SKILL.md)를 따릅니다.
@@ -211,7 +227,7 @@ spawn_agent(
 
 #### 1) Codex 공식 크레딧 단가표
 
-아래 수치와 비교는 프로젝트의 **2026-09-03 snapshot**을 복원한 것입니다. 요율 출처와 추정 지수의 해석 범위는 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참고하세요.
+아래 수치와 비교는 프로젝트가 보존하는 **2026-09-03 기준 snapshot**입니다. 요율 출처와 추정 지수의 해석 범위는 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참고하세요.
 
 | 모델 | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
 | :--- | ---: | ---: | ---: |
@@ -226,6 +242,7 @@ spawn_agent(
 > 설정 간 상대적인 비용 효율을 비교하기 위해 만든 **추정 상대 소모 지수(Estimated Consumption Index)**입니다.
 > 실제 5시간/주간 allowance 감소율은 context 크기, cache 비율, output, reasoning,
 > tool call, agent step, subagent 및 서버 측 metering 정책에 따라 달라질 수 있습니다.
+> 기존 지수는 산출 재현 미확인 snapshot이다. [산출 근거와 한계](skills/codex-downshift/references/model-economics.md#지수-산출-근거의-재현-상태)를 함께 참고한다.
 
 | 모델 \ 추론 | Light (`low`) | Medium (`medium`) | High (`high`) | XHigh | Max |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -234,17 +251,17 @@ spawn_agent(
 | **Sol** | 🟡 **9.40×** | 🟠 **18.04×** (부모 기준선) | 🔴 **25.63×** | 🔴 **35.62×** | 🔴 **52.50×** |
 
 #### 3) 부모 기준선별 예상 상대 절감률 비교
-| 자식 설정 | 예상 소모 지수 | vs Sol Low (9.40×) | vs Sol Medium (18.04×) | 주요 적용 작업 |
+| 자식 설정 | 예상 소모 지수 | vs Sol Light (9.40×) | vs Sol Medium (18.04×) | 주요 적용 작업 |
 | :--- | :---: | :---: | :---: | :--- |
-| **Luna Low** | **1.00×** | **~89.4% lower** | **~94.5% lower** | 확정된 기계적 조립, 단위 테스트, 정형 린트/수정 |
+| **Luna Light** | **1.00×** | **~89.4% lower** | **~94.5% lower** | 확정된 기계적 조립, 단위 테스트, 정형 린트/수정 |
 | **Luna Medium** | **2.61×** | **~72.2% lower** | **~85.5% lower** | 구현 닫힘 + 경량 심볼/위치 로컬 탐색 |
 | **Terra Medium** | **5.35×** | **~43.1% lower** | **~70.3% lower** | 로컬 알고리즘/클래스 내부 설계 (Sol Parent 전용) |
 
 #### 4) 핵심 운용 규칙
-1. **Luna-First 원칙**: 구현 패턴이 닫힌 작업은 예상 소모 지수가 가장 낮은 Luna Low(1.00×) 또는 Luna Medium(2.61×)을 우선 활용합니다. (Luna Medium은 구현 판단 권한을 확장하지 않음).
+1. **Luna-First 원칙**: 구현 패턴이 닫힌 작업은 예상 소모 지수가 가장 낮은 Luna Light(1.00×) 또는 Luna Medium(2.61×)을 우선 활용합니다. (Luna Medium은 구현 판단 권한을 확장하지 않음).
 2. **Luna High vs Terra Medium 및 Sol-Parent Golden Switch**:
    - CursorBench 3.2 관측상 Luna High(Score 56.8% / Steps 40)는 일부 벤치마크 점수가 높지만, 예상 소모 지수가 더 높고(6.00× vs 5.35×) Agent step이 2배(40 vs 20)입니다.
-   - 따라서 Sol Parent에서 Implementation-local 분석/선택이 필요한 작업은 Luna High 대신 **Terra Medium(5.35×, 20 steps)**을 선택하는 것이 시간과 예상 소모 효율 측면에서 더 적합합니다.
+   - Sol Parent의 implementation-local 선택은 역할 정책에 따라 **Terra Medium** 후보로 처리하고 Economic Gate를 적용합니다. 추정 지수·Steps는 Terra가 낮지만 CursorBench의 금전 비용은 Luna High가 낮습니다. Steps를 소요 시간으로 간주하지 않습니다. [비교 기준과 외부 관측](skills/codex-downshift/references/model-economics.md#4-luna-high-vs-terra-medium-비교-및-sol-parent-golden-switch)을 참조하세요.
    - **Terra Parent**는 Downshift Only 원칙에 따라 Terra Child를 부를 수 없으므로 **Terra Direct**로 직접 수행합니다.
 3. **프롬프트 캐시 단순 단가 비교 주의점**:
    - 단순 token-rate 계산상 Sol 40k cached context를 읽는 비용은 약 0.4 credits이며, Luna fresh worker 3k uncached input은 약 0.015 credits로 입력부만 비교 시 약 26.7배 차이가 납니다.
@@ -294,7 +311,7 @@ Validation:
 - <검증 명령 또는 관찰 가능한 확인 절차·통과 기준 1>
 - <검증 명령 또는 관찰 가능한 확인 절차·통과 기준 2>
 Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED.
-Worker constraints: Leaf worker only. No subagent spawning. No destructive rollbacks.
+Worker constraints: Leaf worker only. Do not spawn or delegate to other agents or models. Do not perform external side-effects or destructive operations. Do not perform destructive git rollbacks. Stop at one of the four terminal return states.
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
 ```
 
@@ -338,13 +355,15 @@ codex-downshift/
 
 ## 📖 문서 및 참조 자료
 
-- [SKILL.md (실행 규칙 원본)](skills/codex-downshift/SKILL.md)
-- [Project Specification (기획 명세)](docs/codex-downshift-spec.md)
-- [Delegation Examples & Behavioral Scenarios (실전 시나리오)](skills/codex-downshift/references/delegation-examples.md)
-- [Model Economics & Estimated Consumption Index (비용 모델)](skills/codex-downshift/references/model-economics.md)
-- [Task Capsule & Terminal Return Protocols (프롬프트 서식)](skills/codex-downshift/references/task-capsule-template.md)
-- [Changelog (변경 이력)](CHANGELOG.md)
-- [Contributing Guide (기여 가이드)](CONTRIBUTING.md)
+| 문서 | 역할 |
+| --- | --- |
+| [SKILL.md](skills/codex-downshift/SKILL.md) | 에이전트가 적용하는 실행 규칙 원본 |
+| [Project Specification](docs/codex-downshift-spec.md) | 설계 의도·정책 근거·성공 기준 |
+| [Delegation Examples](skills/codex-downshift/references/delegation-examples.md) | Gate와 반환 계약의 실전 시나리오 |
+| [Model Economics](skills/codex-downshift/references/model-economics.md) | 공식 요율, 보존된 추정 지수, 외부 평가와 사용자 설정 추천 |
+| [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md) | Child 입력과 Terminal Return Protocol 서식 |
+| [Documentation Index](docs/README.md) | 핵심 문서의 기준과 동기화 관계 |
+| [Changelog](CHANGELOG.md) · [Contributing Guide](CONTRIBUTING.md) | 변경 이력과 기여 절차 |
 
 ---
 

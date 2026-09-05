@@ -1,8 +1,9 @@
 # codex-downshift — Project Specification
 
-> Status: v0.1.4 implemented / Tiered Downshift & Gate A → Gate B → Economic Gate established
+> Status: v0.1.4 release baseline + Unreleased design updates (2026-09-05)
 > Target: OpenAI Codex  
-> Artifact purpose: Antigravity 등 코딩 에이전트가 이 문서를 기반으로 프로젝트를 생성·구현·유지보수할 수 있도록 하는 통합 기획 명세서
+> Document role: 프로젝트의 설계 의도·정책 근거·성공 기준을 보존하는 기획 명세.
+> 실제 실행 규칙은 `SKILL.md`, 비용·추천 근거는 `model-economics.md`, 설치 절차는 `README.md`를 기준으로 한다.
 
 ---
 
@@ -70,7 +71,7 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
 5. 동작과 acceptance criteria 결정
 6. 검증 방법 결정
 
-이 상태에서 실제 단순 수정까지 계속 Sol/Terra가 직접 수행하면 비싼 모델의 사용량을 기계적인 실행에 낭비하게 된다.
+이 상태에서도 직접 수행과 위임의 비용을 비교해야 한다. Gate A/B를 통과한 작업에서 부모의 준비·검증 부담이 대체 실행량보다 명확히 작다면, 확정된 실행을 하위 모델에 맡겨 사용량을 줄일 수 있다.
 `codex-downshift`는 상위 판단 권한을 온전히 보존하면서 그 마지막 실행 단계를 하위 워커에 안전하게 offload하는 것을 목표로 한다.
 
 ---
@@ -91,7 +92,7 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
 5. **Leaf Worker / No Chaining**: 모든 Child는 Leaf Worker이며 다른 agent나 model을 spawn/invoke/delegate할 수 없다. `Sol ➔ Terra ➔ Luna` 다단계 체이닝 금지.
 6. **Fail Closed**: Child spawn 실패, 라우팅 모호성, 또는 권한 불확실 시 다른 하위 모델로 우회하지 않고 **부모 모델이 직접 수행**.
 7. **Reasoning Effort & Model Policy (Luna-First & Sol-Parent Golden Switch)**:
-   - **Luna Child**: 기본값은 `low`. `Implementation Closed` 상태에서 제한적인 심볼/위치 탐색 등 bounded local exploration이 필요한 경우에만 `medium`을 허용한다.
+   - **Luna Child**: 기본값은 Light (`reasoning_effort = "low"`). `Implementation Closed` 상태에서 제한적인 심볼/위치 탐색 등 bounded local exploration이 필요한 경우에만 `medium`을 허용한다.
    - **Terra Child**: 기본값은 `medium`. Sol Parent에서 `Implementation-Local Decision Remains`인 작업에 사용한다.
    - **Sol-Parent Golden Switch**: Implementation-local 분석/선택이 필요한 경우 Luna의 reasoning effort를 `high`로 올리지 않고 Terra Medium Child를 우선한다.
    - **Terra Parent**: 동일 tier child를 생성하지 않으므로 implementation-local decision이 남은 작업은 Terra Parent가 직접 수행한다.
@@ -145,7 +146,7 @@ Active Parent (Sol or Terra)
 │ ├─ Implementation 닫힘 + 경량 위치 탐색 필요              │
 │ │  ──────────────────────────→ Luna Medium Child (2.61×) │
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Low Child (1.00×)    │
+│    ──────────────────────────→ Luna Light Child (1.00×)  │
 │                                                          │
 │ (Active Terra Parent)                                    │
 │ ├─ Implementation-local 분석/선택 남음                    │
@@ -153,23 +154,26 @@ Active Parent (Sol or Terra)
 │ ├─ Implementation 닫힘 + 경량 위치 탐색 필요              │
 │ │  ──────────────────────────→ Luna Medium Child (2.61×) │
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Low Child (1.00×)    │
+│    ──────────────────────────→ Luna Light Child (1.00×)  │
 └──────────────────────────────────────────────────────────┘
                              │ candidate selected
                              ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Economic Gate: Delegation Preparation Test                │
-│ all four conditions true → selected Child; else Parent Direct│
+│ Four preparation conditions pass AND net benefit remains │
+│ → selected Child; otherwise → Parent Direct              │
 └──────────────────────────────────────────────────────────┘
 ```
 
 ### 6.1 Routing signals and Economic Gate
 LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않는다. trivial literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work 같은 관찰 가능한 작업 속성이 라우팅을 이끈다. Gate A와 Gate B 후 Economic Gate에서 Delegation Preparation Test 네 조건을 모두 확인한다.
 
-Luna Low는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule과 bounded Search가 필요한 작업이다. `all matches`는 Search 경계 전체를 검사하고 non-exhaustive examples를 전체 목록으로 오인하지 않는다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이며, Terra Parent는 직접 처리한다. 후보여도 경제성이 비슷하면 Parent Direct다.
+Luna Light는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫히고 parent-fixed Match Rule과 bounded Search가 필요한 작업이다. `all matches`는 Search 경계 전체를 검사하고 non-exhaustive examples를 전체 목록으로 오인하지 않는다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이며, Terra Parent는 직접 처리한다. 후보여도 경제성이 비슷하면 Parent Direct다.
 
 ### 6.2 Parent Direct 조건
-trivial literal/mechanical edit, high-consequence/irreversible work, 또는 Delegation Preparation Test를 충족하지 못한 작업은 Parent Direct로 처리한다. LOC·파일 수는 약한 secondary signal이며 경로를 독립적으로 결정하지 않는다.
+- high-consequence/irreversible work는 Gate A에서 Parent Direct로 처리한다.
+- 저위험·가역적인 trivial literal/mechanical edit는 Gate A 통과 후 Gate B에서 후보를 선정한다. Economic Gate의 Delegation Preparation Test를 충족하지 못하면 Parent Direct로 처리한다.
+- LOC·파일 수는 약한 secondary signal이며 경로를 독립적으로 결정하지 않는다.
 
 ### 6.3 Routing Notice
 Gate A → Gate B → Economic Gate routing 평가를 실제로 수행했을 때만 최종 결정 하나를 `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>` 형식으로 정확히 한 번 사용자에게 표시한다. Child delegation은 spawn 직전 기존 notice를 사용한다. Parent Direct도 `[codex-downshift] → Parent Direct | <task_name> | <first decisive gate or brief reason>`로 표시하되, Gate A·Gate B·Economic Gate 전체가 아니라 최종 결정을 만든 첫 번째 결정적 gate 또는 이유만 짧게 담는다. 스킬이 적용되지 않아 routing 평가가 없으면 notice를 출력하지 않으며, spawn 실패도 추가 routing notice를 만들지 않는다. 출력의 canonical 규칙은 `skills/codex-downshift/SKILL.md`다.
@@ -239,6 +243,9 @@ spawn_agent(
 
 ### 8.2 Estimated Codex Consumption Index 및 Reasoning Effort 정책
 
+사용자용 모델 비교·설정 조언은 [Model Economics](../skills/codex-downshift/references/model-economics.md#8-active-parent-recommendation-non-official-heuristics)에 둔다.
+스킬의 실행 계약은 이미 선택된 Active Parent를 유지하며, Parent 모델 추천·자동 전환은 역할에 포함하지 않는다.
+
 #### 1) Codex 공식 크레딧 단가표
 | 모델 | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
 | :--- | ---: | ---: | ---: |
@@ -253,6 +260,7 @@ spawn_agent(
 > 설정 간 상대적인 비용 효율을 비교하기 위해 만든 **추정 상대 소모 지수(Estimated Consumption Index)**이다.
 > 실제 5시간/주간 allowance 감소율은 context 크기, cache 비율, output, reasoning,
 > tool call, agent step, subagent 및 서버 측 metering 정책에 따라 달라질 수 있다.
+> 기존 지수는 산출 재현 미확인 snapshot이다. [산출 근거와 한계](../skills/codex-downshift/references/model-economics.md#지수-산출-근거의-재현-상태)를 함께 참고한다.
 
 | 모델 \ 추론 | Light (`low`) | Medium (`medium`) | High (`high`) | XHigh | Max |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -261,18 +269,18 @@ spawn_agent(
 | **Sol** | 🟡 **9.40×** | 🟠 **18.04×** (부모 기준선) | 🔴 **25.63×** | 🔴 **35.62×** | 🔴 **52.50×** |
 
 #### 3) 부모 기준선별 예상 상대 절감률 비교
-| 자식 설정 | 예상 소모 지수 | vs Sol Low (9.40×) | vs Sol Medium (18.04×) | 주요 적용 작업 |
+| 자식 설정 | 예상 소모 지수 | vs Sol Light (9.40×) | vs Sol Medium (18.04×) | 주요 적용 작업 |
 | :--- | :---: | :---: | :---: | :--- |
-| **Luna Low** | **1.00×** | **~89.4% lower** | **~94.5% lower** | 확정된 기계적 조립, 단위 테스트, 정형 린트/수정 |
+| **Luna Light** | **1.00×** | **~89.4% lower** | **~94.5% lower** | 확정된 기계적 조립, 단위 테스트, 정형 린트/수정 |
 | **Luna Medium** | **2.61×** | **~72.2% lower** | **~85.5% lower** | 구현 닫힘 + 경량 심볼/위치 로컬 탐색 |
 | **Terra Medium** | **5.35×** | **~43.1% lower** | **~70.3% lower** | 로컬 알고리즘/클래스 내부 설계 (Sol Parent 전용) |
 
 #### 4) 핵심 운용 규칙 및 벤치마크 근거
-- **Luna-First 원칙**: 구현이 닫힌 작업은 예상 소모 지수가 가장 낮은 Luna Low(1.00×) 또는 Luna Medium(2.61×)을 우선 활용한다. (Luna Medium은 구현 판단 권한을 확장하지 않는다).
+- **Luna-First 원칙**: 구현이 닫힌 작업은 예상 소모 지수가 가장 낮은 Luna Light(1.00×) 또는 Luna Medium(2.61×)을 우선 활용한다. (Luna Medium은 구현 판단 권한을 확장하지 않는다).
 - **Luna High vs Terra Medium 및 Sol-Parent Golden Switch**:
   - CursorBench 3.2 관측에서 Luna High는 Score 56.8% / Agent Steps 40이며, Terra Medium은 Score 50.3% / Agent Steps 20이다.
   - Luna High는 일부 benchmark에서 높은 점수를 보일 수 있지만, 예상 소모 지수가 더 높고(6.00× vs 5.35×) 해결까지 필요한 Agent step이 2배(40 vs 20)에 달한다.
-  - 따라서 Sol Parent에서 Implementation-local 분석/선택이 필요한 작업은 Luna High 대신 **Terra Medium(5.35×, 20 steps)**을 사용하는 것이 시간과 예상 소모 효율 측면에서 더 적합하다.
+  - Sol Parent의 implementation-local 선택은 역할 정책에 따라 **Terra Medium** 후보로 처리하고 Economic Gate를 적용한다. 추정 지수·Steps는 Terra가 낮지만 CursorBench의 금전 비용은 Luna High가 낮다. Steps를 소요 시간으로 간주하지 않는다. [비교 기준과 외부 관측](../skills/codex-downshift/references/model-economics.md#4-luna-high-vs-terra-medium-비교-및-sol-parent-golden-switch)을 따른다.
   - **Terra Parent의 경우**: Downshift Only 규칙에 따라 Terra Child를 생성할 수 없으므로, 로컬 구현 판단은 Golden Switch가 아닌 **Terra Parent Direct**로 직접 수행한다.
 - **프롬프트 캐시 단순 단가 비교 주의점**:
   - 단순 token-rate 기준으로 Sol 세션 40k cached context를 읽는 비용은 약 0.4 credits이며, Luna fresh worker의 3k uncached input은 약 0.015 credits로 입력부만 비교 시 약 26.7배 차이가 난다.
@@ -333,20 +341,9 @@ Improve the readability of UserService.create_user docstring.
 *문제: 무엇이 읽기 어려운지, 어떤 형식이 맞는지 하위 워커가 다시 판단해야 함.*
 
 ### 좋은 예 (Good)
-```text
-TASK CAPSULE
-Role: You are a leaf worker.
-Goal: Update docstring for UserService.create_user.
-Scope:
-- Search: src/services/user_service.py :: UserService.create_user
-- Modify: src/services/user_service.py :: UserService.create_user
-Apply: Exact. Rule: Replace the existing docstring with the provided Google Style docstring verbatim.
-Preserve: Signature, implementation, and type hints.
-Acceptance criteria: Docstring matches the fixed Rule; ruff check passes.
-Validation: ruff check src/services/user_service.py
-Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
-Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
-```
+
+[패키지 내부의 완결된 docstring Capsule](../skills/codex-downshift/references/delegation-examples.md#fixed-docstring-capsule)을 따른다.
+고정 대체 문자열·허용 권한·검증·worker 제한을 실제 메시지에 포함하는 예시이며, 스킬 폴더만 설치해도 사용할 수 있다.
 
 ---
 
@@ -383,7 +380,7 @@ Validation:
 - <검증 명령 또는 관찰 가능한 확인 절차·통과 기준 1>
 - <검증 명령 또는 관찰 가능한 확인 절차·통과 기준 2>
 Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
-Worker constraints: Leaf worker only. Do not spawn agents. Do not perform destructive rollbacks.
+Worker constraints: Leaf worker only. Do not spawn or delegate to other agents or models. Do not perform external side-effects or destructive operations. Do not perform destructive git rollbacks. Stop at one of the four terminal return states.
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
 ```
 
@@ -402,7 +399,7 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 3. **Parent Direct 조건**:
    - trivial literal/mechanical edit는 Delegation Preparation Test가 위임을 정당화하지 않을 때 Parent Direct로 처리할 수 있다. LOC·파일 수 자체가 경로를 독립적으로 결정하지 않는다.
    - 그 밖의 후보도 Delegation Preparation Test를 충족할 때만 위임하고, 아니면 Parent Direct로 처리한다.
-4. **우선순위 불변 원칙**: 단순 편의성이나 Latency보다 **Parent Usage 절감이 최우선**이다.
+4. **경제성 판단의 우선순위**: 안전성·권한·검증 요건을 먼저 충족한다. Parent Usage 절감과 함께 사용자 재지시·재작업·검증을 포함한 [실제 작업 비용](../skills/codex-downshift/references/model-economics.md#8-active-parent-recommendation-non-official-heuristics)을 고려한다. 준비 테스트를 통과해도 위임의 추가 부담이 실행 절감분을 상쇄하면 Parent Direct다.
 
 ---
 
@@ -467,8 +464,9 @@ Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으�
 
 ## 21. 배포 및 설치 경로 정책
 
-- **글로벌 스킬 설치 (전역 격리)**: `~/.codex/skills/codex-downshift/` (타 에이전트의 전역 오인식 방지)
-- **프로젝트 로컬 설치**: `<project-root>/.agents/skills/codex-downshift/`
+수동 설치와 skills CLI 설치의 경로를 구분한다. [README 설치 안내](../README.md#설치)를 설치 정보의 기준으로 사용한다.
+공식 사용자 탐색 경로와 CLI의 agent별 전역 경로가 다를 수 있으며, 경로 이름만으로 에이전트 간 격리를 보장하지 않는다.
+
 - **표준 CLI 설치**:
   ```bash
   npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent codex --global

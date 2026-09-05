@@ -50,9 +50,9 @@ Child spawn 실패, 라우팅 모호성, 또는 권한 불확실 시 다른 하�
 
 ### 7. Reasoning Effort & 모델 정책 (Luna-First & Sol-Parent Golden Switch)
 
-- **Luna**: 기본값 `low` (Light: 1.00×). 경량 심볼/위치 탐색 시 `medium` (2.61×)까지 허용 (단, 구현 판단 권한은 확장되지 않음).
+- **Luna**: 기본값 Light (`reasoning_effort = "low"`, 1.00×). 경량 심볼/위치 탐색 시 `medium` (2.61×)까지 허용 (단, 구현 판단 권한은 확장되지 않음).
 - **Terra**: 기본값 `medium` (5.35×) (Sol Parent 전용 로컬 구현 워커).
-- **Sol-Parent Golden Switch**: Sol Parent에서 로컬 구현 선택이 필요한 경우, Luna High(6.00×, 40 steps)보다 상위 체급과 적은 step의 Terra Medium(5.35×, 20 steps)을 우선 선택. (※ Terra Parent는 자식 호출 없이 **Terra Direct**).
+- **Sol-Parent Golden Switch**: Sol Parent에서 implementation-local 선택이 남으면 Terra Medium을 후보로 선택하고 Economic Gate를 적용한다. Luna의 effort 상승은 구현 판단 권한을 확장하지 않는다. Terra Parent는 **Terra Direct**다.
 - **자동 선택 금지**: `high` / `xhigh` / `max`는 자동 선택 절대 금지 (사용자 명시적 요청/승인 시에만 예외 허용).
 - *(소모 지수 상세 근거 및 주의사항은 [Model Economics](references/model-economics.md) 참조)*
 
@@ -93,7 +93,7 @@ Parent는 소스 코드 편집 도구(`write_to_file`, `replace_file_content` �
 
 ### 3. Leaf Worker Spawn
 
-- `spawn_agent`로 하위 모델을 명시하여 디스패치 (`fork_turns = "none"`, Luna는 `reasoning_effort = "low"`, Terra는 `medium`).
+- `spawn_agent`에 Gate에서 선택한 Child 모델과 effort를 그대로 전달한다 (`fork_turns = "none"`). 자동 경로에서 Luna Light는 `reasoning_effort = "low"`, Luna Medium과 Terra Medium은 `reasoning_effort = "medium"`이다.
 - *부모 세션 모델을 상속(`inherit`)하거나 모델 파라미터를 생략하는 것은 금지.*
 
 ### 4. Collect & Scope-Matched Verify
@@ -140,7 +140,7 @@ Active Parent (confirmed Sol or Terra)
 │ ├─ Implementation 닫힘 + 경량 위치 탐색 필요              │
 │ │  ──────────────────────────→ Luna Medium Child (2.61×) │
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Low Child (1.00×)    │
+│    ──────────────────────────→ Luna Light Child (1.00×)  │
 │                                                          │
 │ (Active Terra Parent)                                    │
 │ ├─ Implementation-local 분석/선택 남음                    │
@@ -148,13 +148,14 @@ Active Parent (confirmed Sol or Terra)
 │ ├─ Implementation 닫힘 + 경량 위치 탐색 필요              │
 │ │  ──────────────────────────→ Luna Medium Child (2.61×) │
 │ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Low Child (1.00×)    │
+│    ──────────────────────────→ Luna Light Child (1.00×)  │
 └──────────────────────────────────────────────────────────┘
                              │ candidate selected
                              ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Economic Gate: Delegation Preparation Test                │
-│ all four conditions true → selected Child; else Parent Direct│
+│ Four preparation conditions pass AND net benefit remains │
+│ → selected Child; otherwise → Parent Direct              │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -173,13 +174,13 @@ Active Parent (confirmed Sol or Terra)
 LOC·파일 수는 약한 secondary signal로만 참고한다.
 
 > [!NOTE]
-> Luna 2× 및 Terra 3×는 공식 보장 손익분기점이 아닌 Provisional Operational Heuristic이다. Gate A는 안전성, Gate B는 권한별 후보, Economic Gate는 아래 Delegation Preparation Test를 적용한다.
+> Gate A는 안전성, Gate B는 권한별 후보, Economic Gate는 아래 Delegation Preparation Test를 적용한다. 근거 미확정의 운영 가설은 라우팅 기준으로 사용하지 않는다.
 
 단일 결정적 검증만 필요한 작업은 위임 트리거가 아니다. 반대로 테스트-수정 루프가 예상되면 실행량이 커져 경제성 평가 가치가 높다. LOC는 보조 지표일 뿐이다.
 
 ### 💰 Economic Gate and Delegation Preparation Test
 
-Luna 2× 및 Terra 3×는 Provisional Operational Heuristic일 뿐 공식 break-even이나 threshold가 아니다. 공식 요율과 Estimated Consumption Index는 [Model Economics](references/model-economics.md)의 값만 사용한다.
+경제성은 Delegation Preparation Test로 판단한다. 이를 통과해도 위임의 추가 재지시·재작업·검증 부담이 실행 절감분을 상쇄하면 Parent Direct다. 공식 요율과 Estimated Consumption Index의 수치·해석 범위는 [Model Economics](references/model-economics.md)를 따른다.
 
 **Delegation Preparation Test**
 
@@ -227,11 +228,15 @@ Parent Direct notice에 모든 gate 평가나 상세 추론을 나열하지 않�
 
 **묶을 수 있는 조건**
 
-다음 조건을 모두 충족하면 하나의 micro-batch로 coalesce할 수 있다:
+다음 조건을 모두 충족하면 하나의 micro-batch 후보로 묶을 수 있다:
 
-- 서로 독립적인 3–5개 안팎의 저위험·가역적·Implementation-Closed 항목이다.
+- 서로 독립적인 복수의 저위험·가역적·Implementation-Closed 항목이다.
 - 같은 Luna model/effort와 bounded scope를 공유한다.
-- 의존성·아키텍처·제품·보안·Public API 판단이 없다.
+- 의존성·아키텍처·제품·보안·Public API에 관한 미결 판단이 없다.
+- 각 항목을 별도로 위임하는 것보다 하나의 Capsule로 묶는 준비·조율·결과 확인 부담이 작다.
+
+실제 위임은 Gate A → Gate B → Economic Gate를 모두 통과할 때만 수행한다.
+묶음 처리가 별도 위임보다 저렴하더라도 Parent Direct보다 경제적이라는 뜻은 아니다.
 
 **결과·판단 필요 시 처리**
 
@@ -247,7 +252,7 @@ Parent Direct notice에 모든 gate 평가나 상세 추론을 나열하지 않�
 
 | 후보 | 필요한 상태 | 허용되는 구현 재량 | Parent 제한 |
 | --- | --- | --- | --- |
-| Luna Low | Implementation Closed + target locations closed | 확정된 구현을 지정 위치에 적용 | Sol 또는 Terra Parent |
+| Luna Light | Implementation Closed + target locations closed | 확정된 구현을 지정 위치에 적용 | Sol 또는 Terra Parent |
 | Luna Medium | Implementation Closed + Match Rule Closed + target locations에 bounded search 필요 | 고정 Rule로 위치 탐색·적용; 구현 판단 권한 확대 없음 | Sol 또는 Terra Parent |
 | Terra Medium | 의미·외부 계약 확정 + implementation-local 선택 잔여 | 고정 외부 계약 안의 내부 구현 분석·선택 | Sol Parent 전용. Terra Parent의 implementation-local work는 Parent Direct. |
 
@@ -268,7 +273,9 @@ semantic/architecture/product/compatibility/policy 판단이 필요하면 `NEEDS
 
 ### 🔍 Parent Direct 조건
 
-- trivial literal/mechanical edit, high-consequence/irreversible work, 또는 Delegation Preparation Test를 충족하지 못한 작업은 Parent Direct다. LOC·파일 수만으로 경로를 결정하지 않는다.
+- high-consequence/irreversible work는 Gate A에서 Parent Direct로 처리한다.
+- 저위험·가역적인 trivial literal/mechanical edit는 작업 종류만으로 직접 수행을 확정하지 않는다. Gate A를 통과하면 Gate B에서 후보를 선정하고, Economic Gate의 Delegation Preparation Test를 충족하지 못하면 Parent Direct로 처리한다.
+- LOC·파일 수만으로 경로를 결정하지 않는다.
 
 ---
 
@@ -316,13 +323,13 @@ spawn_agent(
 
 ## ⚙️ 4. Reasoning Effort 및 비용 요약
 
-| 구성 (Configuration) | 예상 소모 지수 (Est. Index) | vs Sol Low (9.40×) | vs Sol Medium (18.04×) | 주요 역할 |
+| 구성 (Configuration) | 예상 소모 지수 (Est. Index) | vs Sol Light (9.40×) | vs Sol Medium (18.04×) | 주요 역할 |
 | :--- | :---: | :---: | :---: | :--- |
-| **Luna Low** | **1.00×** | ~89.4% lower | ~94.5% lower | 확정된 기계적 조립/테스트 디폴트 |
+| **Luna Light** | **1.00×** | ~89.4% lower | ~94.5% lower | 확정된 기계적 조립/테스트 디폴트 |
 | **Luna Medium** | **2.61×** | ~72.2% lower | ~85.5% lower | 구현 닫힘 + 경량 심볼/위치 탐색 |
 | **Terra Medium** | **5.35×** | ~43.1% lower | ~70.3% lower | 로컬 알고리즘/구조 설계 (Sol Parent 전용) |
 
-- **Luna-First**: 구현이 닫힌 작업은 Luna Low(1.00×) 또는 Luna Medium(2.61×)을 우선 활용. (Luna Medium은 구현 판단 권한을 확장하지 않음).
+- **Luna-First**: 구현이 닫힌 작업은 Luna Light(1.00×) 또는 Luna Medium(2.61×)을 우선 활용. (Luna Medium은 구현 판단 권한을 확장하지 않음).
 - **Sol-Parent Golden Switch**: Sol Parent에서 로컬 구현 선택이 필요한 경우, Luna High(6.00×, 40 steps) 대신 Terra Medium(5.35×, 20 steps)을 사용. (Terra Parent는 Terra Direct).
 - **High 이상 자동 선택 금지**: `high`, `xhigh`, `max`는 자동 선택되지 않으며, 사용자 사전 승인 시에만 예외적 허용.
 - *(공식 크레딧 요율, 추정 소모 지수 산출 근거, 캐시 계산 예시는 [Model Economics](references/model-economics.md) 참조)*
@@ -341,7 +348,7 @@ spawn_agent(
 
 **모델별 권한**
 
-- Luna는 Low(닫힌 target) 또는 Medium(닫힌 rule + bounded search)
+- Luna는 Light(닫힌 target) 또는 Medium(닫힌 rule + bounded search)
 - Terra는 고정 외부 계약 안의 implementation-local choice이며 Terra Parent는 직접 수행합니다.
 
 상세 필드와 4대 반환 프로토콜을 중복 기재하지 않습니다.
@@ -390,7 +397,7 @@ LOC/줄 수는 보조 참조입니다. 먼저 Gate A, Gate B, Economic Gate를 �
 
 ***"Luna가 복잡한 로직을 풀 수 있게 reasoning을 High로 올릴게요"***
 
-**비효율.** Luna High(6.00×, 40 steps)는 Terra Medium(5.35×, 20 steps)보다 예상 소모 지수와 step 효율이 떨어집니다. Sol Parent에서는 Terra Medium을 호출하고, Terra Parent에서는 직접 수행하십시오.
+**권한 불일치.** Luna High로 effort를 높여도 implementation-local 선택 권한은 생기지 않습니다. Sol Parent는 Terra Medium 후보에 Economic Gate를 적용하고, Terra Parent는 직접 수행합니다. 이는 모든 비용 기준에서 Terra가 더 저렴하다는 뜻은 아닙니다.
 
 ***"1줄짜리 오타/상수 수정인데 이것도 무조건 캡슐 만들어야 하나요?"***
 
@@ -398,7 +405,7 @@ LOC/줄 수는 보조 참조입니다. 먼저 Gate A, Gate B, Economic Gate를 �
 
 ***"수정 파일이 많으니 Luna 대신 Terra로 보낼게요"***
 
-파일 수가 아니라 **남은 판단 권한**이 기준입니다. 패턴이 닫혀 있으면 10개 파일도 Luna로 일괄 배치 위임합니다.
+파일 수가 아니라 **남은 판단 권한**이 기준입니다. 패턴이 닫혀 있으면 10개 파일도 Luna 후보입니다. 실제 일괄 위임은 Gate A → Gate B → Economic Gate를 모두 통과할 때만 수행합니다.
 
 ***"DB migration이지만 SQL이 확정되었으니 Luna에 위임할게요"***
 
@@ -441,4 +448,4 @@ Blind Trust 금지. Parent가 직접 자신의 claim에 맞는 fresh verificatio
 - [Model Economics & Estimated Consumption Index](references/model-economics.md)
 - [위임 모범 사례 및 16개 실전 시나리오](references/delegation-examples.md)
 - [Task Capsule 및 4대 반환 프로토콜 표준 서식](references/task-capsule-template.md)
-- [프로젝트 상세 기획 명세서](../../docs/codex-downshift-spec.md)
+- [프로젝트 상세 기획 명세서 — 저장소 참고 자료](https://github.com/callorange/codex-downshift/blob/main/docs/codex-downshift-spec.md)

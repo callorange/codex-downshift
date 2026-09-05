@@ -423,3 +423,11 @@ AI 에이전트는 코드 및 문서를 작성할 때 원본 의미를 보호하
 
 이 섹션의 규칙은 이 프로젝트에만 적용합니다.
 같은 적용 범위에서 위 Template Managed Content의 일반 규칙과 충돌하면 이 섹션의 더 구체적인 규칙을 우선합니다.
+
+## 추론 레벨 표기
+
+- 이 저장소의 모델 설명·추천·비교표·라우팅 도식에는 표시 명칭 `Light`, `Medium`, `High`, `XHigh`, `Max`를 사용한다. `Luna Low`, `Sol Low`, `Light / Low`처럼 표시 명칭을 혼용하지 않는다.
+- 설정·도구 호출과 Routing Notice의 `<effort>`에는 실제 인자값을 사용한다. 대응은 `Light → low`, `Medium → medium`, `High → high`, `XHigh → xhigh`, `Max → max`다. 실제 지원 여부는 해당 도구 스키마를 따르며, 명칭 통일이 기존 모델·추론 레벨 선택 정책을 바꾸지는 않는다.
+- 표시명과 인자값의 최초 대응 설명에서는 Light와 `low`를 병기할 수 있다. 일반 설명에서는 표시명만 사용하고, 실행 계약을 설명할 때 필요한 인자값은 보존한다.
+- CHANGELOG의 Unreleased에는 현재 표기를 적용하고, 과거 릴리스 기록과 원문 인용은 보존한다.
+- 상세 대응표는 [Model Economics](skills/codex-downshift/references/model-economics.md#추론-레벨-표기)를 참조한다.

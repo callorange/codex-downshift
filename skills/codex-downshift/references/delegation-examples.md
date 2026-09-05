@@ -11,7 +11,7 @@
 3. 의미 있는 bounded execution 대체
 4. preparation plus verification이 대체 실행보다 명확히 작음
 
-그렇지 않으면 Parent Direct입니다.
+네 조건은 필요조건이며, 모두 통과해도 추가 재지시·재작업·검증 부담이 실행 절감분을 상쇄하면 Parent Direct입니다.
 
 ---
 
@@ -22,7 +22,7 @@
 | **1** | DB Migration 등 High Consequence 작업 | **Sol/Terra** | 🛑 **Gate A 차단 ➔ Parent Direct** | 구현이 닫혀 있어도 파괴적/운영 변경이므로 부모 직접 수행 |
 | **2** | 계약 확정 + 구현 로컬 판단 잔여 | **Sol** | 🟡 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 `gpt-5.6-terra` medium |
 | **3** | 다중 파일 확정 패턴 기계적 적용 | **Sol** | 🟢 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 `gpt-5.6-luna` |
-| **4** | 확정된 docstring / 린트 / 테스트 수정 | **Terra** | 🟢 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 Luna Low |
+| **4** | 확정된 docstring / 린트 / 테스트 수정 | **Terra** | 🟢 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 Luna Light |
 | **5** | 구현 판단 잔여 작업 (Terra 부모) | **Terra** | 🛑 **Downshift Only ➔ Terra Direct** | Terra 부모는 Terra child를 부르지 않고 직접 수행 |
 | **6** | Child 작업 중 새 설계 판단 직면 | **Child** | 🛑 **`NEEDS_PARENT_DECISION`** | 하위 워커 임의 판단 금지, 미결 사항 보고 후 부모 판단 |
 | **7** | Child 외부 부수효과 필요 직면 | **Child** | 🛑 **`NEEDS_PARENT_ACTION`** | git push/deploy 등 외부 권한 작업 시 부모에게 제어권 반환 |
@@ -31,7 +31,7 @@
 | **10**| Child spawn 실패 / 런타임 오류 | **Sol/Terra** | 🛡️ **Fail-Closed Fallback** | 타 모델 우회/재시도 없이 부모 모델이 직접 수행 |
 | **11**| 정상 완료 보고 수신 | **Sol/Terra** | 🔍 **Claim-Matched Fresh Verification** | `TASK_COMPLETED` 수신 후 Parent 최소 직접 검증 후 보고 |
 | **12** | 로직·테스트가 없는 작은 오타 수정 | **Sol/Terra** | 🛑 **Economic Gate ➔ Parent Direct** | capsule/child 비용이 대체 실행량보다 큰 경우 직접 처리; 줄 수 자체가 결정 기준은 아님 |
-| **13** | 독립적인 확정 변경의 micro-batch | **Sol/Terra** | 🟢 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Luna Low. 항목별 결과를 보고하고 하나라도 판단이 필요하면 전체 완료로 표시하지 않음 |
+| **13** | 독립적인 확정 변경의 micro-batch | **Sol/Terra** | 🟢 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Luna Light. 항목별 결과를 보고하고 하나라도 판단이 필요하면 전체 완료로 표시하지 않음 |
 | **14** | 구현이 이미 확정되고 위임 경제성이 부족함 | **Sol** | 🛑 **Gate B: Luna 후보 ➔ Economic Gate 탈락** | Terra 후보가 아니며 Luna 경제성도 부족하면 Parent Direct. 다른 모델로 우회하지 않음 |
 | **15** | 고정 외부 계약 안의 내부 구현·테스트 루프 | **Sol** | 🟡 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Terra Medium. Parent가 diff와 claim-matched fresh verification 수행 |
 | **16** | 최종 routing 결정 표시 | **Sol/Terra** | 👁️ **Routing Notice** | 평가한 결정마다 한 번; Child는 spawn 직전, Parent Direct는 첫 결정적 이유 표시. 전체 capsule 비노출, spawn 실패 시 추가 notice 없음 |
@@ -80,7 +80,7 @@
   - [ ] InvalidOrderError raised on negative or zero total.
   Validation: pytest tests/test_discount.py && ruff check src/services/discount.py
   Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
-  Worker constraints: Leaf worker only. Do not spawn other agents.
+  Worker constraints: Leaf worker only. Do not spawn or delegate to other agents or models. Do not perform external side-effects or destructive operations. Do not perform destructive git rollbacks. Stop at one of the four terminal return states.
   Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION"""
   )
   ```
@@ -113,9 +113,18 @@
   Rule: Rename only the deprecated `user_id` field to `account_id`.
   Acceptance criteria:
   - [ ] All 12 serializers use account_id.
+  - [ ] Search scope 전체를 검사하고 각 대상의 modified 또는 not modified 상태와 사유를 보고한다.
+  - [ ] 탐색 완료 근거와 검증 결과를 제공한다. 미처리 대상이나 필요한 증거 누락이 있으면 TASK_COMPLETED로 보고하지 않는다.
   - [ ] pytest tests/test_serializers.py passes.
-  Validation: pytest tests/test_serializers.py && ruff check src/serializers/
+  Validation:
+  - Search scope 전체에 고정 Rule을 적용해 대상·매치 목록을 확인한다. 가능하면 수정 후 재검색해 의도하지 않은 잔여 매치를 확인한다.
+  - pytest tests/test_serializers.py && ruff check src/serializers/
   Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
+  Worker constraints: Leaf worker only. Do not spawn or delegate to other agents or models. Do not perform external side-effects or destructive operations. Do not perform destructive git rollbacks. Stop at one of the four terminal return states.
+  Completion evidence:
+  - Coverage: 각 대상 -> modified 또는 not modified: 사유.
+  - Discovery: Search 범위, Rule, 최초 검색 결과, 재검색 결과 또는 재검색하지 못한 이유.
+  - Validation: 실행한 검사와 실제 결과. 부분 완료 시 대상별 상태와 Worktree를 보존해 적절한 terminal state로 반환.
   Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION"""
   )
   ```
@@ -130,19 +139,52 @@
 
 ## 🧪 Scenario 4: Terra Parent + 기계적 실행 (Luna Child)
 
-- **상황**: Terra가 주력(Parent) 모델인 상태에서, 확정된 Docstring 작성 및 단위 테스트 린트 수정을 처리해야 함.
+- **상황**: Terra가 주력(Parent) 모델인 상태에서, 확정된 docstring 교체와 해당 파일의 lint 검증을 처리해야 함.
 - **라우팅 판정**:
   - Gate A 통과, Implementation Closed ➔ **Luna Child**.
 - **부모 모델의 동작**:
-  ```text
-  spawn_agent(
-      model = "gpt-5.6-luna",
-      fork_turns = "none",
-      reasoning_effort = "low",
-      task_name = "update_docstrings",
-      message = "..."
-  )
-  ```
+  - 아래 [완결된 docstring Capsule](#fixed-docstring-capsule)을 이 상황의 고정 변경으로 사용한다.
+  - 실제 `message`에는 해당 Capsule의 목표·범위·고정 문자열·권한·검증·worker 제한·반환 계약 전체를 포함한다. 참조 링크만 전달하지 않는다.
+  - 호출값은 `model="gpt-5.6-luna"`, `fork_turns="none"`, `reasoning_effort="low"`, `task_name="update_docstrings"`다.
+
+---
+
+### Fixed Docstring Capsule
+
+다음은 Scenario 4에서 사용하는 독립 예시다. 실제 작업에서는 검증된 기존 계약과 고정 문자열로 구체화한다.
+
+```text
+TASK CAPSULE
+Role: You are a leaf worker.
+Goal: Update docstring for UserService.create_user.
+Scope:
+- Search: src/services/user_service.py :: UserService.create_user
+- Modify: src/services/user_service.py :: UserService.create_user
+Decisions already made:
+- In this example, create_user(self, email: str) -> User validates email, saves a User, and raises ValueError for invalid email.
+Delegated authority: Predetermined docstring replacement only.
+Must not decide: Do not change behavior, signature, validation, or persistence.
+Apply: Exact
+Rule: Replace only the target function's docstring with the following text, preserving indentation.
+Replacement docstring:
+"""Create and persist a user after validating the email.
+
+Args:
+    email: Email address for the new user.
+
+Returns:
+    The persisted user.
+
+Raises:
+    ValueError: If the email is invalid.
+"""
+Preserve: Signature, implementation, and type hints.
+Acceptance criteria: Target docstring matches Replacement docstring after indentation normalization; signature and implementation unchanged; ruff check passes.
+Validation: Compare the target docstring with Replacement docstring after indentation normalization; inspect git diff to confirm no signature or implementation changes; run ruff check src/services/user_service.py.
+Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
+Worker constraints: Leaf worker only. Do not spawn or delegate to other agents or models. Do not perform external side-effects or destructive operations. Do not perform destructive git rollbacks. Stop at one of the four terminal return states.
+Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
+```
 
 ---
 
@@ -246,13 +288,13 @@ Worktree:
 ## 🧪 Scenario 9: High Reasoning Effort 필요 상황 (예외적 사용자 승인 프로토콜)
 
 - **원칙**: `high` / `xhigh` / `max`는 normal downshift optimization path가 아니며, 자동 라우팅에서 절대 선택되지 않습니다. 오직 사용자가 명시적으로 요청하거나 승인한 **exceptional override**로만 동작합니다.
-- **상황**: Sol 부모 모델이 로컬 코드베이스의 복잡한 비선형 의존성을 분석해야 하는 특수 구현 작업을 마주하여, 표준 경로(`medium`)를 초과하는 `high` reasoning이 예외적으로 필요하다고 판단함.
+- **상황**: Sol이 외부 동작·API·호환성 요구를 고정한 로컬 알고리즘 작업에서, Medium 실행 결과의 구체적인 누락을 확인했다. 남은 선택은 고정 계약 안의 내부 구현이며, 영향이 국소적이고 결정적 검증이 가능하다.
 - **올바른 동작 흐름**:
-  1. **Parent Direct 우선 평가**: Sol이 직접 수행하는 것이 더 단순하고 빠른지 최우선 검토.
-  2. **실익 확인**: 작업 범위가 매우 넓어 Terra Child (`high`)로 위임하는 실익이 명백함을 확인.
-  3. **사용자 승인 요청 (In-Chat)**:
-     > *"본 작업은 4개 모듈의 비동기 락 의존성을 깊이 있게 분석해야 하므로 표준 medium을 초과하는 `gpt-5.6-terra` (high reasoning effort) 예외 위임이 필요합니다. high reasoning effort 사용을 승인하시겠습니까?"*
-  4. 사용자가 명시적으로 승인하면 `reasoning_effort="high"`로 spawn. 미승인 시 Sol이 직접 수행.
+  1. **권한·안전성 확인**: Gate A와 Gate B를 적용한다. 상위 판단이 남거나 영향 범위가 불명확하면 Parent Direct다.
+  2. **경제성 확인**: 반복 구현·검증의 대체 실행량과 준비·검증·재작업 부담을 비교한다. Economic Gate를 통과하지 못하면 Parent Direct다. 작업 크기 자체는 실익의 근거가 아니다.
+  3. **예외 승인 확인**: High가 필요한 구체적 이유와 고정 계약·검증 방법을 설명하고, 해당 effort 사용이 아직 승인되지 않았다면 사용자에게 요청한다. 이미 명시적으로 요청·승인된 범위는 다시 묻지 않는다.
+  4. **실행**: 승인 및 모든 Gate 통과 시 `model="gpt-5.6-terra"`, `reasoning_effort="high"`로 위임한다. 미승인 시 Parent Direct다.
+- effort 승인은 상위 판단 권한, 동일 모델 위임 금지, Leaf Worker, 복구 한도 또는 Gate 조건을 바꾸지 않는다.
 
 ---
 
@@ -277,11 +319,14 @@ Worktree:
 
 ## 🧪 Scenario 12: 작은 Parent Direct 작업
 
-단일 파일의 3줄 오타 수정처럼 로직·테스트가 없는 작업은 capsule/child 비용이 더 크므로 Parent Direct로 처리한다.
+- **상황**: 단일 파일의 3줄 오타 수정이며 로직·테스트 변경은 없다. 이 예시에서는 capsule 준비·자식 실행·부모 검증 부담이 직접 수정·확인하는 부담보다 크다.
+- **판정**: Economic Gate에서 위임 이점이 없으므로 Parent Direct로 처리한다. 파일 수와 줄 수는 예시이며 결정 조건이 아니다.
 
 ## 🧪 Scenario 13: Luna Micro-batch
 
-- **대상**: 서로 다른 4개 독립 변경(문서 오타, 고정 import 정리, 테스트 fixture 상수 교체, 명시된 docstring 추가)을 Luna Low micro-batch로 묶을 수 있다.
+- **대상**: 서로 다른 4개 독립 변경(문서 오타, 고정 import 정리, 테스트 fixture 상수 교체, 명시된 docstring 추가)을 Luna Light micro-batch로 묶을 수 있다.
+- **판정 기준**: 4개는 이 예시의 구성이지 개수 제한이 아니다. [Micro-batching](../SKILL.md#micro-batching)의 후보 조건을 충족해야 한다.
+- **실제 위임 조건**: 묶음 처리의 이점만으로 위임하지 않으며, Gate A → Gate B → Economic Gate를 모두 통과해야 한다.
 - **결과 보고**: 결과는 항목별 checkmark로 보고한다.
 - **판단 필요 시**: 하나라도 판단이 필요하면 전체를 TASK_COMPLETED로 표시하지 않는다.
 - **구별할 작업**: 12개 serializer의 `user_id → account_id`처럼 하나의 고정 규칙을 반복하는 작업은 micro-batch가 아니라 repeated fixed-rule batch다.
@@ -320,7 +365,7 @@ Parent Direct는 `[codex-downshift] → Parent Direct | update_auth_policy | Gat
 
 - **A Luna**: non-exhaustive Examples가 있어도 Search scope 전체의 문서 규칙을 all matches로 적용한다. 첫 예시에서 멈추지 않는다.
 - **B Parent Direct**: 작은 함수 1개와 pytest 한 번이 남은 작업에서 capsule 준비·검증 부담이 대체 실행량보다 명확히 작지 않으면 Parent Direct다. 함수 수나 검증 횟수만으로 결정하지 않는다.
-- **C Luna micro-batch**: 위 Scenario 13의 서로 다른 3–4개 독립 변경을 같은 Luna Low로 itemize한다.
-- **D Poor Terra**: Sol이 구현을 이미 상세히 고정한 단일 함수는 Terra가 경제적이지 않다.
+- **C Luna micro-batch**: 위 Scenario 13의 서로 다른 4개 독립 변경을 같은 Luna Light로 itemize한다. 개수는 예시이며 후보 조건과 모든 gate를 충족해야 한다.
+- **D Poor Terra**: Sol이 구현 방법을 이미 상세히 고정했다면 남은 구현 선택이 없어 Gate B에서 Terra 후보가 아니다. Gate A를 통과한 Luna 후보의 실제 위임 여부는 Economic Gate에서 별도로 판단한다.
 - **E Good Terra**: 외부 API contract는 고정됐지만 자료구조 선택·구현·테스트 루프가 남으면 Terra가 local criteria로 판단한다.
 - **F Routing notice**: `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule` 또는 `[codex-downshift] → Parent Direct | single_literal | Economic Gate: delegation overhead`를 최종 routing 결정마다 한 번 표시한다.

@@ -10,7 +10,7 @@
 > - Luna Child 위임 시: 구현 방법 및 패턴까지 확정되어 기계적 적용만 남았는가?
 > - `Apply`가 지정 target만 처리할지(`Exact`), Search 범위의 모든 매치를 처리할지(`All matches within scope`) 명확히 하는가?
 > - 고정된 결과가 계약이라면 적용 범위와 별개로 필요한 고정 `Rule`/결과 형식이 제공되었는가?
-> - Economic Gate (Delegation Preparation Test): 네 조건을 모두 충족하는가? 아니면 Parent Direct인가.
+> - Economic Gate: 네 준비 조건을 모두 충족하고, 추가 재지시·재작업·검증 부담이 실행 절감분을 상쇄하지 않는가? 아니면 Parent Direct다.
 
 ---
 
@@ -26,7 +26,7 @@
 
 작업에 불필요한 필드는 생략하되, 목표·허용 범위·위임 권한·완료 기준·검증 방법·worker 제한과 반환 상태가 전달 문맥에서 명확해야 한다.
 검증 명령이 없는 경우에도 관찰 가능한 확인 절차와 통과 기준은 제공한다.
-capsule 작성에 새 분석·상세 설계가 필요해지면 Economic Gate에서 Parent Direct를 선택한다.
+capsule 준비에 direct execution과 비교 가능한 분석·상세 설계가 필요하거나, 준비·검증 부담이 대체 실행량보다 명확히 작지 않으면 Economic Gate에서 Parent Direct를 선택한다. 추가 확인이나 분석이 있다는 사실만으로 위임을 배제하지 않는다.
 
 ```text
 TASK CAPSULE
@@ -126,13 +126,16 @@ Terra도 `Apply: Exact`와 implementation-local choice를 함께 사용할 수 �
 
 | Profile | 선택 조건 | 허용 재량·Parent 제한 |
 | --- | --- | --- |
-| Luna Low | 구현 방법과 target locations closed | 확정된 구현 적용; Sol 또는 Terra Parent |
+| Luna Light | 구현 방법과 target locations closed | 확정된 구현 적용; Sol 또는 Terra Parent |
 | Luna Medium | 구현 방법 확정 + closed Match Rule + bounded Search | 고정 규칙으로 위치 탐색·적용; 구현 판단 권한 확대 없음; Sol 또는 Terra Parent |
 | Terra Medium | 의미·외부 계약 확정 + implementation-local 선택 잔여 | 고정 계약 안의 내부 구현 선택; Sol Parent 전용. Terra Parent는 직접 처리. |
 
 **Luna 공통 경계**
 
-Luna는 rule을 발명/확장하지 않고 non-exhaustive examples에서도 Search 경계의 모든 매치를 검사하며 semantic·architecture·product·compatibility·policy 판단은 `NEEDS_PARENT_DECISION`이다.
+Luna는 rule을 발명하거나 확장하지 않는다.
+`Apply: Exact`이면 지정 target만 처리한다.
+`Apply: All matches within scope`이면 non-exhaustive examples가 있어도 Search 경계의 모든 매치를 검사한다.
+semantic·architecture·product·compatibility·policy 판단이 필요하면 `NEEDS_PARENT_DECISION`이다.
 
 **Terra에 전달할 계약**
 

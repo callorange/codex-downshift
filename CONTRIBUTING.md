@@ -29,7 +29,29 @@
 
 ---
 
-## 📝 3. 커밋 메시지 규약 (Commit Convention)
+## 🔄 3. 핵심 문서 동기화
+
+변경할 정책의 기준 문서를 먼저 확인합니다.
+
+| 변경 대상 | 기준 문서 |
+| --- | --- |
+| 실행 규칙과 라우팅 계약 | [`SKILL.md`](skills/codex-downshift/SKILL.md) |
+| 비용·추천 근거 | [`model-economics.md`](skills/codex-downshift/references/model-economics.md) |
+| Capsule·반환 서식 | [`task-capsule-template.md`](skills/codex-downshift/references/task-capsule-template.md) |
+| 설치 절차 | [`README.md`](README.md) |
+
+전체 관계는 [문서 인덱스](docs/README.md)를 참고합니다.
+
+여러 문서에 영향을 주는 변경은 알려진 대상과 저장소 검색으로 발견한 직접 관련 대상을
+completion set으로 관리합니다. 각 대상을 수정하거나 수정하지 않는 근거를 확인하고,
+링크와 기존 계약이 유지되는지 재검색합니다.
+
+모델·추론 레벨 표기는 `AGENTS.md`의 Project Rules를 따릅니다. 공식 요율과
+Estimated Consumption Index의 기존 수치는 근거 없이 변경하지 않습니다.
+
+---
+
+## 📝 4. 커밋 메시지 규약 (Commit Convention)
 
 본 프로젝트는 [Conventional Commits](https://www.conventionalcommits.org/ko/v1.0.0/) 규격을 준수합니다:
 
@@ -40,7 +62,7 @@
 
 ---
 
-## 📄 4. 라이선스
+## 📄 5. 라이선스
 
 본 프로젝트에 기여하는 모든 작업물은 [MIT License](LICENSE)에 따라 배포되는 데 동의하는 것으로 간주됩니다.
 

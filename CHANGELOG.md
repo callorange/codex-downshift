@@ -9,26 +9,38 @@
 
 ### 추가 (Added)
 - **Parent Direct routing notice**: Gate A → Gate B → Economic Gate 평가를 수행한 최종 Parent Direct도 기존 Spawn Notice 호환 형식으로 한 번 표시하고, Child delegation·비적용 요청·spawn 실패의 notice 횟수 규칙을 명시.
-- **Economic Gate 및 준비 테스트**: Parent 준비·Child 실행·Parent 검증의 Effective Downshift Cost와 Parent Direct Cost를 비교하고, 2× Luna/3× Terra를 비공식 잠정 운영 휴리스틱으로 명시.
+- **Economic Gate 및 준비 테스트**: Parent 준비·Child 실행·Parent 검증의 Effective Downshift Cost와 Parent Direct Cost를 비교하는 네 가지 필요조건과 human steering·rework·verification을 포함한 실제 작업 비용 관점을 명시. 2× Luna/3× Terra는 라우팅 기준이 아닌 근거 미확정 운영 가설로 비용 문서에만 보존.
 - **Luna all-matches 안전장치 및 micro-batch**: bounded Search 전체 매치와 non-exhaustive examples 규칙, 항목별 완료 형식을 추가.
 - **Spawn visibility 및 최소 capsule 문맥**: `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`과 Search/Modify/Apply 및 Minimum Sufficient Context를 명시.
 - **전용 경제학 참조 문서(`references/model-economics.md`) 신설 및 `SKILL.md` Token Diet**: 공식 크레딧 요율, 추정 소모 지수, 벤치마크 데이터 및 캐시 계산을 전용 참조 문서로 분리하여 `SKILL.md` 크기를 약 4KB(17%) 감축.
-- **Sol-Parent Golden Switch 규칙 정밀화**: Luna High(6.00×, 40 steps) 대비 Terra Medium(5.35×, 20 steps)의 시간 및 소모 효율 우위(CursorBench 3.2 근거)를 명시하고, Sol Parent 전용 규칙(Terra Parent는 Terra Direct)으로 분기.
+- **Sol-Parent Golden Switch 규칙 정밀화**: implementation-local 선택을 Terra에 맡기는 역할 정책을 명시하고 Sol Parent 전용으로 분기. 추정 지수·Steps와 금전 비용의 비교 기준을 구분하며 시간·allowance 절감 보장으로 해석하지 않음.
 
 ### 변경 (Changed)
+
+- **설치 패키지와 근거 정합성**: 완결된 Capsule을 references로 이동하고 Child 메시지에 all-matches 완료 증거를 포함. High 예외에도 모든 Gate·권한 제한을 적용하고 수동·CLI 설치 안내를 구분. 기존 추정 지수의 Git 이력과 산출 재현 미확인 범위를 기록하며 수치는 보존.
+
+- **실행 계약 정합성 보완**: 선택한 Luna effort를 spawn에 유지하고 경제성 도식에 추가 작업 비용을 반영. Exact와 all-matches의 탐색 경계를 분리하고 축약 Capsule의 worker 제한·고정 docstring·검증 절차를 보완.
+
+- **외부 평가 데이터 및 Sol Light 추천**: Model Economics에 CursorBench·Instavar·Sonar의 출처·관측값·한계를 기록. Sol Light를 Sol Medium 대비 사용량 절충안으로 추가하고 Golden Switch의 비용 기준을 관련 문서에 동기화. 공식 요율·기존 추정 지수 및 위임 허용 경로는 유지.
+
+- **추론 레벨 표기 통일**: 일반 설명은 Light·Medium·High·XHigh·Max, 설정·호출 및 Routing Notice는 실제 인자값을 사용하도록 정리하고 루트 AGENTS.md의 Project Rules에 기록. Light의 호출값 `low`와 과거 릴리스 기록은 보존.
+
+- **모델 경제성 참고 가이드 보완**: Terra Medium의 일반 구현 기본 추천과 Sol Medium의 조건부 우선 고려를 사용자용 참조에 정리하고, Luna Light/Medium/High 및 Terra·Sol Light의 비용·역할·평가 한계를 보완. SKILL에는 Parent 선택 안내를 넣지 않고 기존 하향 위임 역할을 유지. 실제 작업 비용에 human steering·rework·verification을 반영하며 공식 요율·추정 지수와 routing 권한은 보존.
 - **조건·동작 비교표 보완**: Routing Notice, 모델별 후보·권한, 반환 상태, 완료 근거를 선행 조건과 예외를 포함한 표로 정리하고 시나리오 요약에 12–16번 및 복구 미시도 경우를 반영.
 - **스킬 문서 구조화**: 불변 규칙과 실행 단계를 제목으로 구분하고, 조건·권한·동작·fallback 및 모델별 지침을 묶어 표현. 긴 합리화 방지 표를 사례별 설명으로 전환하고 코드 블록·비용 수치·frontmatter·출력 형식은 보존.
 - **README 사용 흐름 개선 및 상세 내용 보존**: 빠른 시작·사용 예시와 함께 라우팅 도식, spawn 계약, 비용·절감률 비교표, 캐시 계산 및 Task Capsule 서식을 제공. 비용 snapshot과 참조 근거를 표시하고 수동 설치 경로와 공유 경로 설명을 공식 문서에 맞춰 수정.
 - **라우팅 정책 동기화**: Gate A → Gate B → Economic Gate로 전환하고 LOC threshold·단일 deterministic validation과 test/fix loop를 자동 위임 조건이 아닌 보조 신호로 구분.
 - **공식 요율과 추정 소모 지수 분리**: 공식 token-credit rate와 결합 추정치인 **Estimated Codex Consumption Index**를 엄격히 분리하고 `[!IMPORTANT]` 주의문구 명시.
-- **절감률 표현 객관화**: Sol Medium 단일 기준선 의존을 탈피하고, Sol Low(9.40×) 및 Sol Medium(18.04×) 대비 추정 지수상 상대 절감률을 객관적으로 병기.
+- **절감률 표현 객관화**: Sol Medium 단일 기준선 의존을 탈피하고, Sol Light(9.40×) 및 Sol Medium(18.04×) 대비 추정 지수상 상대 절감률을 객관적으로 병기.
 - **프롬프트 캐시 계산 단위 보정**: Sol 40k cached context(0.4 credits) 및 Luna 3k uncached input(0.015 credits)의 크레딧 단위 오류 수정.
 - **Terra Child 기본 reasoning 단순화**: Terra Child의 자동 디스패치 reasoning effort를 `medium`으로 단일화하고 구 raw-token 배율 잔재 제거.
-- 핵심 문서(`README.md`, `docs/codex-downshift-spec.md`, `SKILL.md`, `delegation-examples.md`) 및 런타임 config 전면 동기화.
+- **핵심 문서 최신화**: README, 기획 명세, 문서 인덱스, 기여 가이드의 역할과 기준 문서를 명확히 하고 현재 실행 규칙·비용 근거·표기 정책에 동기화.
 
 ### 수정 (Fixed)
-- **위임 계약 정합성**: 경제성 질문을 모두 예=통과로 통일하고 Gate 실패 시 Parent Direct, 배치 후보와 실제 위임의 조건을 동기화. `Apply`와 구현 재량을 분리하고 필요한 경우의 완료 대상·탐색 근거 및 명령 외 검증 절차를 스킬·README·명세·예시에 반영.
-- **`docs/codex-downshift-spec.md` Reasoning Effort 불변 규칙 동기화**: Invariant 7의 단일 medium 기본값 표기를 최신 Luna Low(기본)/Medium(경량탐색) 및 Terra Medium(Sol Parent 전용 구현 워커) 정책과 정확히 일치하도록 동기화.
+- **보조 신호와 위임 조건 구분**: 단순 수정·파일 수·새 분석 여부만으로 경로를 단정하던 표현을 안전성·권한·경제성 조건으로 정렬. 2×/3×는 실행 지침에서 제외하고 비용 문서에 근거 미확정의 운영 가설로 명시.
+- **Micro-batch 개수 제한 제거**: 근거 없는 3–5개 조건을 복수 항목의 독립성·권한·묶음 처리 경제성으로 대체하고, 실제 위임의 Gate 통과 조건을 명시. 숫자는 구체적 예시에만 유지.
+- **위임 계약 정합성**: 네 경제성 질문의 충족을 위임 필요조건으로 통일하고 Gate 실패 시 Parent Direct, 배치 후보와 실제 위임의 조건을 동기화. `Apply`와 구현 재량을 분리하고 필요한 경우의 완료 대상·탐색 근거 및 명령 외 검증 절차를 스킬·README·명세·예시에 반영.
+- **`docs/codex-downshift-spec.md` Reasoning Effort 불변 규칙 동기화**: Invariant 7의 단일 medium 기본값 표기를 최신 Luna Light(기본)/Medium(경량탐색) 및 Terra Medium(Sol Parent 전용 구현 워커) 정책과 정확히 일치하도록 동기화.
 - **`model-economics.md` Codex credit-rate 직접 출처 URL 추가 및 역할 분리**: OpenAI Help Center 직접 출처(`https://help.openai.com/en/articles/11481834`)를 추가하고, API pricing 참고용 URL 및 벤치마크 출처의 역할을 엄격히 분리 명시.
 
 ## [0.1.4] - 2026-09-02
