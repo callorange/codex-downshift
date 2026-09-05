@@ -227,13 +227,15 @@ spawn_agent(
 
 #### 1) Codex 공식 크레딧 단가표
 
-아래 수치와 비교는 프로젝트가 보존하는 **2026-09-03 기준 snapshot**입니다. 요율 출처와 추정 지수의 해석 범위는 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참고하세요.
+공식 요율은 1M 토큰당 credits이며, 아래 표에 OpenAI 공식 값을 그대로 기록합니다.
+이어지는 추정 지수는 프로젝트가 보존하는 **2026-09-03 기준 snapshot**입니다.
+출처와 해석 범위는 [Model Economics](skills/codex-downshift/references/model-economics.md)를 참고하세요.
 
-| 모델 | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
-| :--- | ---: | ---: | ---: |
-| **Luna** | **5** | **0.5** | **30** |
-| **Terra** | **50** (10×) | **5** (10×) | **300** (10×) |
-| **Sol** | **100** (20×) | **10** (20×) | **500** (16.7×) |
+| 모델 | Input / 1M | Cached / 1M | Output / 1M |
+| --- | ---: | ---: | ---: |
+| Luna | 5 credits | 0.5 | 30 |
+| Terra | 50 | 5 | 300 |
+| Sol | 100 | 10 | 500 |
 
 #### 2) Estimated Codex Consumption Index (예상 실질 소모 지수)
 > [!IMPORTANT]

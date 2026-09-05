@@ -247,11 +247,15 @@ spawn_agent(
 스킬의 실행 계약은 이미 선택된 Active Parent를 유지하며, Parent 모델 추천·자동 전환은 역할에 포함하지 않는다.
 
 #### 1) Codex 공식 크레딧 단가표
-| 모델 | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
-| :--- | ---: | ---: | ---: |
-| **Luna** | **5** | **0.5** | **30** |
-| **Terra** | **50** (10×) | **5** (10×) | **300** (10×) |
-| **Sol** | **100** (20×) | **10** (20×) | **500** (16.7×) |
+
+각 값은 1M 토큰당 credits이며, 출처와 해석은
+[Model Economics](../skills/codex-downshift/references/model-economics.md#1-openai-공식-token-credit-rate)를 따른다.
+
+| 모델 | Input / 1M | Cached / 1M | Output / 1M |
+| --- | ---: | ---: | ---: |
+| Luna | 5 credits | 0.5 | 30 |
+| Terra | 50 | 5 | 300 |
+| Sol | 100 | 10 | 500 |
 
 #### 2) Estimated Codex Consumption Index (예상 실질 소모 지수)
 > [!IMPORTANT]

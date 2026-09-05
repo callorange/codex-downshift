@@ -23,11 +23,15 @@
 
 OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다 ([OpenAI Help Center: credit-based usage](https://help.openai.com/en/articles/11481834) 기준).
 
-| 모델 (Model) | Input (1M당) | Cached Input (1M당) | Output / Reasoning (1M당) |
-| :--- | ---: | ---: | ---: |
-| **Luna** (`gpt-5.6-luna`) | **5** | **0.5** | **30** |
-| **Terra** (`gpt-5.6-terra`) | **50** (10×) | **5** (10×) | **300** (10×) |
-| **Sol** (`gpt-5.6-sol`) | **100** (20×) | **10** (20×) | **500** (16.7×) |
+| 모델 | Input / 1M | Cached / 1M | Output / 1M |
+| --- | ---: | ---: | ---: |
+| Luna | 5 credits | 0.5 | 30 |
+| Terra | 50 | 5 | 300 |
+| Sol | 100 | 10 | 500 |
+
+Luna 대비 단순 요율 배수는 Terra가 Input·Cached·Output에서 10×이며,
+Sol은 각각 20×·20×·약 16.7×다. 이 배수는 공식 표의 값으로 계산한
+프로젝트 해석이며 공식 요율표의 일부가 아니다.
 
 ---
 

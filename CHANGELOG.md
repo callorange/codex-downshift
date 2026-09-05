@@ -17,6 +17,9 @@
 
 ### 변경 (Changed)
 
+- **공식 Token-Credit Rate 표 정리**: OpenAI 공식 표의 열 이름과 credits 단위를 그대로 반영하고,
+  Luna 대비 상대 배수는 공식 값과 구분한 프로젝트 해석으로 이동. 기존 요율 수치는 유지.
+
 - **설치 패키지와 근거 정합성**: 완결된 Capsule을 references로 이동하고 Child 메시지에 all-matches 완료 증거를 포함. High 예외에도 모든 Gate·권한 제한을 적용하고 수동·CLI 설치 안내를 구분. 기존 추정 지수의 Git 이력과 산출 재현 미확인 범위를 기록하며 수치는 보존.
 
 - **실행 계약 정합성 보완**: 선택한 Luna effort를 spawn에 유지하고 경제성 도식에 추가 작업 비용을 반영. Exact와 all-matches의 탐색 경계를 분리하고 축약 Capsule의 worker 제한·고정 docstring·검증 절차를 보완.
