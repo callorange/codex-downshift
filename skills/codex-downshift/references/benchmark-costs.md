@@ -61,10 +61,11 @@ Codex 표준 크레딧에는 별도 cache-write 요금이 없지만
 
 ## 추천에 적용하는 방법
 
-- Luna Medium은 Terra Medium보다 API 비용이 낮지만 점수도 낮다. 검증 가능한 좁은 구현 선택의 후보로 비교할 수 있으며 자동 동급 대체는 아니다.
+- Luna Medium은 Terra Medium보다 API 비용이 낮지만 점수도 낮다. 이 일반 benchmark는 implementation-local choice 수행이나 권한 경계 준수를 검증하지 않으므로 Luna의 적격 권한을 확장하는 근거로 쓰지 않는다.
 - Luna High는 Terra Medium보다 점수가 높고 API 비용이 낮다. 과거 ECI의 비용 순서와 다르므로 과거 지수를 현재 측정값보다 우선하지 않는다. High는 여전히 사용자 승인 예외다.
 - Sol Medium → Light는 공개 API 비용이 약 41.1%, Terra Medium → Light는 약 41.8% 낮다. 이는 독립 실행 평균 차이이며 위임 전체 절감률이 아니다.
 - Astra Max는 Sol Max보다 API 비용이 약 5.6% 낮고 점수가 2점 높지만 active time은 훨씬 길다. 토큰 수·단가·품질·시간이 비례한다는 가정을 하지 않는다.
+- Astra Max의 token-efficiency를 Astra Light/Medium에 일반화하지 않는다. 동일 하네스 자료가 없는 Astra effort는 `experimental / evidence-limited`로 취급한다.
 
 종합 점수를 성공확률로 간주하거나 비용으로 나눈 값을 보편적인 품질 순위로 쓰지 않는다.
 다른 하네스의 토큰·점수를 이 표와 합산하지 않는다.

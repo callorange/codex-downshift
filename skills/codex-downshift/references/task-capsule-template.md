@@ -8,6 +8,7 @@
 > - Gate B (Authority): 결과의 의미·외부 계약이 확정되었는가?
 > - Active Configuration: 실제 Parent model을 확인했는가? 같은 모델 경로라면 실제 Parent effort도 확인했으며 Child effort가 엄격히 낮은가?
 > - 위임 권한을 Predetermined execution 또는 Implementation-local choice로 명시했으며, 선택한 모델·effort가 해당 작업과 검증에 충분한가?
+> - Luna Child라면 `Implementation Closed`인 Predetermined execution만 남았는가?
 > - `Apply`가 지정 target만 처리할지(`Exact`), Search 범위의 모든 매치를 처리할지(`All matches within scope`) 명확히 하는가?
 > - 고정된 결과가 계약이라면 적용 범위와 별개로 필요한 고정 `Rule`/결과 형식이 제공되었는가?
 > - Economic Gate: 네 준비 조건을 모두 충족하고, 추가 재지시·재작업·검증 부담이 실행 절감분을 상쇄하지 않는가? 아니면 Parent Direct다.
@@ -124,10 +125,10 @@ Implementation-local Child도 `Apply: Exact`와 implementation-local choice를 �
 
 권한은 모델과 독립적으로 선택한다. [SKILL.md](../SKILL.md)의 작업별 위임 권한이 원본이며, 모델 추천은 [Model Selection Guide](model-selection.md)를 필요할 때 읽는다.
 
-| 위임 권한 | 제공할 계약 | 허용 재량 |
+| 위임 권한 | 적격 Child | 허용 재량 |
 | --- | --- | --- |
-| Predetermined execution | 고정 Rule, target 또는 Search, acceptance | Rule 안의 적용·탐색·검증·허용된 복구; 새 구현 선택 금지 |
-| Implementation-local choice | goal, fixed external contract, forbidden changes, acceptance, local criteria | 고정 계약 안의 내부 구현 선택; 상위 의미·제품·아키텍처·보안·호환성 판단 금지 |
+| Predetermined execution | 모든 적격 Child; Luna는 이 권한만 허용 | 고정 Rule 안의 적용·탐색·검증·허용된 복구; 새 구현 선택 금지 |
+| Implementation-local choice | Terra 이상 적격 Child | 고정 계약 안의 내부 구현 선택; 상위 의미·제품·아키텍처·보안·호환성 판단 금지 |
 
 모든 모델에서 `Apply: Exact`는 지정 target만, `All matches within scope`는 Search 전체의 모든 매치를 처리한다.
 non-exhaustive examples는 전체 목록이 아니다. 권한 밖의 판단이 필요하면 `NEEDS_PARENT_DECISION`으로 반환한다.

@@ -40,7 +40,8 @@ Child 구성은 Active Parent보다 다음 중 한 방식으로 엄격히 낮아
 | Implementation Closed | Predetermined execution: 확정된 구현·Match Rule 적용 | Rule 변경이나 새 구현 선택이 필요하면 `NEEDS_PARENT_DECISION` |
 | Implementation-Local Decision Remains | Implementation-local choice: 고정 외부 계약 안의 내부 구현 분석·선택 | 제품·아키텍처·Public API·보안·호환성 판단이 필요하면 `NEEDS_PARENT_DECISION` |
 
-권한은 모델 이름이나 effort로 결정하지 않는다. 어떤 Child든 명시된 권한과 검증 기준을 수행할 능력이 있어야 하며, 높은 모델·effort도 권한을 확장하지 않는다.
+권한은 작업 상태로 먼저 결정하되, 모델별 적격 범위는 구분한다. Luna Child는 `Implementation Closed`인 Predetermined execution만 수행한다.
+Implementation-local choice에는 Terra 이상에서 충분한 하위 구성을 선택한다. 높은 모델·effort도 위임 권한을 확장하지 않는다.
 `all matches`는 지정한 검색 경계 전체를 확인하고 non-exhaustive examples를 전체 목록으로 오인하지 않는다.
 
 ### 5. Leaf Worker / No Chaining
@@ -54,7 +55,7 @@ Child spawn 실패, 라우팅 모호성, 또는 권한 불확실 시 다른 하�
 ### 7. Reasoning Effort & 모델 정책
 
 - 자동 Child target은 Light (`low`) 또는 Medium (`medium`)이다. `high`·`xhigh`·`max`는 사용자 명시적 요청·승인 시에만 예외로 허용한다.
-- 작업 권한을 감당할 수 있는 lower-model과 same-model lower-effort 후보를 비교한다. 같은 모델 경로는 실제 Parent effort가 확인되고 target이 엄격히 낮으면 작업 종류와 무관하게 평가할 수 있다.
+- 작업 권한에 적격인 lower-model과 same-model lower-effort 후보를 비교한다. 같은 모델 경로는 실제 Parent effort가 확인되고 target이 엄격히 낮으면 작업 종류와 무관하게 평가할 수 있다.
 - 모델 유지나 낮은 단가만으로 선택하지 않는다. 능력 적합성과 준비·실행·검증·재작업을 포함한 예상 비용으로 Parent Direct와 비교한다. 불확실성이 커서 이점을 판단할 수 없으면 Parent Direct다.
 - 설정별 후보 추천은 [Model Selection Guide](references/model-selection.md), 비용 근거는 [Model Economics](references/model-economics.md)를 필요할 때 읽는다.
 
@@ -192,7 +193,8 @@ Parent Direct notice에 모든 gate 평가나 상세 추론을 나열하지 않�
 ### Profile semantics
 
 권한은 4번 불변 규칙의 두 profile로 구분한다. Capsule에는 선택한 권한, 고정 외부 계약, 금지 변경, acceptance를 전달한다.
-Predetermined execution에서는 고정 Rule을 만들거나 넓히지 않는다. Implementation-local choice에서는 기존 패턴·최소 구현·Public API 보존 등 선택 기준을 제공하고 절차를 과도하게 고정하지 않는다.
+Predetermined execution에서는 고정 Rule을 만들거나 넓히지 않는다. Luna는 이 profile만 사용할 수 있다.
+Implementation-local choice에서는 Terra 이상을 선택하고 기존 패턴·최소 구현·Public API 보존 등 선택 기준을 제공하며 절차를 과도하게 고정하지 않는다.
 모든 profile의 Scope·Apply·검증·worker 제한·반환 필드는 [Task Capsule Template](references/task-capsule-template.md)을 따른다.
 
 ### 🔍 Parent Direct 조건

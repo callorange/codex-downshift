@@ -113,9 +113,9 @@ Economic Gate는 다음 네 조건을 **모두** 요구합니다. 이를 통과�
 ### 작업별 후보 예시
 
 확정된 반복 실행은 Luna Light, bounded 탐색·복구는 Luna Medium, 일반 구현은 Terra Medium을 출발점으로 비교합니다.
-좁고 검증 가능한 내부 구현 선택에는 Luna Medium도 후보가 될 수 있습니다.
-관계·정합성 유지 부담이 크면 Sol, 어려운 장기 실행에서는 Astra의 이점을 비교합니다.
-이는 추천이며 모델별 독점 권한이 아닙니다. 같은 모델 effort 하향도 특정 업무 분야에 제한하지 않습니다.
+좁고 검증 가능한 내부 구현 선택은 Terra Light부터 비교하며 Luna Medium은 `Implementation Closed` 작업으로 제한합니다.
+관계·정합성 유지 부담이 크면 Sol을 비교합니다. 어려운 장기 실행의 Astra Light/Medium은 동일 하네스 근거가 제한된 실험 후보이며, Astra Max의 token-efficiency를 일반화하지 않습니다.
+이 후보 설명은 모델에 상위 판단 권한을 부여하지 않습니다. 같은 모델 effort 하향도 각 모델의 적격 권한 안에서는 특정 업무 분야에 제한하지 않습니다.
 
 설정별 근거·예외는 [Model Selection Guide](skills/codex-downshift/references/model-selection.md)를 따릅니다.
 게이트는 독립 작업 후보마다 평가하며 개별 편집 도구 호출마다 반복하지 않습니다.

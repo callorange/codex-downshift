@@ -18,15 +18,15 @@
 - **모델 근거·추천 참조 문서 분리 및 `SKILL.md` Token Diet**: 공식 요율·추정 지수·위임 비용 모델은 `model-economics.md`, 외부 관측은 `model-benchmarks.md`, 종합 추천은 `model-selection.md`로 분리. 라우팅 사례와 terminal/recovery 사례도 별도 문서로 나누고 `SKILL.md`에는 핵심 실행 계약과 on-demand 읽기 조건만 유지.
 
 ### 변경 (Changed)
-- **권한과 모델 선택 분리**: 확정 실행/내부 구현 선택 권한을 모델 이름과 분리하고 같은 모델 effort 하향을 공통 조건으로 평가. 모델별 독점 권한과 Golden Switch를 후보 추천으로 대체.
+- **권한과 모델 선택 분리**: 확정 실행/내부 구현 선택 권한을 작업 상태로 먼저 구분하고 같은 모델 effort 하향을 공통 조건으로 평가. Luna는 `Implementation Closed`인 확정 실행으로 제한하고 내부 구현 선택은 Terra 이상에서 평가.
 - **작업 단위 평가와 문서 정리**: 개별 편집 호출 대신 독립 작업 후보마다 게이트를 평가하고 중요 조건 변경 시 재평가. README·명세·Capsule의 중복 정책을 실행 원본과 연결하고 사례·추천을 동기화.
 
-- **Astra 요율·벤치마크·추천 반영**: OpenAI의 Astra Token-Credit Rate를 공식 표에 추가하고 Artificial Analysis Intelligence Index v4.2 및 Astra Max Coding Agent 관측을 별도 snapshot으로 기록. Astra의 Estimated Consumption Index는 산출 근거가 없어 추가하지 않으며, Terra Medium과 Sol Medium의 기존 기본 추천을 유지한 채 어려운 end-to-end 작업에 Astra Medium을 조건부 추천.
+- **Astra 요율·벤치마크·추천 반영**: OpenAI의 Astra Token-Credit Rate를 공식 표에 추가하고 Artificial Analysis Intelligence Index v4.2 및 Astra Max Coding Agent 관측을 별도 snapshot으로 기록. Astra의 Estimated Consumption Index는 산출 근거가 없어 추가하지 않으며, Astra Light/Medium은 Max 관측을 일반화하지 않는 `experimental / evidence-limited` 후보로 구분.
 
 - **Artificial Analysis 성능 근거와 추천 갱신**: GPT-5.6의 모델·추론 레벨별 Intelligence Index와
   Codex Coding Agent Index·task당 token을 기록하고, 공식 요율·Estimated Consumption Index·권한 경계와
-  함께 해석해 Luna·Terra·Sol의 작업별 추천 기준을 보완. Luna Medium은 고정 탐색·복구뿐 아니라
-  능력과 검증 근거가 충분한 좁은 내부 구현 선택에도 후보로 비교.
+  함께 해석해 Luna·Terra·Sol의 작업별 추천 기준을 보완. Luna Medium은 `Implementation Closed` 상태의
+  bounded search 또는 검증 실패에 Parent가 고정한 Rule로 대응하는 1회 복구가 실질적 실행량일 때의 후보로 정밀화.
   비용과 점수는 대체로 함께 증가하지만 비례하지 않는다는 적용 경계를 명시하고, 기획 명세의 중복 수치표는 기준 문서 링크로 대체.
   기존 model-tier 위임 경로·판단 권한·공식 요율·추정 지수 수치는 유지. 같은 모델 lower-effort 경로는 benchmark에서 도출한 결론이 아니라 사용자 명시 정책으로 별도 추가.
 

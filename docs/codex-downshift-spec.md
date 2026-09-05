@@ -193,8 +193,8 @@ Downshift는 미완성된 의미적 판단을 하위 워커에 넘기는 수단�
 | 작업 상태 | 위임할 수 있는 내용 | 후보 선택 |
 | --- | --- | --- |
 | Predetermined execution | 확정 docstring·정형 치환·명시된 테스트·고정 Rule 탐색과 복구 | Luna Light/Medium부터 적합성·전체 비용 비교 |
-| Implementation-local choice | 고정 API 안의 내부 자료구조·알고리즘·구현 선택 | 좁고 검증 가능하면 Luna Medium/Terra Light, 일반 구현은 Terra Medium부터 비교 |
-| 관계·정합성 또는 장기 실행 | 고정된 결정과 계약 안의 여러 산출물 조정 | Sol/Astra의 능력 이점과 전체 비용 비교; 별도 권한이 아님 |
+| Implementation-local choice | 고정 API 안의 내부 자료구조·알고리즘·구현 선택 | 좁고 검증 가능하면 Terra Light, 일반 구현은 Terra Medium부터 비교; Luna 제외 |
+| 관계·정합성 또는 장기 실행 | 고정된 결정과 계약 안의 여러 산출물 조정 | Sol의 능력 이점과 전체 비용 비교; Astra Light/Medium은 근거 제한적 실험 후보 |
 
 같은 모델의 낮은 effort도 공통 게이트를 통과하면 위 작업 전반의 후보가 된다.
 구체적인 Capsule과 반례는 [Delegation Examples](../skills/codex-downshift/references/delegation-examples.md)를 따른다.
@@ -262,7 +262,8 @@ Improve the readability of UserService.create_user docstring.
 | Child: Predetermined execution | 고정 Rule 실행 | 정형 조립·탐색·테스트·허용된 복구 | 새 구현 선택 금지, No Chaining |
 | Child: Implementation-local choice | 내부 구현 분석 및 선택 | 고정 외부 계약 안의 구현·관계 유지 | 상위 판단 금지, No Chaining |
 
-모델은 이 권한에 충분한 적격 구성을 별도로 선택한다.
+모델은 이 권한에 충분한 적격 구성을 별도로 선택한다. Luna는 Implementation Closed인 Predetermined execution에만 적격이다.
+Astra Light/Medium은 동일 Codex 하네스 근거가 없는 실험 후보이며 Astra Max 관측을 일반화하지 않는다.
 
 ---
 

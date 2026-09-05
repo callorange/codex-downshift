@@ -39,7 +39,7 @@
 | **16** | 최종 routing 결정 표시 | **Astra/Sol/Terra** | 👁️ **Routing Notice** | 평가한 결정마다 한 번; Child는 spawn 직전, Parent Direct는 첫 결정적 이유 표시. 전체 capsule 비노출, spawn 실패 시 추가 notice 없음 |
 | **17** | 관계·정합성 실행 (Astra 부모) | **Astra** | 🟡 **Sol 후보 ➔ Economic Gate** | Terra보다 실제 작업 비용이 낮으면 Sol Light/Medium model 하향 |
 | **18** | 일반 bounded 구현 (Astra 부모) | **Astra** | ⚖️ **effort 확인 ➔ Astra 하위 effort 또는 lower tier** | 실제 Parent effort보다 낮고 작업에 충분하며 적격 후보·Parent Direct 대비 전체 비용 이점이 있을 때 후보 |
-| **19** | 좁고 검증 가능한 내부 구현 선택 | **Astra/Sol/Terra** | Luna Medium 또는 Terra Light 비교 | 권한을 모델과 별개로 명시하고 적합성·경제성을 확인 |
+| **19** | 좁고 검증 가능한 내부 구현 선택 | **Astra/Sol/Terra** | Terra Light부터 비교 | Luna는 Implementation Closed로 제한하고 적합성·경제성을 확인 |
 
 ---
 
@@ -303,9 +303,9 @@ Parent Direct는 `[codex-downshift] → Parent Direct | update_auth_policy | Gat
 - **E Good Terra**: 외부 API contract는 고정됐지만 자료구조 선택·구현·테스트 루프가 남으면 Sol Parent는 Terra Medium을, effort가 High 이상인 Terra Parent는 Terra Medium effort 하향을 후보로 평가한다.
 - **F Routing notice**: `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule` 또는 `[codex-downshift] → Parent Direct | single_literal | Economic Gate: delegation overhead`를 최종 routing 결정마다 한 번 표시한다.
 
-## 🧪 Scenario 19: Luna의 제한된 내부 구현 선택
+## 🧪 Scenario 19: 좁은 내부 구현 선택
 
 - **상황**: 외부 동작과 acceptance는 고정됐고 기존 저장소 패턴 중 하나를 선택하는 좁은 내부 구현이 남았다. 관련 회귀 검증으로 결과를 확인할 수 있다.
 - **권한**: Implementation-local choice를 명시한다. 새 외부 계약이나 정책 판단은 위임하지 않는다.
-- **후보 비교**: Luna Medium과 Terra Light를 비교한다. 유사 작업 근거와 검증 가능성으로 Luna가 충분하고 전체 비용이 유리하면 Luna를 선택할 수 있다. 낮은 요율이나 종합 점수만으로 충분하다고 판단하지 않는다.
+- **후보 비교**: Terra Light부터 비교한다. Luna Medium의 일반 benchmark는 이 권한 수행과 경계 준수를 검증하지 않으므로 Luna는 후보에서 제외한다.
 - **반환 경계**: 고정 계약 안의 허용 선택은 수행하되, 새 의미·호환성·API 판단이 필요하면 `NEEDS_PARENT_DECISION`이다.

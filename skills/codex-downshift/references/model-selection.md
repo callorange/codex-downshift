@@ -39,10 +39,10 @@ Coding Agent 비용은 Max만 확보되어 있어 effort별 비용 최적점을 
 | --- | --- | --- |
 | 구현 방법·target이 고정된 반복 실행 | Luna Light | 준비·검증 비용을 상쇄할 실행량이 있어야 함 |
 | 고정 Rule의 bounded search·복구 | Luna Medium | Light보다 추가 추론이 누락·재작업을 줄일 근거 필요; 권한 확대 없음 |
-| 고정 외부 계약 안에서 기존 패턴으로 좁혀지고 결정적으로 검증되는 구현 선택 | Luna Medium, Terra Light | Luna도 명시된 implementation-local 권한을 받을 수 있음; 낮은 단가만으로 충분하다고 판단하지 않음 |
+| 고정 외부 계약 안에서 기존 패턴으로 좁혀지고 결정적으로 검증되는 구현 선택 | Terra Light | Luna Medium의 일반 benchmark가 implementation-local 권한 수행을 검증하지 않으므로 Luna는 후보에서 제외 |
 | 일반 implementation-local 구현 | Terra Medium | 일반 구현의 비용/품질 균형 출발점; 충분한 다른 후보와 비교 |
 | 여러 문서·계약·독립 요구사항의 정합성 실행 | Sol Light/Medium | 낮은 tier보다 검증·재작업 부담을 줄일 작업 근거 필요; 모든 상위 결정은 Parent 소유 |
-| 여러 영역·도구·산출물의 장기 관계 실행 | Astra Light/Medium | 적격인 Astra Parent의 effort 하향 후보; 부족한 effort별 비용 자료와 높은 단가를 함께 고려 |
+| 여러 영역·도구·산출물의 장기 관계 실행 | Sol Light/Medium; Astra는 실험 후보 | Astra Light/Medium은 적격인 Astra Parent의 effort 하향만 가능하며, effort별 Coding Agent 비용·성능 근거가 부족함 |
 | 사용자 승인 아래 높은 effort의 이점이 필요한 작업 | 해당 모델 High 이상 예외 | 모든 안전·권한·엄격한 하향 조건 유지; benchmark 우위만으로 자동 선택하지 않음 |
 
 어떤 모델도 지시 준수·성공을 보장하지 않는다. Luna를 Active Parent로 사용하는 방식은 현재 지원 범위 밖이다.
@@ -71,7 +71,7 @@ Astra·Sol·Terra 모두 특정 업무 분야에 한정하지 않고 다음 공�
 상위 판단과 정합성 유지가 중요한 아래 조건에서는 **Sol Medium을 우선 고려**하고,
 Sol의 사용량 부담을 줄이려는 경우에는 **Sol Light를 절충안으로 고려**한다.
 여러 영역·도구·산출물의 장기 관계를 다루는 가장 어려운 end-to-end 작업에서
-Sol의 반복 실패나 높은 수동 개입 비용이 예상되거나 관측되면 **Astra Medium을 고려**한다.
+Sol의 반복 실패나 높은 수동 개입 비용이 실제로 관측되면 **Astra Medium을 근거 제한적인 실험 후보로 고려**한다.
 이는 사용자가 Parent 설정을 선택할 때의 조언이며, 현재 세션의 모델을 자동 전환하는 규칙이 아니다.
 
 | 작업 조건 | Parent 추천 | 판단 근거와 적용 경계 |
@@ -82,13 +82,14 @@ Sol의 반복 실패나 높은 수동 개입 비용이 예상되거나 관측되
 | Sol의 판단 능력이 필요하지만 계약이 명확하고 사용량 부담을 줄여야 함 | **Sol Light 고려** | Intelligence 41·Coding Agent Index 55로 단순 구현에는 충분할 수 있다. Medium과 같은 정합성·재작업 비용을 전제하지 않는다. |
 | 규칙·하네스·아키텍처 또는 여러 문서·계약의 정합성을 유지 | **Sol Medium 우선 고려** | Coding Agent Index 62로 High 64·Max 65에 가깝다. 독립 요구사항과 completion set을 추적할 판단 부담을 기준으로 삼는다. |
 | Sol Medium에서 난도가 확인됐고 오류·재작업 비용이 추가 사용량보다 큼 | **Sol High 고려** | Coding Agent Index 상승은 62에서 64로 제한적이다. 어려운 구현·검증에서 추가 여유가 필요한 경우에만 선택하며 지시 준수를 보장하지 않는다. |
-| Astra의 end-to-end 능력이 필요하지만 effort 사용량을 낮추고 결정적 검증이 가능 | **Astra Light 고려** | Intelligence는 49로 Medium 52보다 낮다. Astra tier를 유지할 이유가 있고 재작업 위험을 감수할 수 있을 때만 사용한다. |
-| 여러 영역·도구·산출물의 장기 관계를 추적하고 Sol의 재지시·재작업·검증 부담이 큼 | **Astra Medium 고려** | Astra Max의 Coding Agent 관측은 강하지만 Medium의 동일 하네스 결과는 없다. 공식 요율이 Sol의 2.5×이므로 실제 작업 비용 감소 근거가 있을 때만 선택한다. |
+| Astra의 end-to-end 능력을 시험하며 effort 사용량을 낮추고 결정적 검증이 가능 | **Astra Light 실험 후보** | Intelligence는 49지만 동일 Codex 하네스의 비용·코딩 성능은 미확보다. Astra tier를 유지할 작업 근거가 있을 때만 제한적으로 시험한다. |
+| 여러 영역·도구·산출물의 장기 관계를 추적하고 Sol의 재지시·재작업·검증 부담이 실제로 큼 | **Astra Medium 실험 후보** | `experimental / evidence-limited`. Medium의 동일 Codex 하네스 비용·성능 자료가 없으며 Astra Max의 token-efficiency를 일반화하지 않는다. |
 | Medium에서 실제 난도나 실패가 확인되고 추가 사용량보다 실패 비용이 큼 | **High 고려** | 모델별 benchmark의 상승 폭과 작업 실패 증거를 함께 본다. 자동 Child target으로 사용하지 않는다. |
 | XHigh·Max가 필요한 장기 추론이나 실패가 반복해서 관측됨 | **XHigh·Max 예외 고려** | 높은 effort의 한계효용이 작을 수 있다. Medium·High가 부족하다는 작업 근거 없이 기본값으로 사용하지 않는다. |
 
 Sol Medium의 조건부 우선 고려는 이번 프로젝트의 실제 사용 경험을 반영한 **정성적 운영 휴리스틱**이다.
-Astra Medium 추천은 공식 용도와 외부 관측을 참고한 잠정 운영 휴리스틱이며, Medium의 Coding Agent 비용 효율을 실측한 결론은 아니다.
+Astra Light/Medium은 `experimental / evidence-limited` 후보이며 기본 추천이 아니다.
+Astra Max의 Coding Agent 성능·token-efficiency 관측을 Light나 Medium에 일반화하지 않는다.
 위 비교표의 모든 모델·effort를 이번 작업에서 직접 비교 평가했다는 뜻은 아니다.
 통제된 모델 비교나 측정된 재작업 감소율을 뜻하지 않으며, Sol Medium도 지시 준수를 보장하지 않는다.
 추천 설정을 사용해도 요구사항·completion set과 결과를 대조하고, 완료 주장에 맞는 검증을 수행해야 한다.
@@ -108,7 +109,7 @@ Astra Medium 추천은 공식 용도와 외부 관측을 참고한 잠정 운영
 [Model Economics의 비용 분해](model-economics.md#6-effective-downshift-economics-non-official-heuristics)에 사용자 부담과 반복 작업을 함께 고려하는 관점이며,
 이미 실행·검증 비용에 포함된 재작업을 별도 비용으로 중복 합산하지 않는다.
 추가 모델 사용량보다 재지시·재작업·검증 부담을 줄일 가치가 있다고 판단되면
-Sol Medium 또는 가장 어려운 end-to-end 작업의 Astra Medium을 고려할 수 있지만, 절감 효과를 보장하거나 고정 배율로 환산하지 않는다.
+Sol Medium을 고려할 수 있다. Astra Medium은 Sol의 부담이 실제로 관측되고 통제된 검증이 가능한 경우의 근거 제한적 실험 후보이며, 절감 효과를 보장하거나 Max 관측을 고정 배율로 환산하지 않는다.
 실제 기록이 없으면 예상으로 구분하고, 관찰된 사용량과 사용자 개입·재작업을 바탕으로 추천을 재평가한다.
 
 ### Downshift 정책과의 관계
