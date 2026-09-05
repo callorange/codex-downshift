@@ -127,7 +127,7 @@ Terra도 `Apply: Exact`와 implementation-local choice를 함께 사용할 수 �
 | Profile | 선택 조건 | 허용 재량·Parent 제한 |
 | --- | --- | --- |
 | Luna Light | 구현 방법과 target locations closed | 확정된 구현 적용; Sol 또는 Terra Parent |
-| Luna Medium | 구현 방법 확정 + closed Match Rule + bounded Search | 고정 규칙으로 위치 탐색·적용; 구현 판단 권한 확대 없음; Sol 또는 Terra Parent |
+| Luna Medium | 구현 방법 확정 + closed Match Rule + bounded Search 또는 검증 실패에 고정 Rule로 대응하는 1회 복구 | 고정 규칙으로 탐색·적용·검증·복구; 구현 판단 권한 확대 없음; Sol 또는 Terra Parent |
 | Terra Medium | 의미·외부 계약 확정 + implementation-local 선택 잔여 | 고정 계약 안의 내부 구현 선택; Sol Parent 전용. Terra Parent는 직접 처리. |
 
 **Luna 공통 경계**

@@ -12,14 +12,17 @@
 - **Economic Gate 및 준비 테스트**: Parent 준비·Child 실행·Parent 검증의 Effective Downshift Cost와 Parent Direct Cost를 비교하는 네 가지 필요조건과 human steering·rework·verification을 포함한 실제 작업 비용 관점을 명시. 2× Luna/3× Terra는 라우팅 기준이 아닌 근거 미확정 운영 가설로 비용 문서에만 보존.
 - **Luna all-matches 안전장치 및 micro-batch**: bounded Search 전체 매치와 non-exhaustive examples 규칙, 항목별 완료 형식을 추가.
 - **Spawn visibility 및 최소 capsule 문맥**: `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`과 Search/Modify/Apply 및 Minimum Sufficient Context를 명시.
-- **전용 경제학 참조 문서(`references/model-economics.md`) 신설 및 `SKILL.md` Token Diet**: 공식 크레딧 요율, 추정 소모 지수, 벤치마크 데이터 및 캐시 계산을 전용 참조 문서로 분리하여 `SKILL.md` 크기를 약 4KB(17%) 감축.
+- **모델 근거·추천 참조 문서 분리 및 `SKILL.md` Token Diet**: 공식 요율·추정 지수·위임 비용 모델은 `model-economics.md`, 외부 관측은 `model-benchmarks.md`, 종합 추천은 `model-selection.md`로 분리. 라우팅 사례와 terminal/recovery 사례도 별도 문서로 나누고 `SKILL.md`에는 핵심 실행 계약과 on-demand 읽기 조건만 유지.
 - **Sol-Parent Golden Switch 규칙 정밀화**: implementation-local 선택을 Terra에 맡기는 역할 정책을 명시하고 Sol Parent 전용으로 분기. 추정 지수·Steps와 금전 비용의 비교 기준을 구분하며 시간·allowance 절감 보장으로 해석하지 않음.
 
 ### 변경 (Changed)
 
 - **Artificial Analysis 성능 근거와 추천 갱신**: GPT-5.6의 모델·추론 레벨별 Intelligence Index와
   Codex Coding Agent Index·task당 token을 기록하고, 공식 요율·Estimated Consumption Index·권한 경계와
-  함께 해석해 Luna·Terra·Sol의 작업별 추천 기준을 보완. 기존 공식 요율과 추정 지수 수치는 유지.
+  함께 해석해 Luna·Terra·Sol의 작업별 추천 기준을 보완. Luna Medium은 Implementation Closed 상태에서
+  bounded search 또는 검증 실패에 Parent가 고정한 Rule로 대응하는 1회 복구가 실질적 실행량일 때의 후보로 정밀화.
+  비용과 점수는 대체로 함께 증가하지만 비례하지 않는다는 적용 경계를 명시하고, 기획 명세의 중복 수치표는 기준 문서 링크로 대체.
+  기존 위임 경로·판단 권한·공식 요율·추정 지수 수치는 유지.
 
 - **공식 Token-Credit Rate 표 정리**: OpenAI 공식 표의 열 이름과 credits 단위를 그대로 반영하고,
   Luna 대비 상대 배수는 공식 값과 구분한 프로젝트 해석으로 이동. 기존 요율 수치는 유지.

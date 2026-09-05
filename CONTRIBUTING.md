@@ -21,7 +21,7 @@
 ## 🛠️ 2. 기여 방법
 
 ### 1) 위임 예시 추가 및 개선
-- [`skills/codex-downshift/references/delegation-examples.md`](skills/codex-downshift/references/delegation-examples.md)에 실전 Good vs Bad 위임 시나리오를 추가하거나 개선합니다.
+- Gate·권한별 라우팅 사례는 [`delegation-examples.md`](skills/codex-downshift/references/delegation-examples.md), Child 반환·복구·예외 effort 사례는 [`terminal-scenarios.md`](skills/codex-downshift/references/terminal-scenarios.md)에 추가하거나 개선합니다.
 - 하위 워커가 상위 추론을 다시 수행하지 않아도 되는 완결된(Self-Contained) Task Capsule 작성법을 잘 보여주는지 확인합니다.
 
 ### 2) 스킬 규칙 및 지침 개선
@@ -36,7 +36,9 @@
 | 변경 대상 | 기준 문서 |
 | --- | --- |
 | 실행 규칙과 라우팅 계약 | [`SKILL.md`](skills/codex-downshift/SKILL.md) |
-| 비용·추천 근거 | [`model-economics.md`](skills/codex-downshift/references/model-economics.md) |
+| 공식 요율·추정 지수·위임 비용 모델 | [`model-economics.md`](skills/codex-downshift/references/model-economics.md) |
+| 외부 benchmark 관측 | [`model-benchmarks.md`](skills/codex-downshift/references/model-benchmarks.md) |
+| 모델·effort 설정 추천 | [`model-selection.md`](skills/codex-downshift/references/model-selection.md) |
 | Capsule·반환 서식 | [`task-capsule-template.md`](skills/codex-downshift/references/task-capsule-template.md) |
 | 설치 절차 | [`README.md`](README.md) |
 
