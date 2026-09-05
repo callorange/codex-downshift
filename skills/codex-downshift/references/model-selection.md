@@ -5,7 +5,8 @@ Parent 설정과 기존 downshift 후보의 reasoning effort를 선택하는 운
 공식·추정 비용 수치는 [Model Economics](model-economics.md), 원시 관측과 한계는
 [Model Benchmarks](model-benchmarks.md)를 기준으로 한다.
 
-이 추천은 모델 전환 기능이나 새로운 위임 권한을 정의하지 않는다.
+Parent 설정 추천은 모델 자동 전환 기능을 정의하지 않는다. Child 후보와 권한은 이 문서의
+`Downshift Child 선택 보완`을 참고하되, 실행 계약의 SSOT인 [SKILL.md](../SKILL.md)를 따른다.
 
 ## Recommendation Heuristics
 
@@ -20,7 +21,7 @@ Parent 설정과 기존 downshift 후보의 reasoning effort를 선택하는 운
 | **Luna Medium** | **2.61×** | 구현은 닫혀 있고 고정 Match Rule 안의 bounded search 또는 검증 실패를 해석해 Parent가 고정한 Rule로 대응하는 1회 복구가 실행의 실질적 부분인 Child 후보. | Light보다 실행 추론을 늘리는 설정이며 구현 판단 권한을 넓히지 않는다. 문서 간 의미·계약 판단이 남은 일을 단순 검색이나 복구로 간주하지 않는다. |
 | **Luna High** | **6.00×** | Artificial Analysis Coding Agent Index와 CursorBench에서 Terra Medium보다 높은 점수를 보였다. 비용·token·step·과업 적합성을 함께 비교한다. | 점수 우위가 implementation-local 권한을 만들지 않는다. Medium보다 task당 token이 많으며 자동 선택하지 않는다. |
 | **Terra Light** | **4.46×** | Terra Medium보다 낮은 추정 소모 지수의 비교 후보. | 외부 Coding Agent Index는 Medium보다 9점 낮다. 프로젝트별 품질·재작업 차이는 측정되지 않았으며 일반 구현의 Medium 기본 추천을 바꾸지 않는다. |
-| **Terra Medium** | **5.35×** | 일반 구현의 비용/품질 균형 기본 추천. Sol Parent 아래에서는 외부 계약이 고정된 implementation-local 작업의 Child 후보. | 상위 규칙·계약 판단은 Parent 책임이다. Terra Parent가 Terra Child를 생성할 수는 없다. |
+| **Terra Medium** | **5.35×** | 일반 구현의 비용/품질 균형 기본 추천. 외부 계약이 고정된 implementation-local 작업의 Child 후보. | 상위 규칙·계약 판단은 Parent 책임이다. Terra Parent 경로에서는 실제 Parent effort가 Medium보다 높아야 한다. |
 | **Sol Light** | **9.40×** | Sol Medium의 토큰 사용량이 부담될 때 고려하는 Parent 설정의 절충안. | Medium과 같은 결과 품질을 전제하지 않는다. 재지시·재작업·검증을 포함해 비교하며, 일반 구현의 Terra Medium 기본 추천을 대체하지 않는다. |
 | **Sol Medium** | **18.04×** | 아래 조건처럼 상위 판단·정합성 유지 및 사용자 재지시 부담을 중시할 때 우선 고려하는 Parent 설정. | 일반 구현의 기본값은 아니다. 높은 사용량을 감수하는 경험 기반 선택이며 지시 준수를 보장하지 않는다. |
 
@@ -76,7 +77,25 @@ Estimated Consumption Index와 benchmark 점수는 모델 tier와 effort가 올�
 | 구현 방법과 수정 위치가 고정된 짧은 기계적 실행 | **Luna Light** | 가장 낮은 Estimated Consumption Index를 활용한다. Coding Agent Index가 25이므로 탐색·해석·복구 판단을 새로 맡기지 않는다. |
 | 구현은 닫혀 있고 bounded search 또는 검증 실패에 고정 Rule로 대응하는 1회 복구가 필요 | **Luna Medium** | Coding Agent Index가 Light 25에서 Medium 42로 상승했다. 추가 token과 Parent 검증을 감수할 실행량이 있을 때 사용하며, 새 구현 판단이 생기면 Parent에게 반환한다. |
 | 구현은 닫혀 있으나 Medium 실패의 재작업 비용이 크고 높은 effort를 사용자가 승인 | **Luna High 예외 고려** | Coding Agent Index 52로 Medium보다 높지만 task당 token도 4.3M에서 9.6M으로 늘었다. 구현 판단 권한은 확대하지 않으며 자동 선택하지 않는다. |
-| 외부 계약은 고정됐지만 implementation-local 선택이 남음 | **Terra Medium** | Sol Parent에서만 선택한다. Luna High의 점수가 더 높아도 effort로 구현 권한을 대신하지 않는다. Terra Parent는 직접 처리한다. |
+| 외부 계약은 고정됐고 기존 패턴으로 선택지가 좁은 implementation-local 작업 | **Terra Light** | Sol Parent의 model 하향 또는 effort가 Light보다 높은 Terra Parent의 effort 하향 후보다. 결정적 검증이 가능해야 하며 일반 구현의 Medium 기본 추천을 바꾸지 않는다. |
+| 외부 계약은 고정됐지만 일반 implementation-local 선택이 남음 | **Terra Medium** | Sol Parent의 model 하향 또는 effort가 Medium보다 높은 Terra Parent의 effort 하향 후보다. Luna High의 점수가 더 높아도 effort로 구현 권한을 대신하지 않는다. |
+| 상호 의존하는 규칙·문서·계약 또는 독립 요구사항을 함께 추적하고 결정적 검증만으로 누락 확인이 어려움 | **Sol Light/Medium** | Terra 사용 시 Parent 수동 검증·재작업이 늘어나는 근거가 있을 때 실제 Sol Parent effort보다 엄격히 낮은 설정만 선택한다. 같은 모델 유지 자체는 근거가 아니다. |
+
+### 같은 모델의 effort 하향
+
+같은 모델 경로는 model tier 대신 reasoning effort를 낮추는 downshift다. 실제 Parent effort를 확인할 수 있고,
+아래 후보가 Parent보다 엄격히 낮으며, lower-model 후보보다 실제 작업 비용이 낮을 것으로 판단될 때만 사용한다.
+
+| Parent 구성과 작업 상태 | 후보 | 적용 경계 |
+| --- | --- | --- |
+| Terra Medium + 기존 패턴으로 좁혀진 implementation-local 작업 | **Terra Light** | Light의 품질 여유와 결정적 검증이 충분해야 한다. 일반 implementation-local 작업은 Parent Direct다. |
+| Terra High/XHigh/Max + 일반 implementation-local 작업 | **Terra Medium** | 상위 판단과 외부 계약은 이미 확정되어야 한다. |
+| Sol Medium + 상호 의존 관계나 독립 요구사항을 함께 추적하는 bounded 실행 | **Sol Light** | 결정적 검증만으로 누락 확인이 어려워 Terra 사용 시 Parent 수동 검증·재작업이 늘어나는 작업 근거가 필요하다. |
+| Sol High/XHigh/Max + 같은 성격의 bounded 실행 | **Sol Medium** | Medium이 충분하다는 근거가 있어야 하며 자동 target을 High 이상으로 올리지 않는다. |
+
+Parent effort가 Light이거나 확인되지 않은 경우, 또는 같은 모델의 낮은 effort가 작업에 충분하지 않은 경우에는
+effort-only 경로를 사용하지 않는다. lower-model 후보가 충분하면 공식 요율과 추정 지수가 더 낮은 해당 후보를 먼저
+경제성 비교 대상으로 삼는다. 어느 후보든 Gate A, Decision Authority와 Economic Gate를 통과해야 한다.
 
 ### 사용자 설정 추천
 
@@ -123,10 +142,11 @@ Sol Medium을 우선 고려할 수 있지만, 절감 효과를 보장하거나 �
 Parent 설정 추천 이후에도 실제 runtime에서 확인한 Active Parent를 기준으로
 Gate A → Gate B → Economic Gate를 적용한다. 안전성·권한·검증 요건이 비용 판단보다 우선한다.
 
-- Sol Parent는 기존 조건에 따라 Luna 또는 Terra Child로 downshift할 수 있다.
-- Terra Parent는 Luna Child만 사용할 수 있으며, implementation-local 판단이 남으면 Terra Parent Direct다.
-- Sol Medium 추천은 Sol Child, 상향·동일 티어 위임, 자동 Parent 전환을 허용하지 않는다.
+- Sol Parent는 기존 조건에 따라 Luna 또는 Terra로 model downshift하거나, 확인된 Parent effort보다 낮은 Sol Light/Medium으로 effort downshift할 수 있다.
+- Terra Parent는 Luna로 model downshift하거나, 확인된 Parent effort보다 낮은 Terra Light/Medium으로 effort downshift할 수 있다.
+- 같은 모델의 동일·상위 effort와 상위 모델 호출은 허용하지 않는다. 자동 Child target은 Light 또는 Medium이며 High 이상은 사용자 승인 예외다.
+- Terra same-model 경로는 implementation-local 선택 때문에 Luna 권한을 넘을 때, Sol same-model 경로는 상호 의존 관계나 독립 요구사항의 누락을 결정적 검증만으로 확인하기 어려워 Terra가 Parent 수동 검증·재작업을 늘릴 때만 선택한다.
 - 실제 위임은 Delegation Preparation Test 네 조건을 모두 통과하고, 위임의 추가 부담이 실행 절감분을 상쇄하지 않을 때만 수행한다.
 
-상위 판단과 정합성 유지는 Parent가 맡고, 그 판단으로 닫힌 bounded execution만
-기존 정책에 따라 downshift하는 방식으로 Parent 설정과 위임 경제성을 함께 판단한다.
+상위 판단은 Parent가 맡고, 그 판단으로 닫힌 bounded execution만 구성 기준으로 downshift하는 방식으로
+Parent 설정과 위임 경제성을 함께 판단한다.

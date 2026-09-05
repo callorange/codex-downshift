@@ -15,10 +15,10 @@
 ### GitHub description
 
 **English**
-> A lightweight Codex skill that keeps Sol or Terra as the parent and offloads (downshifts) bounded execution tasks to Luna (`gpt-5.6-luna`) or Terra (`gpt-5.6-terra`) to reduce usage and costs.
+> A lightweight Codex skill that keeps Sol or Terra as the parent and offloads bounded execution to a lower model tier or the same model at a lower reasoning effort.
 
 **한국어**
-> Sol 또는 Terra를 부모 모델로 유지하면서 Gate A → Gate B → Economic Gate를 통과한 실행 작업만을 Luna (`gpt-5.6-luna`) 또는 Terra (`gpt-5.6-terra`)로 다운시프트(하향 위임)해 Codex 사용량을 절감하는 경량 Skill.
+> Sol 또는 Terra를 부모 모델로 유지하면서 Gate A → Gate B → Economic Gate를 통과한 실행 작업만을 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort로 하향 위임하는 경량 Skill.
 
 ### 이름 선정 이유
 
@@ -26,7 +26,7 @@
 
 - 사용자가 선택한 Sol/Terra를 다른 모델로 교체하지 않는다.
 - 작업마다 "최적 모델"을 찾는 복잡한 라우팅이 목적이 아니다.
-- 상위 모델의 판단이 끝난 실행 작업만 하위 경량 워커로 안전하게 다운시프트(하향 위임)한다.
+- 상위 모델의 판단이 끝난 실행 작업만 더 낮은 모델 구성으로 안전하게 다운시프트(하향 위임)한다.
 - 하위 워커에서 Terra/Sol로 자동 escalation하지 않는다.
 
 따라서 `downshift`가 상위 모델의 판단 통제 하에 실행 비용을 낮추는 실제 역할을 가장 정확하게 표현한다.
@@ -36,14 +36,14 @@
 ## 2. 프로젝트 목표
 
 `codex-downshift`는 사용자가 Codex에서 Sol 또는 Terra를 주력(부모) 모델로 사용할 때,
-이미 판단이 끝나고 범위가 명확해진 실행 작업을 Luna (`gpt-5.6-luna`) 또는 Terra (`gpt-5.6-terra`) 서브에이전트에 넘겨
+이미 판단이 끝나고 범위가 명확해진 실행 작업을 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort를 사용하는 서브에이전트에 넘겨
 상위 모델의 사용량과 비용을 줄이는 경량 Codex Skill이다.
 
 핵심 질문은 하나다.
 
 > **현재 부모 모델이 처리하려는 하위 작업 중, 상위 판단을 다시 하지 않고 하위 워커가 안전하게 실행할 수 있는 작업이 있는가?**
 
-- 있다면: Gate A Safety ➔ Gate B Decision Authority ➔ Economic Gate를 거쳐 적합한 하위 모델(Luna 또는 Terra)에 위임하거나, 경제성이 비슷하면 Parent Direct로 처리한다.
+- 있다면: Gate A Safety ➔ Gate B Decision Authority ➔ Economic Gate를 거쳐 적합한 엄격한 하위 모델 구성에 위임하거나, 경제성이 비슷하면 Parent Direct로 처리한다.
 - 없다면: 현재 부모 모델이 직접 처리한다.
 
 ---
@@ -71,7 +71,7 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
 5. 동작과 acceptance criteria 결정
 6. 검증 방법 결정
 
-이 상태에서도 직접 수행과 위임의 비용을 비교해야 한다. Gate A/B를 통과한 작업에서 부모의 준비·검증 부담이 대체 실행량보다 명확히 작다면, 확정된 실행을 하위 모델에 맡겨 사용량을 줄일 수 있다.
+이 상태에서도 직접 수행과 위임의 비용을 비교해야 한다. Gate A/B를 통과한 작업에서 부모의 준비·검증 부담이 대체 실행량보다 명확히 작다면, 확정된 실행을 더 낮은 모델 구성에 맡겨 사용량을 줄일 수 있다.
 `codex-downshift`는 상위 판단 권한을 온전히 보존하면서 그 마지막 실행 단계를 하위 워커에 안전하게 offload하는 것을 목표로 한다.
 
 ---
@@ -81,21 +81,23 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
 > **"Safe enough to delegate → delegate only the remaining authority → keep every child leaf-only → return structured evidence → let the Parent make only claims it freshly verified."**
 
 1. **Parent Authority (부모 모델 권한 보존)**: 사용자가 선택한 Active Parent(Sol 또는 Terra)는 요구사항 해석, 제품 동작, 아키텍처, Public API, 보안, 호환성 등 모든 상위 미결 판단을 직접 소유한다. Parent 역할 자체는 Child에게 위임되지 않는다.
-2. **Downshift Only (단방향 하향 위임)**: Child는 Active Parent보다 동일하거나 높은 tier의 모델을 새로 spawn/invoke할 수 없다.
-   - **허용**: `Sol Parent ➔ Terra Child`, `Sol Parent ➔ Luna Child`, `Terra Parent ➔ Luna Child`
-   - **금지**: `Sol Parent ➔ Sol Child`, `Terra Parent ➔ Terra Child`, `Terra Child ➔ Sol`, `Luna Child ➔ Terra/Sol`
+2. **Downshift Only (구성 기준 단방향 하향 위임)**: Child 구성은 모델 tier가 낮거나, 같은 모델에서 `Light < Medium < High < XHigh < Max` 순서상 effort가 엄격히 낮아야 한다.
+   - **모델 하향**: `Sol ➔ Terra/Luna`, `Terra ➔ Luna`
+   - **effort 하향**: `Sol Medium ➔ Sol Light`, `Sol High/XHigh/Max ➔ Sol Medium`, `Terra Medium ➔ Terra Light`, `Terra High/XHigh/Max ➔ Terra Medium` 등의 엄격한 하향
+   - **금지**: 상위 모델 호출, 같은 모델의 동일·상위 effort, 실제 Parent model/effort를 추정한 같은 모델 위임
    - *(단, Child가 `NEEDS_PARENT_*` 또는 `TASK_FAILED`로 Parent에게 제어권을 반환하는 것은 상향 위임이 아니며 정상 프로토콜임)*
 3. **Safety Before Routing (Gate A → Gate B → Economic Gate)**: 모델 선택 전에 **Gate A (Delegation Safety Gate)**를 통과하고, Gate B에서 남은 권한별 후보를 고른 뒤 Economic Gate에서 준비·검증 오버헤드보다 leverage가 클 때만 위임한다. 저위험·가역적·검증 가능한 작업이 아니면 **Parent Direct**.
 4. **Role-Based Child Delegated Authority (역할별 위임 권한)**:
    - **Luna Child**: `Semantic Closed` + `External Contract Closed` + `Implementation Closed`. 구현 패턴과 방법까지 확정된 기계적 실행 전담.
-   - **Terra Child**: `Semantic Closed` + `External Contract Closed` + `Implementation-Local Decision Remains`. 외부 계약은 확정되었으나 내부 구현 분석 및 선택이 필요한 경우 전담 (Sol Parent 전용).
+   - **Terra Child**: `Semantic Closed` + `External Contract Closed` + `Implementation-Local Decision Remains`. Sol Parent의 model 하향 또는 더 높은 effort의 Terra Parent가 수행하는 effort 하향에서 내부 구현 분석 및 선택을 전담한다.
+   - **Sol Child**: `Semantic Closed` + `External Contract Closed`인 bounded 실행에서 상호 의존 관계나 독립 요구사항을 함께 추적하고 결정적 검증만으로 누락 확인이 어려워 Terra가 Parent 수동 검증·재작업을 늘리며, Active Parent가 더 높은 effort의 Sol인 경우에만 사용한다.
 5. **Leaf Worker / No Chaining**: 모든 Child는 Leaf Worker이며 다른 agent나 model을 spawn/invoke/delegate할 수 없다. `Sol ➔ Terra ➔ Luna` 다단계 체이닝 금지.
 6. **Fail Closed**: Child spawn 실패, 라우팅 모호성, 또는 권한 불확실 시 다른 하위 모델로 우회하지 않고 **부모 모델이 직접 수행**.
-7. **Reasoning Effort & Model Policy (Luna-First & Sol-Parent Golden Switch)**:
+7. **Reasoning Effort & Model Policy**:
    - **Luna Child**: 기본값은 Light (`reasoning_effort = "low"`). `Implementation Closed` 상태에서 bounded search 또는 검증 실패를 해석해 Parent가 고정한 Rule로 대응하는 1회 복구가 실행의 실질적 부분이면 `medium`을 후보로 삼는다.
-   - **Terra Child**: 기본값은 `medium`. Sol Parent에서 `Implementation-Local Decision Remains`인 작업에 사용한다.
-   - **Sol-Parent Golden Switch**: Implementation-local 분석/선택이 필요한 경우 Luna의 reasoning effort를 `high`로 올리지 않고 Terra Medium Child를 우선한다.
-   - **Terra Parent**: 동일 tier child를 생성하지 않으므로 implementation-local decision이 남은 작업은 Terra Parent가 직접 수행한다.
+   - **Terra Child**: 일반 implementation-local 작업은 Medium, 기존 패턴으로 선택지가 좁고 결정적 검증이 가능한 작업은 Light를 후보로 삼는다.
+   - **Sol-Parent Golden Switch**: 일반적인 implementation-local 분석/선택은 Luna의 effort를 High로 올리거나 Sol Child를 선택하지 않고, 선택 폭에 맞는 Terra Light/Medium을 우선한다. 상호 의존 관계·독립 요구사항과 검증 조건이 Sol effort-only 기준을 충족할 때만 예외로 비교한다.
+   - **같은 모델 effort 하향**: 실제 Parent effort를 확인하고 target이 엄격히 낮으며, lower tier가 예상 재작업·검증 부담을 키울 때만 Light/Medium을 후보로 삼는다.
    - **Automatic selection prohibited**: `high` / `xhigh` / `max`는 자동 선택하지 않는다. 사용자가 명시적으로 요청하거나 승인한 경우에만 exceptional override로 허용한다.
    - *Reasoning effort 상승은 Child에게 위임된 Decision Authority를 확장하지 않는다.*
 8. **Max 1 Recovery**: Child validation 실패 시 자체 구현 수정은 가능한 경우에 한해 최대 1회만 허용(환경/의존성 등 부적절한 경우 미시도). 재실행 실패 또는 미시도 시 즉시 `TASK_FAILED`로 중단.
@@ -111,7 +113,8 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
 | **Sol** | ✅ **`gpt-5.6-luna`** | `Semantic Closed` + `Implementation Closed` (단순 TDD 반복, docstring, 정형 린트/타입 수정 등 기계적 실행) |
 | **Sol** | ✅ **`gpt-5.6-terra`** | `Semantic Closed` + `Implementation-Local Decision Remains` (외부 계약 확정, 내부 로컬 알고리즘/구현 선택 위임) |
 | **Terra** | ✅ **`gpt-5.6-luna`** | `Implementation Closed` (정형 docstring, 린트/타입 수정, 단순 단위 테스트 등 기계적 실행) |
-| **Terra** | 🛑 **Terra Direct** | 구현 판단이 남은 작업은 Downshift Only 원칙에 따라 Terra 부모가 직접 수행 |
+| **Terra** | ✅ **Terra Light/Medium** | 실제 Parent effort보다 낮고 작업에 충분한 effort로 implementation-local 실행 |
+| **Sol** | ✅ **Sol Light/Medium** | 상호 의존 관계나 독립 요구사항을 함께 추적하고 Terra에서 누락 확인을 위한 Parent 수동 검증·재작업이 늘어나며 실제 Parent effort보다 낮은 경우 |
 | **Luna** | ❌ **비활성화** | 사용자가 Luna를 주 모델로 선택한 경우 상위 모델 자동 호출 없음 (직접 처리) |
 | **기타 모델** | ❌ **비활성화** | 지원하지 않는 모델 환경에서는 자동 위임을 비활성화하고 부모가 직접 수행 |
 
@@ -120,6 +123,10 @@ Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지만 Code
 ## 6. 결정적 라우팅 파이프라인 (Gate A → Gate B → Economic Gate)
 
 ```text
+Active Configuration Resolution
+  │ actual Parent model 확인; same-model 후보는 actual effort도 확인
+  │ 확인 불가 시 해당 후보 제외 또는 Parent Direct
+  ▼
 Active Parent (Sol or Terra)
   │
   ├─ 1. 상위 판단 미결 (Semantic / Architecture / Security)?
@@ -138,23 +145,14 @@ Active Parent (Sol or Terra)
                              │ ALL PASS
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│ Gate B: Decision Authority Gate                          │
-│                                                          │
-│ (Active Sol Parent)                                      │
-│ ├─ Implementation-local 분석/선택 남음                    │
-│ │  ──────────────────────────→ Terra Medium Child (5.35×)│
-│ ├─ Implementation 닫힘 + bounded search/고정 복구 필요    │
-│ │  ──────────────────────────→ Luna Medium Child (2.61×) │
-│ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Light Child (1.00×)  │
-│                                                          │
-│ (Active Terra Parent)                                    │
-│ ├─ Implementation-local 분석/선택 남음                    │
-│ │  ──────────────────────────→ Terra Parent Direct       │
-│ ├─ Implementation 닫힘 + bounded search/고정 복구 필요    │
-│ │  ──────────────────────────→ Luna Medium Child (2.61×) │
-│ └─ Implementation까지 닫힌 기계적 조립/테스트              │
-│    ──────────────────────────→ Luna Light Child (1.00×)  │
+│ Gate B: Decision Authority & Capability Fit              │
+│ - closed mechanical execution ─────────────→ Luna Light  │
+│ - closed bounded search/fixed recovery ────→ Luna Medium │
+│ - narrow established local choice ─────────→ Terra Light │
+│ - general implementation-local choice ─────→ Terra Medium│
+│ - lower tier raises rework/verification cost              │
+│   ───────────────→ same-model strictly lower Light/Medium │
+│ - no eligible strictly lower configuration ─→ Parent Direct│
 └──────────────────────────────────────────────────────────┘
                              │ candidate selected
                              ▼
@@ -168,12 +166,13 @@ Active Parent (Sol or Terra)
 ### 6.1 Routing signals and Economic Gate
 LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않는다. trivial literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work 같은 관찰 가능한 작업 속성이 라우팅을 이끈다. Gate A와 Gate B 후 Economic Gate에서 Delegation Preparation Test 네 조건을 모두 확인한다.
 
-Luna Light는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫힌 상태에서 parent-fixed Match Rule에 따른 bounded Search 또는 검증 실패에 고정 Rule로 대응하는 1회 복구가 실행의 실질적 부분인 작업이다. 단순 검증 명령 실행만으로 Medium을 선택하지 않는다. `all matches`는 Search 경계 전체를 검사하고 non-exhaustive examples를 전체 목록으로 오인하지 않는다. Terra Medium은 Sol Parent에서 외부 계약은 고정됐지만 implementation-local 선택이 남은 경우에만 후보이며, Terra Parent는 직접 처리한다. 후보여도 경제성이 비슷하면 Parent Direct다.
+Luna Light는 구현과 target locations가 닫힌 기계적 실행, Luna Medium은 구현이 닫힌 상태에서 parent-fixed Match Rule에 따른 bounded Search 또는 검증 실패에 고정 Rule로 대응하는 1회 복구가 실행의 실질적 부분인 작업이다. 단순 검증 명령 실행만으로 Medium을 선택하지 않는다. `all matches`는 Search 경계 전체를 검사하고 non-exhaustive examples를 전체 목록으로 오인하지 않는다. Terra Light/Medium은 implementation-local 선택의 폭에 따라 고른다. 같은 모델 경로는 실제 Parent effort보다 target이 낮고 lower tier의 예상 실제 작업 비용이 더 클 때만 후보다. 후보여도 경제성이 비슷하면 Parent Direct다.
 
 ### 6.2 Parent Direct 조건
 - high-consequence/irreversible work는 Gate A에서 Parent Direct로 처리한다.
 - 저위험·가역적인 trivial literal/mechanical edit는 Gate A 통과 후 Gate B에서 후보를 선정한다. Economic Gate의 Delegation Preparation Test를 충족하지 못하면 Parent Direct로 처리한다.
 - LOC·파일 수는 약한 secondary signal이며 경로를 독립적으로 결정하지 않는다.
+- 같은 모델의 target effort가 실제 Parent보다 낮음을 확인할 수 없거나 lower tier보다 나은 capability-fit 근거가 없으면 effort-only Child를 선택하지 않는다.
 
 ### 6.3 Routing Notice
 Gate A → Gate B → Economic Gate routing 평가를 실제로 수행했을 때만 최종 결정 하나를 `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>` 형식으로 정확히 한 번 사용자에게 표시한다. Child delegation은 spawn 직전 기존 notice를 사용한다. Parent Direct도 `[codex-downshift] → Parent Direct | <task_name> | <first decisive gate or brief reason>`로 표시하되, Gate A·Gate B·Economic Gate 전체가 아니라 최종 결정을 만든 첫 번째 결정적 gate 또는 이유만 짧게 담는다. 스킬이 적용되지 않아 routing 평가가 없으면 notice를 출력하지 않으며, spawn 실패도 추가 routing notice를 만들지 않는다. 출력의 canonical 규칙은 `skills/codex-downshift/SKILL.md`다.
@@ -217,27 +216,19 @@ codex-downshift/
 
 ## 8. 동적 생성 및 Downshift Spawn Contract
 
-부모 모델이 위임 시점에 Codex의 native subagent 기능을 사용하며, 모델 상속을 방지하기 위해 다음 매개변수를 반드시 명시한다:
+부모 모델이 위임 시점에 Codex의 native subagent 기능을 사용하며, 모델 상속을 방지하기 위해 다음 매개변수를 반드시 명시한다. 경로별 canonical 값과 조건은 [SKILL.md의 Spawn and Return Contract](../skills/codex-downshift/SKILL.md#-3-spawn-and-return-contract)를 따른다.
 
 ```text
-# 1) Sol ➔ Luna 또는 Terra ➔ Luna (기계적 조립/테스트)
 spawn_agent(
-    model = "gpt-5.6-luna",          # [필수] 부모 모델 상속 방지
-    fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
-    reasoning_effort = "low",        # [필수] 기본값: low (bounded 탐색·고정 복구 시 medium)
-    task_name = "<task_name>",
-    message = "<Task Capsule>"
-)
-
-# 2) Sol ➔ Terra (로컬 구현 위임, Sol Parent 전용)
-spawn_agent(
-    model = "gpt-5.6-terra",         # [필수] Terra 모델 명시
-    fork_turns = "none",             # [필수] 부모 대화 제외, fresh context
-    reasoning_effort = "medium",     # [필수] 기본값: medium
+    model = "<selected exact child model>",
+    fork_turns = "none",
+    reasoning_effort = "<low or medium>",
     task_name = "<task_name>",
     message = "<Task Capsule>"
 )
 ```
+
+같은 모델 경로는 실제 Parent effort보다 낮은 값을 선택한다. model 하향 경로에서는 Parent와 Child effort를 비교하지 않고 작업 profile에 맞는 Light 또는 Medium을 선택한다.
 
 ### 8.1 Fail-Closed Fallback Invariant (불변 규칙)
 - Child 생성이 실패하거나 미지원 환경인 경우:
@@ -257,7 +248,9 @@ spawn_agent(
 - 스킬은 이미 선택된 Active Parent를 유지하며 Parent 모델을 추천하거나 자동 전환하지 않는다.
 - Luna Light는 target과 구현이 닫힌 기계적 실행의 기본값이다.
 - Luna Medium은 구현과 Match Rule이 닫힌 상태에서 bounded search 또는 검증 실패에 고정 Rule로 대응하는 1회 복구가 실질적 실행량일 때의 후보다.
-- implementation-local 선택이 남은 작업은 Sol Parent에서 Terra Medium 후보이며, Terra Parent는 직접 처리한다.
+- implementation-local 선택이 남은 작업은 선택 폭에 따라 Terra Light/Medium 후보다. Terra Parent에서는 실제 Parent effort보다 낮은 target만 허용한다.
+- 상호 의존 관계나 독립 요구사항을 함께 추적하고 결정적 검증만으로 누락 확인이 어려워 Terra가 Parent 수동 검증·재작업을 늘리면 실제 Parent effort보다 낮은 Sol Light/Medium을 후보로 삼을 수 있다.
+- 같은 모델 유지 자체는 후보 근거가 아니며, Parent effort를 확인할 수 없으면 effort-only 경로를 사용하지 않는다.
 - benchmark 점수와 비용은 대체로 함께 증가하지만 비례하지 않으며, effort 상승은 Decision Authority를 확장하지 않는다.
 - `high`·`xhigh`·`max`는 자동 선택하지 않는다.
 
@@ -287,10 +280,16 @@ Downshift는 미완성된 의미적 판단을 하위 워커에 넘기는 수단�
 - 동일 패턴의 다중 파일 반복 수정 (Rename, 직렬화 필드 교체 등)
 - deterministic lint/type 오류 수정
 
-### Terra Child 전용 (Implementation-Local Choice, Sol Parent)
+### Terra Child (Implementation-Local Choice)
 - 외부 API 계약은 확정되었으나 내부 알고리즘(Strategy vs 함수형) 선택이 필요한 작업
 - 내부 클래스 구조 및 로컬 자료구조 설계
 - 제한된 범위의 로컬 리팩토링 및 탐색이 필요한 구현
+
+같은 모델 Terra 경로에서는 실제 Parent effort보다 낮은 Light/Medium만 선택한다.
+
+### Sol Child (같은 모델 effort 하향)
+- 여러 규칙·문서·계약의 관계를 유지하되 상위 결정과 completion set이 고정된 bounded 실행
+- 결정적 검증만으로 누락 확인이 어려워 Terra에서 Parent 수동 검증·재작업이 늘고 Sol Light/Medium이면 충분한 작업
 
 ---
 
@@ -377,13 +376,14 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 
 ---
 
-## 15. Parent / Terra Child / Luna Child 책임 분리
+## 15. Parent / Child 책임 분리
 
-| 구분 | Active Parent (Sol/Terra) | Terra Child (Sol Parent) | Luna Child (Sol/Terra) |
+| 구분 | 주요 역할 | 책임 범위 | 제약 조건 |
 | :--- | :--- | :--- | :--- |
-| **주요 역할** | 총괄 지휘 및 상위 의사결정 | 로컬 구현 분석 및 선택 | 확정된 기계적 코드 실행 |
-| **책임 범위** | 요구사항 해석, 아키텍처, 보안, 최종 검증 | 내부 클래스/알고리즘 구현 | 정형화된 코드 조립, 린트, 테스트 |
-| **제약 조건** | 하위 워커 결과 Blind Trust 금지 | Public API 변경 금지, No Chaining | 상위 판단 금지, No Chaining |
+| Active Parent (Sol/Terra) | 총괄 지휘 및 상위 의사결정 | 요구사항 해석, 아키텍처, 보안, 최종 검증 | Child 결과 Blind Trust 금지 |
+| Luna Child | 확정된 기계적 코드 실행 | 정형화된 코드 조립, 린트, 테스트 | 상위 판단 금지, No Chaining |
+| Terra Child | 로컬 구현 분석 및 선택 | 고정 외부 계약 안의 내부 클래스·알고리즘 구현 | Public API 변경 금지, No Chaining; 같은 모델이면 lower effort |
+| Sol Child | bounded 관계·정합성 실행 | 고정 결정과 계약 안의 다중 문서·규칙·구현 정합성 유지 | 상위 판단 금지, No Chaining; 반드시 lower effort |
 
 ---
 
@@ -415,7 +415,7 @@ Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으�
 ## 19. Non-Goals
 
 - 범용 AI model router나 임의 switching을 구현하지 않는다.
-- 상향 에스컬레이션(`Luna/Terra ➔ Sol`)이나 동일 티어 재위임을 구현하지 않는다.
+- 상위 모델 호출이나 같은 모델의 동일·상위 effort 위임을 구현하지 않는다.
 - 별도의 daemon, config 시스템, runtime wrapper를 추가하지 않는다.
 - `high`/`xhigh`/`max` reasoning effort를 자동 spawn에 사용하지 않는다.
 
@@ -424,7 +424,8 @@ Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으�
 ## 20. 성공 기준 (Success Criteria)
 
 ### 기능적 성공 기준
-- Sol/Terra에서 명확한 실행 작업이 하위 워커로 안전하게 위임된다.
+- Sol/Terra에서 명확한 실행 작업이 엄격히 낮은 모델 구성의 워커로 안전하게 위임된다.
+- 같은 모델 경로는 실제 Parent effort가 확인되고 target effort가 엄격히 낮을 때만 선택된다.
 - Gate A에서 High Consequence 작업이 완벽히 차단된다.
 - 하위 워커가 다른 에이전트를 생성하지 않는다 (No Chaining).
 - 부모 모델이 최종 판단권을 온전히 유지한다.
@@ -456,7 +457,7 @@ Parts of the delegation safety design and execution constraints were inspired by
 
 ## 23. 한 문장 정의
 
-> **Keep the user's Sol or Terra parent in control, and offload bounded execution work to Luna & Terra.**
+> **Keep the user's Sol or Terra parent in control, and offload bounded execution work to a strictly lower model configuration.**
 
 한국어:
-> **사용자가 선택한 Sol 또는 Terra의 판단권은 유지하고, Gate A → Gate B → Economic Gate를 통과한 실행 작업만 Luna 또는 Terra에 안전하게 하향 위임한다.**
+> **사용자가 선택한 Sol 또는 Terra의 판단권은 유지하고, Gate A → Gate B → Economic Gate를 통과한 실행 작업만 더 낮은 모델 tier 또는 같은 모델의 더 낮은 effort에 안전하게 하향 위임한다.**

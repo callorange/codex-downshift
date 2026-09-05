@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 추가 (Added)
+- **같은 모델 reasoning effort 하향 위임**: 실제 Parent model·effort를 확인한 뒤 같은 모델의 엄격히 낮은 Light/Medium Child를 선택할 수 있도록 구성 기준 Downshift Only를 확장. Terra Medium → Terra Light, Terra High 이상 → Terra Medium, Sol Medium → Sol Light, Sol High 이상 → Sol Medium 경로와 lower-tier 적합성·Economic Gate 조건을 실행 규칙, Capsule, 경제성, 추천, 예시와 명세에 동기화.
 - **Parent Direct routing notice**: Gate A → Gate B → Economic Gate 평가를 수행한 최종 Parent Direct도 기존 Spawn Notice 호환 형식으로 한 번 표시하고, Child delegation·비적용 요청·spawn 실패의 notice 횟수 규칙을 명시.
 - **Economic Gate 및 준비 테스트**: Parent 준비·Child 실행·Parent 검증의 Effective Downshift Cost와 Parent Direct Cost를 비교하는 네 가지 필요조건과 human steering·rework·verification을 포함한 실제 작업 비용 관점을 명시. 2× Luna/3× Terra는 라우팅 기준이 아닌 근거 미확정 운영 가설로 비용 문서에만 보존.
 - **Luna all-matches 안전장치 및 micro-batch**: bounded Search 전체 매치와 non-exhaustive examples 규칙, 항목별 완료 형식을 추가.
@@ -22,7 +23,7 @@
   함께 해석해 Luna·Terra·Sol의 작업별 추천 기준을 보완. Luna Medium은 Implementation Closed 상태에서
   bounded search 또는 검증 실패에 Parent가 고정한 Rule로 대응하는 1회 복구가 실질적 실행량일 때의 후보로 정밀화.
   비용과 점수는 대체로 함께 증가하지만 비례하지 않는다는 적용 경계를 명시하고, 기획 명세의 중복 수치표는 기준 문서 링크로 대체.
-  기존 위임 경로·판단 권한·공식 요율·추정 지수 수치는 유지.
+  기존 model-tier 위임 경로·판단 권한·공식 요율·추정 지수 수치는 유지. 같은 모델 lower-effort 경로는 benchmark에서 도출한 결론이 아니라 사용자 명시 정책으로 별도 추가.
 
 - **공식 Token-Credit Rate 표 정리**: OpenAI 공식 표의 열 이름과 credits 단위를 그대로 반영하고,
   Luna 대비 상대 배수는 공식 값과 구분한 프로젝트 해석으로 이동. 기존 요율 수치는 유지.

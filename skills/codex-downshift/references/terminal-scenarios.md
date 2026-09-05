@@ -11,7 +11,7 @@
 
 ## 🧪 Scenario 6: Child 작업 중 새 설계 판단 직면 (`NEEDS_PARENT_DECISION`)
 
-하위 워커(Luna 또는 Terra)가 구현 중 기존 레거시 코드와의 심각한 호환성 충돌이나 모호한 요구사항을 마주했을 때:
+하위 워커(Luna, Terra 또는 effort-only Sol)가 구현 중 기존 레거시 코드와의 심각한 호환성 충돌이나 모호한 요구사항을 마주했을 때:
 
 ```text
 NEEDS_PARENT_DECISION

@@ -23,7 +23,7 @@
 | **2** | 계약 확정 + 구현 로컬 판단 잔여 | **Sol** | 🟡 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 `gpt-5.6-terra` medium |
 | **3** | 다중 파일 확정 패턴 기계적 적용 | **Sol** | 🟢 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 `gpt-5.6-luna` |
 | **4** | 확정된 docstring / 린트 / 테스트 수정 | **Terra** | 🟢 **Gate B 후보 ➔ Economic Gate** | 충분한 leverage일 때 Luna Light |
-| **5** | 구현 판단 잔여 작업 (Terra 부모) | **Terra** | 🛑 **Downshift Only ➔ Terra Direct** | Terra 부모는 Terra child를 부르지 않고 직접 수행 |
+| **5** | 구현 판단 잔여 작업 (Terra 부모) | **Terra** | ⚖️ **effort 확인 ➔ Terra 하위 effort 또는 Parent Direct** | 실제 Parent effort보다 낮고 작업에 충분한 Terra Light/Medium만 후보 |
 | **6** | Child 작업 중 새 설계 판단 직면 | **Child** | 🛑 **`NEEDS_PARENT_DECISION`** | 하위 워커 임의 판단 금지, 미결 사항 보고 후 부모 판단 |
 | **7** | Child 외부 부수효과 필요 직면 | **Child** | 🛑 **`NEEDS_PARENT_ACTION`** | git push/deploy 등 외부 권한 작업 시 부모에게 제어권 반환 |
 | **8** | 검증 실패 후 1회 복구 실패 또는 복구 부적절로 미시도 | **Child** | 🛑 **`TASK_FAILED`** | 무한 루프 금지. 복구 시도 여부·미시도 사유와 실패 원인을 보고하고 작업트리 보존 |
@@ -51,7 +51,7 @@
   - Semantic Closed + Implementation Closed이지만, 데이터 손실 위험 및 락(Lock) 유발 가능성이 있는 **High Consequence/Blast Radius** 작업임.
   - **Gate A (Delegation Safety Gate)**에서 탈락.
 - **올바른 동작**:
-  - ❌ Luna 또는 Terra로 위임하지 않음.
+  - ❌ 어떤 Child 구성으로도 위임하지 않음.
   - ✅ **부모 모델(Sol/Terra)이 직접 마이그레이션 코드를 작성하고 검증합니다.**
 
 ---
@@ -194,22 +194,28 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 
 ---
 
-## 🧪 Scenario 5: Terra Parent + 구현 판단 잔여 (Terra Direct)
+## 🧪 Scenario 5: 같은 모델의 effort 하향
 
-- **상황**: Terra가 주력(Parent) 모델인 상태에서, 내부 알고리즘 분석 및 선택이 필요한 로컬 구현 작업 직면.
+- **상황**: Terra가 Parent인 상태에서 내부 알고리즘 분석 및 선택이 필요한 bounded 로컬 구현 작업에 직면했다.
 - **라우팅 판정**:
-  - Downshift Only 불변 규칙: Terra Parent는 동일 티어인 Terra Child를 생성할 수 없음 (`Terra Parent ➔ Terra Child` 금지).
-  - Luna에게 위임하기에는 구현 판단이 열려 있음.
+  - 실제 Parent가 Terra Medium이고 기존 패턴으로 선택지가 좁으며 결정적 검증이 가능하면 Terra Light가 후보다.
+  - 실제 Parent가 Terra High/XHigh/Max이고 일반 implementation-local 선택이 남으면 Terra Medium이 후보다.
+  - Parent effort가 target보다 높지 않거나 확인되지 않으면 같은 모델 경로는 ineligible이다.
 - **올바른 동작**:
-  - ✅ **Terra 부모 모델이 직접 분석하고 구현을 수행합니다.**
+  - ✅ Gate A/B와 Economic Gate까지 통과하면 확인된 Parent보다 낮은 Terra effort를 명시해 spawn한다.
+  - ✅ 낮은 effort가 충분하지 않거나 위임 부담이 실행 절감분을 상쇄하면 Terra Parent가 직접 수행한다.
 
-### Failure Case: Active Parent identity를 잘못 추정한 Terra Child spawn
+### Sol Medium → Sol Light 예시
 
-- **Failure**: Terra Parent를 Sol이라고 잘못 가정해 Terra Medium Child를 spawn함.
-- **Expected**:
-  - Terra Parent + Implementation-local decision remains ➔ Parent Direct.
-  - Terra Parent + Implementation Closed ➔ Luna candidate.
-- **Rule**: Active Parent identity를 추정하지 않는다. Terra Child는 Active Parent가 Sol임을 current runtime/session model 정보로 positive confirmation한 경우에만 허용한다.
+- **상황**: 규칙·문서·계약의 관계를 유지해야 하지만 상위 결정과 completion set은 Sol Parent가 이미 고정했다.
+- **후보 조건**: 실제 Parent가 Sol Medium이고, Terra/Luna가 필요한 관계를 놓쳐 예상 재작업·검증 부담을 키운다는 근거가 있으며 Sol Light로도 bounded 실행이 가능하다.
+- **판정**: 모든 gate를 통과하면 Sol Light Child 후보다. Sol을 유지한다는 이유만 있거나 lower tier가 충분하면 이 경로를 선택하지 않는다.
+
+### Failure Case: Active Parent 구성을 추정한 같은 모델 spawn
+
+- **Failure**: 실제 Parent effort를 확인하지 않고 Terra Medium 또는 Sol Light Child를 spawn한다.
+- **Expected**: 같은 모델 후보를 제외하고, 확인된 Parent model로 lower-model 후보를 평가하거나 Parent Direct로 처리한다.
+- **Rule**: 같은 모델 경로에서는 실제 Parent model과 effort를 모두 확인하고 target effort가 엄격히 낮아야 한다.
 
 ---
 
@@ -273,5 +279,5 @@ Parent Direct는 `[codex-downshift] → Parent Direct | update_auth_policy | Gat
 - **B Parent Direct**: 작은 함수 1개와 pytest 한 번이 남은 작업에서 capsule 준비·검증 부담이 대체 실행량보다 명확히 작지 않으면 Parent Direct다. 함수 수나 검증 횟수만으로 결정하지 않는다.
 - **C Luna micro-batch**: 위 Scenario 13의 서로 다른 4개 독립 변경을 같은 Luna Light로 itemize한다. 개수는 예시이며 후보 조건과 모든 gate를 충족해야 한다.
 - **D Poor Terra**: Sol이 구현 방법을 이미 상세히 고정했다면 남은 구현 선택이 없어 Gate B에서 Terra 후보가 아니다. Gate A를 통과한 Luna 후보의 실제 위임 여부는 Economic Gate에서 별도로 판단한다.
-- **E Good Terra**: 외부 API contract는 고정됐지만 자료구조 선택·구현·테스트 루프가 남으면 Terra가 local criteria로 판단한다.
+- **E Good Terra**: 외부 API contract는 고정됐지만 자료구조 선택·구현·테스트 루프가 남으면 Sol Parent는 Terra Medium을, effort가 High 이상인 Terra Parent는 Terra Medium effort 하향을 후보로 평가한다.
 - **F Routing notice**: `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule` 또는 `[codex-downshift] → Parent Direct | single_literal | Economic Gate: delegation overhead`를 최종 routing 결정마다 한 번 표시한다.

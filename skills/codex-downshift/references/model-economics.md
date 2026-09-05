@@ -63,9 +63,25 @@ Sol은 각각 20×·20×·약 16.7×다. 이 배수는 공식 표의 값으로 �
 | :--- | :---: | :---: | :---: | :--- |
 | **Luna Light** | **1.00×** | **~89.4% lower** | **~94.5% lower** | 확정된 기계적 조립, 단위 테스트, 정형 린트/수정 |
 | **Luna Medium** | **2.61×** | **~72.2% lower** | **~85.5% lower** | 구현 닫힘 + bounded 탐색·고정 복구 실행 |
-| **Terra Medium** | **5.35×** | **~43.1% lower** | **~70.3% lower** | 로컬 알고리즘/클래스 내부 설계 (Sol Parent 전용) |
+| **Terra Medium** | **5.35×** | **~43.1% lower** | **~70.3% lower** | 고정된 외부 계약 안의 로컬 알고리즘/클래스 내부 설계 |
 
 *(※ 모든 절감률은 Estimated Consumption Index 기준 추정치이며, 공식 allowance 보증치가 아닙니다.)*
+
+### 3.1 같은 모델 effort 하향의 예상 지수 차이
+
+같은 모델의 더 낮은 effort를 Child로 쓰면 model token-credit rate는 같지만 Estimated Consumption Index는 낮아진다.
+아래는 자동 target인 Light 또는 Medium으로 내리는 대표 비교이며, 실제 Parent effort를 확인한 경우에만 적용한다.
+
+| Parent → Child | 예상 소모 지수 | Child 지수의 상대 감소 |
+| --- | ---: | ---: |
+| Terra Medium → Terra Light | 5.35× → 4.46× | ~16.6% lower |
+| Terra High → Terra Medium | 8.39× → 5.35× | ~36.2% lower |
+| Sol Medium → Sol Light | 18.04× → 9.40× | ~47.9% lower |
+| Sol High → Sol Medium | 25.63× → 18.04× | ~29.6% lower |
+
+이 감소율은 Child 실행분만 비교한 추정치다. Capsule 준비, Parent 검증, 재지시와 재작업이 추가되므로
+위임 전체가 같은 비율로 절감된다는 뜻은 아니다. lower-model 후보가 충분하면 공식 요율도 더 낮으므로 먼저 비교한다.
+Terra same-model 경로는 implementation-local 선택 때문에 Luna 권한을 넘을 때, Sol same-model 경로는 관계·요구사항 누락을 결정적 검증만으로 확인하기 어려워 Terra가 Parent 수동 검증·재작업을 늘릴 때의 제한된 대안이다.
 
 ---
 

@@ -100,4 +100,4 @@ Luna High와 Terra Medium의 금전 비용·추정 지수상 순위가 다르므
 
 외부 benchmark 관측, 프로젝트의 추정 지수, 운영 경험을 구분한다.
 어느 자료도 이 프로젝트에서 사용자 재지시 비용을 포함한 동일 모델 Medium → Light Child 위임의 순절감을 측정하지 않았다.
-따라서 외부 점수만으로 기존 Downshift Only·권한·Economic Gate 정책을 변경하지 않는다.
+따라서 외부 점수만으로 lower-model과 same-model lower-effort 경로의 우선순위나 권한을 결정하지 않는다. 같은 모델 effort 하향도 엄격한 구성 하향, 고정된 Parent 권한, Economic Gate를 모두 충족해야 한다.

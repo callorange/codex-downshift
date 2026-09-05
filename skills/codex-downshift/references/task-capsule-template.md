@@ -1,13 +1,15 @@
 # Task Capsule Template & Terminal Return Protocols
 
-부모 모델(Sol/Terra)이 하위 워커인 Luna(`gpt-5.6-luna`) 또는 Terra(`gpt-5.6-terra`)에 실행 작업을 위임할 때 복사하여 작성하는 표준 프롬프트 서식 및 자식 워커의 표준 반환 프로토콜입니다.
+부모 모델(Sol/Terra)이 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort를 사용하는 Leaf Child에 실행 작업을 위임할 때 복사하여 작성하는 표준 프롬프트 서식 및 자식 워커의 표준 반환 프로토콜입니다.
 
 > [!IMPORTANT]
 > **Pre-spawn check (parent only; child message에 포함하지 않음)**:
 > - Gate A (Safety): Bounded, Verifiable, Limited Consequence(저위험/가역적)인가?
 > - Gate B (Authority): 결과의 의미·외부 계약이 확정되었는가?
+> - Active Configuration: 실제 Parent model을 확인했는가? 같은 모델 경로라면 실제 Parent effort도 확인했으며 Child effort가 엄격히 낮은가?
 > - Terra Child 위임 시: 남은 작업이 Implementation-local 분석 및 선택에 한정되는가?
 > - Luna Child 위임 시: 구현 방법 및 패턴까지 확정되어 기계적 적용만 남았는가?
+> - Sol Child 위임 시: 상위 판단은 닫혔고 상호 의존 관계나 독립 요구사항을 함께 추적하며, 결정적 검증만으로 누락 확인이 어려워 Terra가 Parent 수동 검증·재작업을 늘린다는 근거가 있는가?
 > - `Apply`가 지정 target만 처리할지(`Exact`), Search 범위의 모든 매치를 처리할지(`All matches within scope`) 명확히 하는가?
 > - 고정된 결과가 계약이라면 적용 범위와 별개로 필요한 고정 `Rule`/결과 형식이 제공되었는가?
 > - Economic Gate: 네 준비 조건을 모두 충족하고, 추가 재지시·재작업·검증 부담이 실행 절감분을 상쇄하지 않는가? 아니면 Parent Direct다.
@@ -31,7 +33,7 @@ capsule 준비에 direct execution과 비교 가능한 분석·상세 설계가 
 ```text
 TASK CAPSULE
 
-Worker profile: [Luna | Terra]
+Worker profile: [Luna | Terra | Sol]
 Role: You are a leaf worker.
 
 Goal:
@@ -51,6 +53,8 @@ Delegated authority:
 [Luna Child: Predetermined execution only - apply fixed patterns, assemble code, or mechanical edits]
 or
 [Terra Child: Implementation-local analysis and choice allowed within fixed external contracts]
+or
+[Sol Child: Bounded relationship and consistency execution within fixed decisions and external contracts]
 
 Must not decide:
 - [부모 모델 고유의 판단 영역: Architecture, Public API, Product Policy, Security, Scope 확장 등]
@@ -128,7 +132,10 @@ Terra도 `Apply: Exact`와 implementation-local choice를 함께 사용할 수 �
 | --- | --- | --- |
 | Luna Light | 구현 방법과 target locations closed | 확정된 구현 적용; Sol 또는 Terra Parent |
 | Luna Medium | 구현 방법 확정 + closed Match Rule + bounded Search 또는 검증 실패에 고정 Rule로 대응하는 1회 복구 | 고정 규칙으로 탐색·적용·검증·복구; 구현 판단 권한 확대 없음; Sol 또는 Terra Parent |
-| Terra Medium | 의미·외부 계약 확정 + implementation-local 선택 잔여 | 고정 계약 안의 내부 구현 선택; Sol Parent 전용. Terra Parent는 직접 처리. |
+| Terra Light | 의미·외부 계약 확정 + 기존 패턴으로 선택지가 좁은 implementation-local 작업 | 고정 계약과 기존 패턴 안의 좁은 구현 선택; Sol Parent 또는 effort가 Light보다 높은 Terra Parent |
+| Terra Medium | 의미·외부 계약 확정 + 일반 implementation-local 선택 잔여 | 고정 계약 안의 내부 구현 선택; Sol Parent 또는 effort가 Medium보다 높은 Terra Parent |
+| Sol Light | 의미·외부 계약 확정 + 상호 의존 관계나 독립 요구사항을 함께 추적하는 bounded 실행 | 관계·정합성 실행; effort가 Light보다 높은 Sol Parent이며 Terra에서 누락 확인을 위한 Parent 수동 검증·재작업이 늘어나는 근거 필요 |
+| Sol Medium | 의미·외부 계약 확정 + 상호 의존 관계나 독립 요구사항을 함께 추적하는 bounded 실행 | 관계·정합성 실행; effort가 Medium보다 높은 Sol Parent이며 Terra에서 누락 확인을 위한 Parent 수동 검증·재작업이 늘어나는 근거 필요 |
 
 **Luna 공통 경계**
 
@@ -137,9 +144,9 @@ Luna는 rule을 발명하거나 확장하지 않는다.
 `Apply: All matches within scope`이면 non-exhaustive examples가 있어도 Search 경계의 모든 매치를 검사한다.
 semantic·architecture·product·compatibility·policy 판단이 필요하면 `NEEDS_PARENT_DECISION`이다.
 
-**Terra에 전달할 계약**
+**Implementation-local·정합성 Child에 전달할 계약**
 
-공통 Scope·Apply·검증·worker 제한·반환 계약을 유지하면서, Terra의 구현 지침에는 다음을 제공하고 절차를 과도하게 고정하지 않는다:
+공통 Scope·Apply·검증·worker 제한·반환 계약을 유지하면서, Terra 또는 effort-only Sol의 구현 지침에는 다음을 제공하고 절차를 과도하게 고정하지 않는다:
 
 - goal
 - fixed external contract
