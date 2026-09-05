@@ -140,7 +140,12 @@ Snapshot date: **2026-09-03**
 - CursorBench 3.2
   - https://cursor.com/evals
   - 모델 및 reasoning effort별 score / token usage / agent steps 관측치
-
+- Artificial Analysis
+  - https://artificialanalysis.ai/models/releases/gpt-5-6-luna
+  - https://artificialanalysis.ai/models/releases/gpt-5-6-terra
+  - https://artificialanalysis.ai/models/releases/gpt-5-6-sol
+  - https://artificialanalysis.ai/agents/coding-agents/comparisons/codex-vs-grok-build
+  - 모델·추론 레벨별 Intelligence Index와 Codex Coding Agent Index, task당 token 관측치
 
 ### 지수 산출 근거의 재현 상태
 
@@ -229,8 +234,8 @@ LOC는 secondary reference이며, 단일 deterministic validation은 trigger가 
 | --- | ---: | --- | --- |
 | **Luna Light** | **1.00×** | 구현 방법과 대상 위치가 확정된 기계적 실행의 우선 Child 후보. 반복 실행량을 낮은 모델 비용으로 대체할 수 있다. | 요구사항·계약·구현 판단을 새로 맡기는 근거가 아니다. 준비·검증 비용이 실행 절감분을 상쇄하면 Parent Direct다. |
 | **Luna Medium** | **2.61×** | 구현은 닫혀 있고 고정 Match Rule 안에서 bounded search가 필요한 Child 후보. | Light보다 탐색에 추론을 배정하는 설정이며 구현 판단 권한을 넓히지 않는다. 문서 간 의미·계약 판단이 남은 일을 단순 검색으로 간주하지 않는다. |
-| **Luna High** | **6.00×** | 기존 관측에서는 Terra Medium보다 높은 benchmark score를 보였다. 이를 포함해 비용·step·과업 적합성을 함께 비교한다. | 같은 관측에서 더 높은 소모 지수와 많은 step을 보였다. 특정 점수 우위를 일반 품질 우위로 해석하지 않으며, 자동 선택하지 않는다. |
-| **Terra Light** | **4.46×** | Terra Medium보다 낮은 추정 소모 지수의 비교 후보. | 이 문서의 경험만으로 Medium 대비 품질·재작업 차이를 판단할 수 없다. 일반 구현의 Medium 기본 추천이나 Terra Child의 Medium 정책을 바꾸는 근거는 아니다. |
+| **Luna High** | **6.00×** | Artificial Analysis Coding Agent Index와 CursorBench에서 Terra Medium보다 높은 점수를 보였다. 비용·token·step·과업 적합성을 함께 비교한다. | 점수 우위가 implementation-local 권한을 만들지 않는다. Medium보다 task당 token이 많으며 자동 선택하지 않는다. |
+| **Terra Light** | **4.46×** | Terra Medium보다 낮은 추정 소모 지수의 비교 후보. | 외부 Coding Agent Index는 Medium보다 9점 낮다. 프로젝트별 품질·재작업 차이는 측정되지 않았으며 일반 구현의 Medium 기본 추천을 바꾸지 않는다. |
 | **Terra Medium** | **5.35×** | 일반 구현의 비용/품질 균형 기본 추천. Sol Parent 아래에서는 외부 계약이 고정된 implementation-local 작업의 Child 후보. | 상위 규칙·계약 판단은 Parent 책임이다. Terra Parent가 Terra Child를 생성할 수는 없다. |
 | **Sol Light** | **9.40×** | Sol Medium의 토큰 사용량이 부담될 때 고려하는 Parent 설정의 절충안. | Medium과 같은 결과 품질을 전제하지 않는다. 재지시·재작업·검증을 포함해 비교하며, 일반 구현의 Terra Medium 기본 추천을 대체하지 않는다. |
 | **Sol Medium** | **18.04×** | 아래 조건처럼 상위 판단·정합성 유지 및 사용자 재지시 부담을 중시할 때 우선 고려하는 Parent 설정. | 일반 구현의 기본값은 아니다. 높은 사용량을 감수하는 경험 기반 선택이며 지시 준수를 보장하지 않는다. |
@@ -241,8 +246,37 @@ Parent가 닫아 둔 결정 안에서 확인 가능한 실행량을 대체할 �
 이는 Luna의 일반 능력 한계에 대한 단정이 아니라 이 스킬이 부여하는 권한과 경제성의 경계다.
 Luna를 Active Parent로 사용하는 방식은 현재 스킬의 지원 범위가 아니다.
 
-Sol Light와 Medium의 외부 관측 비교는 [외부 평가 데이터](#9-external-evaluation-data)를 참조한다.
+모델·추론 레벨별 외부 관측 비교는 [외부 평가 데이터](#9-external-evaluation-data)를 참조한다.
 해당 결과는 이 프로젝트의 정합성 작업이나 Child 위임 결과를 직접 측정한 것은 아니다.
+
+### 성능·사용량 종합 해석
+
+[Artificial Analysis 관측](#artificial-analysis-추론-레벨별-성능)을 기존 공식 요율과
+Estimated Consumption Index에 함께 적용하면 다음 기준을 얻을 수 있다.
+
+| 비교 | 관측과 추천에 미치는 영향 |
+| --- | --- |
+| Light → Medium | Coding Agent Index가 Luna +17, Terra +9, Sol +7 상승했다. 위치·변환 규칙이 완전히 고정된 작업에는 Light를 유지하되, bounded search나 test/fix 반복이 있으면 Medium의 추가 추론이 재작업을 줄일 여지가 있다. |
+| Medium → High | Luna +10, Terra +7, Sol +2다. Luna·Terra에서는 성능 상승이 크지만 effort가 권한을 확대하지 않는다. Sol은 Medium의 점수 효율이 높아 High를 일반 기본값으로 올릴 근거가 약하다. |
+| High → XHigh → Max | Intelligence Index는 대체로 상승하지만 Coding Agent Index는 증가 폭이 작거나 Sol High 64 → XHigh 63처럼 역전도 있다. 높은 effort는 난도가 관측됐거나 실패 비용이 추가 사용량보다 클 때만 고려한다. |
+| Luna High vs Terra Medium | Intelligence는 둘 다 47, Coding Agent Index는 52 vs 48이다. Codex task당 token은 9.6M vs 3.2M이고 Estimated Consumption Index는 6.00× vs 5.35×다. Luna의 공식 token-credit rate는 낮지만 Terra는 implementation-local 권한에 맞으므로 점수만으로 경로를 바꾸지 않는다. |
+| Terra High vs Sol Light | Intelligence는 50 vs 51, Coding Agent Index는 둘 다 55다. 비슷한 점수가 model tier의 역할·지시 준수·정합성 능력이 같다는 뜻은 아니다. 필요한 판단 권한과 실제 재작업 비용으로 선택한다. |
+| Sol Medium vs 상위 effort | Coding Agent Index 62로 High 64·Max 65에 가깝고 Estimated Consumption Index는 High보다 약 29.6%, Max보다 약 65.6% 낮다. 규칙·정합성 작업의 기본 우선 고려는 Sol Medium으로 유지한다. |
+
+이 비교는 benchmark task 집합의 평균 관측이다. 개별 작업의 성공확률이나 지시 준수를 보장하지 않으며,
+비슷한 종합 점수라도 DeepSWE·Terminal-Bench·SWE-Atlas-QnA의 세부 강점은 다를 수 있다.
+
+### Downshift Child 선택 보완
+
+아래 기준은 benchmark 관측을 기존 Gate B 권한 정책에 보조 신호로 적용한 것이다.
+점수나 effort가 Child의 위임 권한을 확대하지 않으며, 실제 위임에는 Economic Gate도 적용한다.
+
+| 작업 조건 | Child 후보 | 판단 근거와 적용 경계 |
+| --- | --- | --- |
+| 구현 방법과 수정 위치가 고정된 짧은 기계적 실행 | **Luna Light** | 가장 낮은 Estimated Consumption Index를 활용한다. Coding Agent Index가 25이므로 탐색·해석·복구 판단을 새로 맡기지 않는다. |
+| 구현은 닫혀 있고 bounded search나 반복 test/fix가 필요 | **Luna Medium** | Coding Agent Index가 Light 25에서 Medium 42로 상승했다. 추가 token과 Parent 검증을 감수할 실행량이 있을 때 사용한다. |
+| 구현은 닫혀 있으나 Medium 실패의 재작업 비용이 크고 높은 effort를 사용자가 승인 | **Luna High 예외 고려** | Coding Agent Index 52로 Medium보다 높지만 task당 token도 4.3M에서 9.6M으로 늘었다. 구현 판단 권한은 확대하지 않으며 자동 선택하지 않는다. |
+| 외부 계약은 고정됐지만 implementation-local 선택이 남음 | **Terra Medium** | Sol Parent에서만 선택한다. Luna High의 점수가 더 높아도 effort로 구현 권한을 대신하지 않는다. Terra Parent는 직접 처리한다. |
 
 ### 사용자 설정 추천
 
@@ -253,12 +287,13 @@ Sol의 사용량 부담을 줄이려는 경우에는 **Sol Light를 절충안으
 
 | 작업 조건 | Parent 추천 | 판단 근거와 적용 경계 |
 | --- | --- | --- |
-| 요구사항과 외부 계약이 명확하고 기존 패턴으로 진행하는 일반적인 구현 | **Terra Medium 기본** | 단순하거나 일반적인 구현까지 Sol Medium을 기본 추천하지 않는다. |
-| Sol을 사용하되 Medium의 토큰 사용량이 부담됨 | **Sol Light 고려** | Medium과 동일 품질을 전제하지 않는다. 요구사항 충족·재지시·재작업·검증을 포함한 실제 작업 비용으로 비교한다. |
-| 규칙·하네스·아키텍처의 조건, 예외, 우선순위 또는 책임 경계를 설계·수정 | **Sol Medium 우선 고려** | 판단 누락이 이후 실행에 영향을 주는 작업에 적용한다. 확정된 문구의 단순 치환만으로 이 조건을 충족하지 않는다. |
-| 여러 문서·계약 사이에서 동일한 의미와 조건을 유지해야 함 | **Sol Medium 우선 고려** | 문서 간 누락·충돌을 추적하는 부담을 고려한다. 파일 수 자체는 기준이 아니다. |
-| 독립 요구사항이 많아 각각의 충족 여부와 누락을 추적해야 함 | **Sol Medium 우선 고려** | 요구사항 수에 임계값을 두지 않고, 따로 유지·검증할 조건과 완료 대상의 부담을 본다. |
-| 잘못 처리하면 사용자가 의도를 다시 설명하거나 결과를 되돌려 수정해야 하는 비용이 큼 | **Sol Medium 우선 고려** | 이미 발생한 재지시·재작업이나 예상되는 수정 범위가 판단 근거다. 낮은 소모 지수만으로 추천하지 않는다. |
+| 요구사항과 외부 계약이 명확하고 기존 패턴으로 진행하는 일반적인 구현 | **Terra Medium 기본** | Light보다 Coding Agent Index가 39에서 48로 높고 Estimated Consumption Index 증가는 4.46×에서 5.35×다. 일반 구현까지 Sol Medium을 기본 추천하지 않는다. |
+| Terra를 사용하며 작업이 정형적이고 사용량 절감이 품질 여유보다 중요 | **Terra Light 고려** | Light의 점수와 재작업 가능성을 감수할 수 있을 때만 선택한다. implementation-local 판단이나 다중 파일 조정에는 Medium을 유지한다. |
+| 외부 계약은 고정됐지만 내부 설계·다중 파일 구현 난도가 실제로 높음 | **Terra High 고려** | Coding Agent Index가 Medium 48에서 High 55로 상승했다. 높은 effort의 추가 사용량보다 재작업 비용이 클 때 선택한다. |
+| Sol의 판단 능력이 필요하지만 계약이 명확하고 사용량 부담을 줄여야 함 | **Sol Light 고려** | Intelligence 51·Coding Agent Index 55로 단순 구현에는 충분할 수 있다. Medium과 같은 정합성·재작업 비용을 전제하지 않는다. |
+| 규칙·하네스·아키텍처 또는 여러 문서·계약의 정합성을 유지 | **Sol Medium 우선 고려** | Coding Agent Index 62로 High 64·Max 65에 가깝다. 독립 요구사항과 completion set을 추적할 판단 부담을 기준으로 삼는다. |
+| Sol Medium에서 난도가 확인됐고 오류·재작업 비용이 추가 사용량보다 큼 | **Sol High 고려** | Coding Agent Index 상승은 62에서 64로 제한적이다. 어려운 구현·검증에서 추가 여유가 필요한 경우에만 선택하며 지시 준수를 보장하지 않는다. |
+| XHigh·Max가 필요한 장기 추론이나 실패가 반복해서 관측됨 | **XHigh·Max 예외 고려** | Intelligence는 상승하지만 Coding Agent Index의 한계효용은 작고 Sol XHigh는 High보다 1점 낮다. Medium·High가 부족하다는 작업 근거 없이 기본값으로 사용하지 않는다. |
 
 Sol Medium의 조건부 우선 고려는 이번 프로젝트의 실제 사용 경험을 반영한 **정성적 운영 휴리스틱**이다.
 위 비교표의 모든 모델·effort를 이번 작업에서 직접 비교 평가했다는 뜻은 아니다.
@@ -298,8 +333,41 @@ Gate A → Gate B → Economic Gate를 적용한다. 안전성·권한·검증 �
 
 ## 9. External Evaluation Data
 
-확인일: **2026-09-04**. 아래 관측 기록은 6절의 **2026-09-03 요율·추정 지수 snapshot**과 별도다.
+확인일: **2026-09-05**. 아래 관측 기록은 6절의 **2026-09-03 요율·추정 지수 snapshot**과 별도다.
 기존 공식 Token-Credit Rate와 Estimated Consumption Index 수치를 재계산하거나 대체하지 않는다.
+
+### Artificial Analysis: 추론 레벨별 성능
+
+출처: [Luna release](https://artificialanalysis.ai/models/releases/gpt-5-6-luna),
+[Terra release](https://artificialanalysis.ai/models/releases/gpt-5-6-terra),
+[Sol release](https://artificialanalysis.ai/models/releases/gpt-5-6-sol),
+[Codex Coding Agent 비교](https://artificialanalysis.ai/agents/coding-agents/comparisons/codex-vs-grok-build),
+[Coding Agent Index 방법론](https://artificialanalysis.ai/methodology/coding-agents-benchmarking/).
+사용자가 지정한 비교 화면을 **2026-09-05**에 확인한 point-in-time snapshot이다.
+
+Artificial Analysis Intelligence Index v4.2는 지식·추론·코딩·도구 사용을 포함한 복합 지표다.
+높을수록 좋으며, Codex 하네스의 구현 성능만을 뜻하지 않는다.
+
+| 모델 | Light | Medium | High | XHigh | Max |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Luna | 34 | 39 | 47 | 50 | 52 |
+| Terra | 41 | 47 | 50 | 53 | 57 |
+| Sol | 51 | 56 | 57 | 59 | 61 |
+
+Artificial Analysis Coding Agent Index v1.4는 Codex 하네스에서 DeepSWE,
+Terminal-Bench v2.1, SWE-Atlas-QnA의 pass@1을 결합한다. 아래 셀은
+`Coding Agent Index / task당 token`이며 점수는 높을수록 좋고 token은 낮을수록 경제적이다.
+
+| 모델 | Light | Medium | High | XHigh | Max |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Luna | 25 / 1.4M | 42 / 4.3M | 52 / 9.6M | 53 / 12.8M | 57 / 16M |
+| Terra | 39 / 1.7M | 48 / 3.2M | 55 / 5.6M | 56 / 6.6M | 60 / 9.6M |
+| Sol | 55 / 3.2M | 62 / 5.8M | 64 / 8.0M | 63 / 9.9M | 65 / 13.2M |
+
+Coding Agent task당 token은 입력·cached input·cache write·reasoning·output을 포함한
+benchmark 평균이다. Codex 구독 allowance나 이 프로젝트의 Estimated Consumption Index와
+단위·표본이 다르므로 서로 환산하지 않는다. 페이지는 일부 endpoint에서 평가 후 content safety
+filtering 증가를 관측했다고 알리므로 작은 차이를 확정적 모델 순위로 해석하지 않는다.
 
 ### CursorBench 3.2
 

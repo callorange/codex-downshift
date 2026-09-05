@@ -17,6 +17,10 @@
 
 ### 변경 (Changed)
 
+- **Artificial Analysis 성능 근거와 추천 갱신**: GPT-5.6의 모델·추론 레벨별 Intelligence Index와
+  Codex Coding Agent Index·task당 token을 기록하고, 공식 요율·Estimated Consumption Index·권한 경계와
+  함께 해석해 Luna·Terra·Sol의 작업별 추천 기준을 보완. 기존 공식 요율과 추정 지수 수치는 유지.
+
 - **공식 Token-Credit Rate 표 정리**: OpenAI 공식 표의 열 이름과 credits 단위를 그대로 반영하고,
   Luna 대비 상대 배수는 공식 값과 구분한 프로젝트 해석으로 이동. 기존 요율 수치는 유지.
 
