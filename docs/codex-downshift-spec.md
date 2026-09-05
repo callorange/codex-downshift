@@ -193,7 +193,7 @@ Downshift는 미완성된 의미적 판단을 하위 워커에 넘기는 수단�
 | 작업 상태 | 위임할 수 있는 내용 | 후보 선택 |
 | --- | --- | --- |
 | Predetermined execution | 확정 docstring·정형 치환·명시된 테스트·고정 Rule 탐색과 복구 | Luna Light/Medium부터 적합성·전체 비용 비교 |
-| Implementation-local choice | 고정 API 안의 내부 자료구조·알고리즘·구현 선택 | 좁고 검증 가능하면 Terra Light, 일반 구현은 Terra Medium부터 비교; Luna 제외 |
+| Implementation-local choice | 고정 API 안의 내부 자료구조·알고리즘·구현 선택 | 좁고 검증 가능하면 Terra Light, 일반 구현은 Terra Medium부터 비교; Parent가 선택 Rule을 고정하면 Predetermined execution으로 재분류해 Luna Medium 비교 가능 |
 | 관계·정합성 또는 장기 실행 | 고정된 결정과 계약 안의 여러 산출물 조정 | Sol의 능력 이점과 전체 비용 비교; Astra Light/Medium은 근거 제한적 실험 후보 |
 
 같은 모델의 낮은 effort도 공통 게이트를 통과하면 위 작업 전반의 후보가 된다.

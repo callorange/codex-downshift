@@ -39,13 +39,14 @@ Coding Agent 비용은 Max만 확보되어 있어 effort별 비용 최적점을 
 | --- | --- | --- |
 | 구현 방법·target이 고정된 반복 실행 | Luna Light | 준비·검증 비용을 상쇄할 실행량이 있어야 함 |
 | 고정 Rule의 bounded search·복구 | Luna Medium | Light보다 추가 추론이 누락·재작업을 줄일 근거 필요; 권한 확대 없음 |
-| 고정 외부 계약 안에서 기존 패턴으로 좁혀지고 결정적으로 검증되는 구현 선택 | Terra Light | Luna Medium의 일반 benchmark가 implementation-local 권한 수행을 검증하지 않으므로 Luna는 후보에서 제외 |
+| 고정 외부 계약 안에서 기존 패턴으로 좁혀지고 결정적으로 검증되는 구현 선택 | 선택이 남으면 Terra Light; Parent가 선택 규칙을 고정하면 Luna Medium | Luna Medium의 benchmark는 capability·비용의 보조 신호다. 현재 운영 권한은 Implementation Closed로 유지하며, Parent가 선택을 닫은 뒤 Luna 후보로 전환할 수 있음 |
 | 일반 implementation-local 구현 | Terra Medium | 일반 구현의 비용/품질 균형 출발점; 충분한 다른 후보와 비교 |
 | 여러 문서·계약·독립 요구사항의 정합성 실행 | Sol Light/Medium | 낮은 tier보다 검증·재작업 부담을 줄일 작업 근거 필요; 모든 상위 결정은 Parent 소유 |
 | 여러 영역·도구·산출물의 장기 관계 실행 | Sol Light/Medium; Astra는 실험 후보 | Astra Light/Medium은 적격인 Astra Parent의 effort 하향만 가능하며, effort별 Coding Agent 비용·성능 근거가 부족함 |
 | 사용자 승인 아래 높은 effort의 이점이 필요한 작업 | 해당 모델 High 이상 예외 | 모든 안전·권한·엄격한 하향 조건 유지; benchmark 우위만으로 자동 선택하지 않음 |
 
 어떤 모델도 지시 준수·성공을 보장하지 않는다. Luna를 Active Parent로 사용하는 방식은 현재 지원 범위 밖이다.
+Luna Medium의 일반 benchmark는 좁은 implementation-local 작업을 향후 통제 평가할 이유가 되지만, 그 평가 없이 운영 권한을 넓히는 직접 근거는 아니다.
 
 ### 같은 모델의 effort 하향
 

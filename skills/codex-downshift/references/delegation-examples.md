@@ -39,7 +39,7 @@
 | **16** | 최종 routing 결정 표시 | **Astra/Sol/Terra** | 👁️ **Routing Notice** | 평가한 결정마다 한 번; Child는 spawn 직전, Parent Direct는 첫 결정적 이유 표시. 전체 capsule 비노출, spawn 실패 시 추가 notice 없음 |
 | **17** | 관계·정합성 실행 (Astra 부모) | **Astra** | 🟡 **Sol 후보 ➔ Economic Gate** | Terra보다 실제 작업 비용이 낮으면 Sol Light/Medium model 하향 |
 | **18** | 일반 bounded 구현 (Astra 부모) | **Astra** | ⚖️ **effort 확인 ➔ Astra 하위 effort 또는 lower tier** | 실제 Parent effort보다 낮고 작업에 충분하며 적격 후보·Parent Direct 대비 전체 비용 이점이 있을 때 후보 |
-| **19** | 좁고 검증 가능한 내부 구현 선택 | **Astra/Sol/Terra** | Terra Light부터 비교 | Luna는 Implementation Closed로 제한하고 적합성·경제성을 확인 |
+| **19** | 좁고 검증 가능한 내부 구현 작업 | **Astra/Sol/Terra** | 선택이 남으면 Terra Light; Parent가 Rule을 고정하면 Luna Medium | 남은 권한을 기준으로 후보를 구분하고 적합성·경제성을 확인 |
 
 ---
 
@@ -303,9 +303,10 @@ Parent Direct는 `[codex-downshift] → Parent Direct | update_auth_policy | Gat
 - **E Good Terra**: 외부 API contract는 고정됐지만 자료구조 선택·구현·테스트 루프가 남으면 Sol Parent는 Terra Medium을, effort가 High 이상인 Terra Parent는 Terra Medium effort 하향을 후보로 평가한다.
 - **F Routing notice**: `[codex-downshift] → Luna (low) | normalize_headers | fixed mechanical rule` 또는 `[codex-downshift] → Parent Direct | single_literal | Economic Gate: delegation overhead`를 최종 routing 결정마다 한 번 표시한다.
 
-## 🧪 Scenario 19: 좁은 내부 구현 선택
+## 🧪 Scenario 19: 좁은 내부 구현 작업의 권한별 후보
 
-- **상황**: 외부 동작과 acceptance는 고정됐고 기존 저장소 패턴 중 하나를 선택하는 좁은 내부 구현이 남았다. 관련 회귀 검증으로 결과를 확인할 수 있다.
-- **권한**: Implementation-local choice를 명시한다. 새 외부 계약이나 정책 판단은 위임하지 않는다.
-- **후보 비교**: Terra Light부터 비교한다. Luna Medium의 일반 benchmark는 이 권한 수행과 경계 준수를 검증하지 않으므로 Luna는 후보에서 제외한다.
+- **상황**: 외부 동작과 acceptance는 고정됐고 기존 저장소 패턴 중 하나를 적용하는 좁은 내부 구현이 남았다. 관련 회귀 검증으로 결과를 확인할 수 있다.
+- **선택이 Child에게 남은 경우**: Implementation-local choice를 명시하고 Terra Light부터 비교한다. 새 외부 계약이나 정책 판단은 위임하지 않는다.
+- **Parent가 선택을 닫은 경우**: 사용할 패턴과 Match Rule을 Parent가 확정하면 작업은 Implementation Closed가 되므로 Luna Medium도 후보다. bounded search·적용·고정 복구가 실질적인 실행량일 때 비교한다.
+- **benchmark의 역할**: Luna Medium의 일반 성능·비용 관측은 후보 비교와 향후 통제 평가의 보조 근거다. 그 점수만으로 implementation-local 권한을 부여하지 않는다.
 - **반환 경계**: 고정 계약 안의 허용 선택은 수행하되, 새 의미·호환성·API 판단이 필요하면 `NEEDS_PARENT_DECISION`이다.
