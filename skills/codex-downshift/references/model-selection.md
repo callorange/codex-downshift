@@ -10,111 +10,85 @@ Parent 설정 추천은 모델 자동 전환 기능을 정의하지 않는다. C
 
 ## Recommendation Heuristics
 
-### 설정별 비용·역할 비교
+### 비용 근거와 모델 추천의 역할
 
-이 절은 사용자를 위한 참고 자료이며 스킬의 Parent 선택·전환 기능을 정의하지 않는다.
-아래 수치는 기존 Estimated Consumption Index를 그대로 사용하며 품질 순위를 뜻하지 않는다.
+현재 같은 하네스의 비용·성능 비교는 [Benchmark Costs](benchmark-costs.md)의 공개 API USD/task와 비용 지수를 우선한다.
+공식 크레딧 단가는 모델별 가격이고, API 비용은 해당 하네스의 사용량을 반영한 평균이며, 기존 ECI는 산출 재현 미확인 snapshot이다.
+세 값을 같은 단위로 취급하지 않는다. 모델·effort가 높아져도 성능과 비용은 비례하지 않는다.
 
-| 설정 | 추정 소모 지수 | 경제적 가치와 적합한 역할 | 한계·판단 경계 |
-| --- | ---: | --- | --- |
-| **Luna Light** | **1.00×** | 구현 방법과 대상 위치가 확정된 기계적 실행의 우선 Child 후보. 반복 실행량을 낮은 모델 비용으로 대체할 수 있다. | 요구사항·계약·구현 판단을 새로 맡기는 근거가 아니다. 준비·검증 비용이 실행 절감분을 상쇄하면 Parent Direct다. |
-| **Luna Medium** | **2.61×** | 구현은 닫혀 있고 고정 Match Rule 안의 bounded search 또는 검증 실패를 해석해 Parent가 고정한 Rule로 대응하는 1회 복구가 실행의 실질적 부분인 Child 후보. | Light보다 실행 추론을 늘리는 설정이며 구현 판단 권한을 넓히지 않는다. 문서 간 의미·계약 판단이 남은 일을 단순 검색이나 복구로 간주하지 않는다. |
-| **Luna High** | **6.00×** | Artificial Analysis Coding Agent Index와 CursorBench에서 Terra Medium보다 높은 점수를 보였다. 비용·token·step·과업 적합성을 함께 비교한다. | 점수 우위가 implementation-local 권한을 만들지 않는다. Medium보다 task당 token이 많으며 자동 선택하지 않는다. |
-| **Terra Light** | **4.46×** | Terra Medium보다 낮은 추정 소모 지수의 비교 후보. | 외부 Coding Agent Index는 Medium보다 9점 낮다. 프로젝트별 품질·재작업 차이는 측정되지 않았으며 일반 구현의 Medium 기본 추천을 바꾸지 않는다. |
-| **Terra Medium** | **5.35×** | 일반 구현의 비용/품질 균형 기본 추천. 외부 계약이 고정된 implementation-local 작업의 Child 후보. | 상위 규칙·계약 판단은 Parent 책임이다. Terra Parent 경로에서는 실제 Parent effort가 Medium보다 높아야 한다. |
-| **Sol Light** | **9.40×** | Sol Medium의 토큰 사용량이 부담될 때 고려하는 Parent 설정의 절충안. | Medium과 같은 결과 품질을 전제하지 않는다. 재지시·재작업·검증을 포함해 비교하며, 일반 구현의 Terra Medium 기본 추천을 대체하지 않는다. |
-| **Sol Medium** | **18.04×** | 아래 조건처럼 상위 판단·정합성 유지 및 사용자 재지시 부담을 중시할 때 우선 고려하는 Parent 설정. | 일반 구현의 기본값은 아니다. 높은 사용량을 감수하는 경험 기반 선택이며 지시 준수를 보장하지 않는다. |
+| 비교 | 동일 Codex 하네스 관측 | 선택에 미치는 영향 |
+| --- | --- | --- |
+| Luna Light → Medium | Index 25 → 42, API USD/task 0.04 → 0.09 | 고정 실행은 Light 우선; 탐색·복구·좁은 구현 선택에는 Medium의 품질 여유를 비교 |
+| Luna High vs Terra Medium | Index 52 vs 48, API USD/task 0.18 vs 0.67 | 기존 ECI의 비용 순서와 다름. 승인된 High 예외의 유력 비교 후보지만 개별 작업 동급 품질을 보장하지 않음 |
+| Terra Light → Medium | Index 39 → 48, API USD/task 0.39 → 0.67 | 일반 구현은 Medium을 출발점으로 유지; Light의 감소한 품질 여유와 재작업 비용 비교 |
+| Terra High vs Sol Light | Index 55 vs 55, API USD/task 1.14 vs 1.29 | 같은 종합 점수가 같은 작업 적합성을 의미하지 않음; High Child는 승인 예외 |
+| Sol Medium → High → XHigh | Index 62 → 64 → 63, API USD/task 2.19 → 3.00 → 3.74 | effort 증가가 단조로운 품질 향상을 보장하지 않음 |
+| Astra Max vs Sol Max | Index 67 vs 65, API USD/task 4.72 vs 5.00 | Astra의 높은 단가가 반드시 높은 task 비용을 뜻하지 않음; 긴 실행 시간도 함께 비교 |
 
-Luna의 가치는 단순히 가장 저렴하다는 데 있지 않다.
-Parent가 닫아 둔 결정 안에서 확인 가능한 실행량을 대체할 때 downshift의 이점이 생긴다.
-반대로 누락된 문맥을 사용자가 보충하거나 Parent가 결과를 다시 구현해야 한다면 낮은 지수가 실제 절감으로 이어지지 않을 수 있다.
-이는 Luna의 일반 능력 한계에 대한 단정이 아니라 이 스킬이 부여하는 권한과 경제성의 경계다.
-Luna를 Active Parent로 사용하는 방식은 현재 스킬의 지원 범위가 아니다.
-
-모델·추론 레벨별 외부 관측 비교는 [Model Benchmarks](model-benchmarks.md)를 참조한다.
-해당 결과는 이 프로젝트의 정합성 작업이나 Child 위임 결과를 직접 측정한 것은 아니다.
-
-### 성능·사용량 종합 해석
-
-[Artificial Analysis 관측](model-benchmarks.md#artificial-analysis-추론-레벨별-성능)을 기존 공식 요율과
-Estimated Consumption Index에 함께 적용하면 다음 기준을 얻을 수 있다.
-
-| 비교 | 관측과 추천에 미치는 영향 |
-| --- | --- |
-| Light → Medium | Coding Agent Index가 Luna +17, Terra +9, Sol +7 상승했다. 위치·변환 규칙이 완전히 고정된 작업에는 Light를 유지하되, bounded search나 test/fix 반복이 있으면 Medium의 추가 추론이 재작업을 줄일 여지가 있다. |
-| Medium → High | Luna +10, Terra +7, Sol +2다. Luna·Terra에서는 성능 상승이 크지만 effort가 권한을 확대하지 않는다. Sol은 Medium의 점수 효율이 높아 High를 일반 기본값으로 올릴 근거가 약하다. |
-| High → XHigh → Max | Intelligence Index는 대체로 상승하지만 Coding Agent Index는 증가 폭이 작거나 Sol High 64 → XHigh 63처럼 역전도 있다. 높은 effort는 난도가 관측됐거나 실패 비용이 추가 사용량보다 클 때만 고려한다. |
-| Luna High vs Terra Medium | Intelligence는 둘 다 47, Coding Agent Index는 52 vs 48이다. Codex task당 token은 9.6M vs 3.2M이고 Estimated Consumption Index는 6.00× vs 5.35×다. Luna의 공식 token-credit rate는 낮지만 Terra는 implementation-local 권한에 맞으므로 점수만으로 경로를 바꾸지 않는다. |
-| Terra High vs Sol Light | Intelligence는 50 vs 51, Coding Agent Index는 둘 다 55다. 비슷한 점수가 model tier의 역할·지시 준수·정합성 능력이 같다는 뜻은 아니다. 필요한 판단 권한과 실제 재작업 비용으로 선택한다. |
-| Sol Medium vs 상위 effort | Coding Agent Index 62로 High 64·Max 65에 가깝고 Estimated Consumption Index는 High보다 약 29.6%, Max보다 약 65.6% 낮다. 규칙·정합성 작업의 기본 우선 고려는 Sol Medium으로 유지한다. |
-
-이 비교는 benchmark task 집합의 평균 관측이다. 개별 작업의 성공확률이나 지시 준수를 보장하지 않으며,
-비슷한 종합 점수라도 DeepSWE·Terminal-Bench·SWE-Atlas-QnA의 세부 강점은 다를 수 있다.
-
-### 비용과 점수의 관계
-
-Estimated Consumption Index와 benchmark 점수는 모델 tier와 effort가 올라갈수록 대체로 함께 증가한다.
-그러나 증가율은 비례하지 않고 높은 설정일수록 점수의 한계효용이 작아지는 구간이 있다.
-
-| 비교 | 추정 지수 변화 | Coding Agent Index 변화 | 해석 |
-| --- | ---: | ---: | --- |
-| Luna Light → Medium | 1.00× → 2.61× | 25 → 42 | 점수 상승이 크지만 비용 배수와 동일한 비율은 아니다. |
-| Terra Light → Medium | 4.46× → 5.35× | 39 → 48 | 상대적으로 작은 지수 증가로 의미 있는 점수 상승이 관측됐다. |
-| Sol Medium → High | 18.04× → 25.63× | 62 → 64 | 비용 증가는 크고 점수 상승은 제한적이다. |
-| Sol High → XHigh | 25.63× → 35.62× | 64 → 63 | 비용이 늘어도 해당 benchmark 점수는 오히려 낮아졌다. |
-
-두 값은 산출 출처와 단위가 다르고 Estimated Consumption Index의 원시 산식도 재현되지 않았다.
-또한 지수 산정 설명에 CursorBench 관측이 포함되어 있어 CursorBench와의 유사성은 독립적인 검증이 아니다.
-따라서 상관 경향을 비용 대비 품질의 공식이나 설정 간 교환비로 사용하지 않는다.
+Intelligence Index와 Coding Agent Index는 다른 평가다. Astra의 Intelligence는 Light 49, Medium 52, High 53, XHigh 54, Max 55지만,
+Coding Agent 비용은 Max만 확보되어 있어 effort별 비용 최적점을 추정하지 않는다.
+점수를 성공확률로 환산하거나 비용으로 나눠 보편적인 효율 순위를 만들지 않는다.
 
 ### Downshift Child 선택 보완
 
-아래 기준은 benchmark 관측을 기존 Gate B 권한 정책에 보조 신호로 적용한 것이다.
-점수나 effort가 Child의 위임 권한을 확대하지 않으며, 실제 위임에는 Economic Gate도 적용한다.
+권한은 먼저 Predetermined execution 또는 Implementation-local choice로 정한다.
+아래는 능력·비용의 출발점이며 모델별 독점 권한이나 강제 경로가 아니다.
+같은 권한을 더 저렴한 구성으로 충분히 수행할 근거가 있으면 그 후보를 비교한다.
 
-| 작업 조건 | Child 후보 | 판단 근거와 적용 경계 |
+| 작업 조건 | 우선 비교할 후보 | 판단 근거와 적용 경계 |
 | --- | --- | --- |
-| 구현 방법과 수정 위치가 고정된 짧은 기계적 실행 | **Luna Light** | 가장 낮은 Estimated Consumption Index를 활용한다. Coding Agent Index가 25이므로 탐색·해석·복구 판단을 새로 맡기지 않는다. |
-| 구현은 닫혀 있고 bounded search 또는 검증 실패에 고정 Rule로 대응하는 1회 복구가 필요 | **Luna Medium** | Coding Agent Index가 Light 25에서 Medium 42로 상승했다. 추가 token과 Parent 검증을 감수할 실행량이 있을 때 사용하며, 새 구현 판단이 생기면 Parent에게 반환한다. |
-| 구현은 닫혀 있으나 Medium 실패의 재작업 비용이 크고 높은 effort를 사용자가 승인 | **Luna High 예외 고려** | Coding Agent Index 52로 Medium보다 높지만 task당 token도 4.3M에서 9.6M으로 늘었다. 구현 판단 권한은 확대하지 않으며 자동 선택하지 않는다. |
-| 외부 계약은 고정됐고 기존 패턴으로 선택지가 좁은 implementation-local 작업 | **Terra Light** | Sol Parent의 model 하향 또는 effort가 Light보다 높은 Terra Parent의 effort 하향 후보다. 결정적 검증이 가능해야 하며 일반 구현의 Medium 기본 추천을 바꾸지 않는다. |
-| 외부 계약은 고정됐지만 일반 implementation-local 선택이 남음 | **Terra Medium** | Sol Parent의 model 하향 또는 effort가 Medium보다 높은 Terra Parent의 effort 하향 후보다. Luna High의 점수가 더 높아도 effort로 구현 권한을 대신하지 않는다. |
-| 상호 의존하는 규칙·문서·계약 또는 독립 요구사항을 함께 추적하고 결정적 검증만으로 누락 확인이 어려움 | **Sol Light/Medium** | Terra 사용 시 Parent 수동 검증·재작업이 늘어나는 근거가 있을 때 실제 Sol Parent effort보다 엄격히 낮은 설정만 선택한다. 같은 모델 유지 자체는 근거가 아니다. |
+| 구현 방법·target이 고정된 반복 실행 | Luna Light | 준비·검증 비용을 상쇄할 실행량이 있어야 함 |
+| 고정 Rule의 bounded search·복구 | Luna Medium | Light보다 추가 추론이 누락·재작업을 줄일 근거 필요; 권한 확대 없음 |
+| 고정 외부 계약 안에서 기존 패턴으로 좁혀지고 결정적으로 검증되는 구현 선택 | Luna Medium, Terra Light | Luna도 명시된 implementation-local 권한을 받을 수 있음; 낮은 단가만으로 충분하다고 판단하지 않음 |
+| 일반 implementation-local 구현 | Terra Medium | 일반 구현의 비용/품질 균형 출발점; 충분한 다른 후보와 비교 |
+| 여러 문서·계약·독립 요구사항의 정합성 실행 | Sol Light/Medium | 낮은 tier보다 검증·재작업 부담을 줄일 작업 근거 필요; 모든 상위 결정은 Parent 소유 |
+| 여러 영역·도구·산출물의 장기 관계 실행 | Astra Light/Medium | 적격인 Astra Parent의 effort 하향 후보; 부족한 effort별 비용 자료와 높은 단가를 함께 고려 |
+| 사용자 승인 아래 높은 effort의 이점이 필요한 작업 | 해당 모델 High 이상 예외 | 모든 안전·권한·엄격한 하향 조건 유지; benchmark 우위만으로 자동 선택하지 않음 |
+
+어떤 모델도 지시 준수·성공을 보장하지 않는다. Luna를 Active Parent로 사용하는 방식은 현재 지원 범위 밖이다.
 
 ### 같은 모델의 effort 하향
 
-같은 모델 경로는 model tier 대신 reasoning effort를 낮추는 downshift다. 실제 Parent effort를 확인할 수 있고,
-아래 후보가 Parent보다 엄격히 낮으며, lower-model 후보보다 실제 작업 비용이 낮을 것으로 판단될 때만 사용한다.
+Astra·Sol·Terra 모두 특정 업무 분야에 한정하지 않고 다음 공통 조건을 적용한다.
 
-| Parent 구성과 작업 상태 | 후보 | 적용 경계 |
-| --- | --- | --- |
-| Terra Medium + 기존 패턴으로 좁혀진 implementation-local 작업 | **Terra Light** | Light의 품질 여유와 결정적 검증이 충분해야 한다. 일반 implementation-local 작업은 Parent Direct다. |
-| Terra High/XHigh/Max + 일반 implementation-local 작업 | **Terra Medium** | 상위 판단과 외부 계약은 이미 확정되어야 한다. |
-| Sol Medium + 상호 의존 관계나 독립 요구사항을 함께 추적하는 bounded 실행 | **Sol Light** | 결정적 검증만으로 누락 확인이 어려워 Terra 사용 시 Parent 수동 검증·재작업이 늘어나는 작업 근거가 필요하다. |
-| Sol High/XHigh/Max + 같은 성격의 bounded 실행 | **Sol Medium** | Medium이 충분하다는 근거가 있어야 하며 자동 target을 High 이상으로 올리지 않는다. |
+1. runtime에서 실제 Parent model/effort를 확인하고 target이 엄격히 낮다.
+2. Capsule의 작업 권한·acceptance를 낮은 effort가 충분히 수행할 근거가 있다.
+3. 다른 적격 lower-model 후보 및 Parent Direct와 준비·실행·검증·재작업 비용을 비교해 위임 이점이 있다.
 
-Parent effort가 Light이거나 확인되지 않은 경우, 또는 같은 모델의 낮은 effort가 작업에 충분하지 않은 경우에는
-effort-only 경로를 사용하지 않는다. lower-model 후보가 충분하면 공식 요율과 추정 지수가 더 낮은 해당 후보를 먼저
-경제성 비교 대상으로 삼는다. 어느 후보든 Gate A, Decision Authority와 Economic Gate를 통과해야 한다.
+| 확인한 Parent effort | 자동 same-model 후보 |
+| --- | --- |
+| Light | 없음 |
+| Medium | Light |
+| High / XHigh / Max | Light 또는 Medium; 작업에 충분한 설정 비교 |
+| 확인 불가 | 없음; 확인한 모델의 lower-model 후보만 평가 |
+
+일반 구현도 이 조건을 충족하면 같은 모델 하향 후보가 될 수 있다. 모델 유지 자체는 근거가 아니다.
+모든 후보에 Gate A와 Economic Gate를 적용하며, 공개 독립 실행 비용 차이를 위임 전체 절감률로 해석하지 않는다.
 
 ### 사용자 설정 추천
 
 일반적인 구현 작업의 비용/품질 균형 기본 추천은 **Terra Medium**이다.
 상위 판단과 정합성 유지가 중요한 아래 조건에서는 **Sol Medium을 우선 고려**하고,
 Sol의 사용량 부담을 줄이려는 경우에는 **Sol Light를 절충안으로 고려**한다.
+여러 영역·도구·산출물의 장기 관계를 다루는 가장 어려운 end-to-end 작업에서
+Sol의 반복 실패나 높은 수동 개입 비용이 예상되거나 관측되면 **Astra Medium을 고려**한다.
 이는 사용자가 Parent 설정을 선택할 때의 조언이며, 현재 세션의 모델을 자동 전환하는 규칙이 아니다.
 
 | 작업 조건 | Parent 추천 | 판단 근거와 적용 경계 |
 | --- | --- | --- |
-| 요구사항과 외부 계약이 명확하고 기존 패턴으로 진행하는 일반적인 구현 | **Terra Medium 기본** | Light보다 Coding Agent Index가 39에서 48로 높고 Estimated Consumption Index 증가는 4.46×에서 5.35×다. 일반 구현까지 Sol Medium을 기본 추천하지 않는다. |
-| Terra를 사용하며 작업이 정형적이고 사용량 절감이 품질 여유보다 중요 | **Terra Light 고려** | Light의 점수와 재작업 가능성을 감수할 수 있을 때만 선택한다. implementation-local 판단이나 다중 파일 조정에는 Medium을 유지한다. |
+| 요구사항과 외부 계약이 명확하고 기존 패턴으로 진행하는 일반적인 구현 | **Terra Medium 기본** | Light보다 Coding Agent Index가 39에서 48로 높고 공개 API 비용은 task당 $0.39에서 $0.67로 증가한다. 일반 구현까지 Sol Medium을 기본 추천하지 않는다. |
+| Terra를 사용하며 작업이 정형적이고 사용량 절감이 품질 여유보다 중요 | **Terra Light 고려** | Light의 점수와 재작업 가능성을 감수할 수 있을 때만 선택한다. 선택 폭과 검증 부담이 큰 구현에는 Medium을 출발점으로 삼는다. |
 | 외부 계약은 고정됐지만 내부 설계·다중 파일 구현 난도가 실제로 높음 | **Terra High 고려** | Coding Agent Index가 Medium 48에서 High 55로 상승했다. 높은 effort의 추가 사용량보다 재작업 비용이 클 때 선택한다. |
-| Sol의 판단 능력이 필요하지만 계약이 명확하고 사용량 부담을 줄여야 함 | **Sol Light 고려** | Intelligence 51·Coding Agent Index 55로 단순 구현에는 충분할 수 있다. Medium과 같은 정합성·재작업 비용을 전제하지 않는다. |
+| Sol의 판단 능력이 필요하지만 계약이 명확하고 사용량 부담을 줄여야 함 | **Sol Light 고려** | Intelligence 41·Coding Agent Index 55로 단순 구현에는 충분할 수 있다. Medium과 같은 정합성·재작업 비용을 전제하지 않는다. |
 | 규칙·하네스·아키텍처 또는 여러 문서·계약의 정합성을 유지 | **Sol Medium 우선 고려** | Coding Agent Index 62로 High 64·Max 65에 가깝다. 독립 요구사항과 completion set을 추적할 판단 부담을 기준으로 삼는다. |
 | Sol Medium에서 난도가 확인됐고 오류·재작업 비용이 추가 사용량보다 큼 | **Sol High 고려** | Coding Agent Index 상승은 62에서 64로 제한적이다. 어려운 구현·검증에서 추가 여유가 필요한 경우에만 선택하며 지시 준수를 보장하지 않는다. |
-| XHigh·Max가 필요한 장기 추론이나 실패가 반복해서 관측됨 | **XHigh·Max 예외 고려** | Intelligence는 상승하지만 Coding Agent Index의 한계효용은 작고 Sol XHigh는 High보다 1점 낮다. Medium·High가 부족하다는 작업 근거 없이 기본값으로 사용하지 않는다. |
+| Astra의 end-to-end 능력이 필요하지만 effort 사용량을 낮추고 결정적 검증이 가능 | **Astra Light 고려** | Intelligence는 49로 Medium 52보다 낮다. Astra tier를 유지할 이유가 있고 재작업 위험을 감수할 수 있을 때만 사용한다. |
+| 여러 영역·도구·산출물의 장기 관계를 추적하고 Sol의 재지시·재작업·검증 부담이 큼 | **Astra Medium 고려** | Astra Max의 Coding Agent 관측은 강하지만 Medium의 동일 하네스 결과는 없다. 공식 요율이 Sol의 2.5×이므로 실제 작업 비용 감소 근거가 있을 때만 선택한다. |
+| Medium에서 실제 난도나 실패가 확인되고 추가 사용량보다 실패 비용이 큼 | **High 고려** | 모델별 benchmark의 상승 폭과 작업 실패 증거를 함께 본다. 자동 Child target으로 사용하지 않는다. |
+| XHigh·Max가 필요한 장기 추론이나 실패가 반복해서 관측됨 | **XHigh·Max 예외 고려** | 높은 effort의 한계효용이 작을 수 있다. Medium·High가 부족하다는 작업 근거 없이 기본값으로 사용하지 않는다. |
 
 Sol Medium의 조건부 우선 고려는 이번 프로젝트의 실제 사용 경험을 반영한 **정성적 운영 휴리스틱**이다.
+Astra Medium 추천은 공식 용도와 외부 관측을 참고한 잠정 운영 휴리스틱이며, Medium의 Coding Agent 비용 효율을 실측한 결론은 아니다.
 위 비교표의 모든 모델·effort를 이번 작업에서 직접 비교 평가했다는 뜻은 아니다.
 통제된 모델 비교나 측정된 재작업 감소율을 뜻하지 않으며, Sol Medium도 지시 준수를 보장하지 않는다.
 추천 설정을 사용해도 요구사항·completion set과 결과를 대조하고, 완료 주장에 맞는 검증을 수행해야 한다.
@@ -134,7 +108,7 @@ Sol Medium의 조건부 우선 고려는 이번 프로젝트의 실제 사용 �
 [Model Economics의 비용 분해](model-economics.md#6-effective-downshift-economics-non-official-heuristics)에 사용자 부담과 반복 작업을 함께 고려하는 관점이며,
 이미 실행·검증 비용에 포함된 재작업을 별도 비용으로 중복 합산하지 않는다.
 추가 모델 사용량보다 재지시·재작업·검증 부담을 줄일 가치가 있다고 판단되면
-Sol Medium을 우선 고려할 수 있지만, 절감 효과를 보장하거나 고정 배율로 환산하지 않는다.
+Sol Medium 또는 가장 어려운 end-to-end 작업의 Astra Medium을 고려할 수 있지만, 절감 효과를 보장하거나 고정 배율로 환산하지 않는다.
 실제 기록이 없으면 예상으로 구분하고, 관찰된 사용량과 사용자 개입·재작업을 바탕으로 추천을 재평가한다.
 
 ### Downshift 정책과의 관계
@@ -142,10 +116,11 @@ Sol Medium을 우선 고려할 수 있지만, 절감 효과를 보장하거나 �
 Parent 설정 추천 이후에도 실제 runtime에서 확인한 Active Parent를 기준으로
 Gate A → Gate B → Economic Gate를 적용한다. 안전성·권한·검증 요건이 비용 판단보다 우선한다.
 
+- Astra Parent는 Luna, Terra 또는 Sol로 model downshift하거나, 확인된 Parent effort보다 낮은 Astra Light/Medium으로 effort downshift할 수 있다.
 - Sol Parent는 기존 조건에 따라 Luna 또는 Terra로 model downshift하거나, 확인된 Parent effort보다 낮은 Sol Light/Medium으로 effort downshift할 수 있다.
 - Terra Parent는 Luna로 model downshift하거나, 확인된 Parent effort보다 낮은 Terra Light/Medium으로 effort downshift할 수 있다.
 - 같은 모델의 동일·상위 effort와 상위 모델 호출은 허용하지 않는다. 자동 Child target은 Light 또는 Medium이며 High 이상은 사용자 승인 예외다.
-- Terra same-model 경로는 implementation-local 선택 때문에 Luna 권한을 넘을 때, Sol same-model 경로는 상호 의존 관계나 독립 요구사항의 누락을 결정적 검증만으로 확인하기 어려워 Terra가 Parent 수동 검증·재작업을 늘릴 때만 선택한다.
+- 같은 모델 경로는 위 공통 조건으로 판단하며 특정 작업 종류를 필수 조건으로 삼지 않는다. 모델·effort 선택은 이미 명시한 권한을 바꾸지 않는다.
 - 실제 위임은 Delegation Preparation Test 네 조건을 모두 통과하고, 위임의 추가 부담이 실행 절감분을 상쇄하지 않을 때만 수행한다.
 
 상위 판단은 Parent가 맡고, 그 판단으로 닫힌 bounded execution만 구성 기준으로 downshift하는 방식으로

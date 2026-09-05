@@ -12,6 +12,7 @@
 | [codex-downshift-spec.md](codex-downshift-spec.md) | 설계 의도, 정책 근거, 성공 기준 | v0.1.4 baseline + Unreleased |
 | [model-economics.md](../skills/codex-downshift/references/model-economics.md) | 공식 요율, 추정 지수, 위임 비용 모델 | Economics reference |
 | [model-benchmarks.md](../skills/codex-downshift/references/model-benchmarks.md) | 모델·추론 레벨별 외부 평가 snapshot과 한계 | Evidence reference |
+| [Benchmark Costs](../skills/codex-downshift/references/benchmark-costs.md) | 공개 API 비용 입력·계산식·실측 비교 방법 | Reproducible cost reference |
 | [model-selection.md](../skills/codex-downshift/references/model-selection.md) | 비용·성능·실제 작업 부담을 종합한 설정 추천 | Selection reference |
 | [task-capsule-template.md](../skills/codex-downshift/references/task-capsule-template.md) | Task Capsule과 Terminal Return Protocol 서식 | Runtime reference |
 | [delegation-examples.md](../skills/codex-downshift/references/delegation-examples.md) | Gate·권한별 라우팅 시나리오 | Behavioral reference |

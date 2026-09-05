@@ -2,7 +2,7 @@
 
 `codex-downshift` 프로젝트에 관심을 가져주셔서 감사합니다!
 
-본 프로젝트는 OpenAI Codex 환경에서 Sol 또는 Terra를 Active Parent로 유지하면서, Gate A → Gate B → Economic Gate와 Decision Authority에 따라 bounded execution 작업을 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort를 사용하는 Child로 하향 위임하여 사용량과 비용을 절감하는 순수 마크다운 기반의 경량 스킬입니다. LOC·파일 수·단일 deterministic validation은 secondary signal이며, 준비·검증 오버헤드가 비슷하면 Parent Direct로 처리합니다.
+본 프로젝트는 OpenAI Codex 환경에서 Astra, Sol 또는 Terra를 Active Parent로 유지하면서, Gate A → Gate B → Economic Gate와 Decision Authority에 따라 bounded execution 작업을 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort를 사용하는 Child로 하향 위임하여 사용량과 비용을 절감하는 순수 마크다운 기반의 경량 스킬입니다. LOC·파일 수·단일 deterministic validation은 secondary signal이며, 준비·검증 오버헤드가 비슷하면 Parent Direct로 처리합니다.
 
 ---
 
@@ -38,6 +38,7 @@
 | 실행 규칙과 라우팅 계약 | [`SKILL.md`](skills/codex-downshift/SKILL.md) |
 | 공식 요율·추정 지수·위임 비용 모델 | [`model-economics.md`](skills/codex-downshift/references/model-economics.md) |
 | 외부 benchmark 관측 | [`model-benchmarks.md`](skills/codex-downshift/references/model-benchmarks.md) |
+| 공개 API 비용 입력·계산식·실측 비교 방법 | [Benchmark Costs](skills/codex-downshift/references/benchmark-costs.md) |
 | 모델·effort 설정 추천 | [`model-selection.md`](skills/codex-downshift/references/model-selection.md) |
 | Capsule·반환 서식 | [`task-capsule-template.md`](skills/codex-downshift/references/task-capsule-template.md) |
 | 설치 절차 | [`README.md`](README.md) |

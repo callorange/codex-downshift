@@ -1,15 +1,13 @@
 # Task Capsule Template & Terminal Return Protocols
 
-부모 모델(Sol/Terra)이 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort를 사용하는 Leaf Child에 실행 작업을 위임할 때 복사하여 작성하는 표준 프롬프트 서식 및 자식 워커의 표준 반환 프로토콜입니다.
+부모 모델(Astra/Sol/Terra)이 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort를 사용하는 Leaf Child에 실행 작업을 위임할 때 복사하여 작성하는 표준 프롬프트 서식 및 자식 워커의 표준 반환 프로토콜입니다.
 
 > [!IMPORTANT]
 > **Pre-spawn check (parent only; child message에 포함하지 않음)**:
 > - Gate A (Safety): Bounded, Verifiable, Limited Consequence(저위험/가역적)인가?
 > - Gate B (Authority): 결과의 의미·외부 계약이 확정되었는가?
 > - Active Configuration: 실제 Parent model을 확인했는가? 같은 모델 경로라면 실제 Parent effort도 확인했으며 Child effort가 엄격히 낮은가?
-> - Terra Child 위임 시: 남은 작업이 Implementation-local 분석 및 선택에 한정되는가?
-> - Luna Child 위임 시: 구현 방법 및 패턴까지 확정되어 기계적 적용만 남았는가?
-> - Sol Child 위임 시: 상위 판단은 닫혔고 상호 의존 관계나 독립 요구사항을 함께 추적하며, 결정적 검증만으로 누락 확인이 어려워 Terra가 Parent 수동 검증·재작업을 늘린다는 근거가 있는가?
+> - 위임 권한을 Predetermined execution 또는 Implementation-local choice로 명시했으며, 선택한 모델·effort가 해당 작업과 검증에 충분한가?
 > - `Apply`가 지정 target만 처리할지(`Exact`), Search 범위의 모든 매치를 처리할지(`All matches within scope`) 명확히 하는가?
 > - 고정된 결과가 계약이라면 적용 범위와 별개로 필요한 고정 `Rule`/결과 형식이 제공되었는가?
 > - Economic Gate: 네 준비 조건을 모두 충족하고, 추가 재지시·재작업·검증 부담이 실행 절감분을 상쇄하지 않는가? 아니면 Parent Direct다.
@@ -33,7 +31,7 @@ capsule 준비에 direct execution과 비교 가능한 분석·상세 설계가 
 ```text
 TASK CAPSULE
 
-Worker profile: [Luna | Terra | Sol]
+Worker profile: [Luna | Terra | Sol | Astra]
 Role: You are a leaf worker.
 
 Goal:
@@ -50,11 +48,9 @@ Decisions already made:
 - [부모 모델이 이미 확정한 세부 로직 및 인터페이스 규칙 2]
 
 Delegated authority:
-[Luna Child: Predetermined execution only - apply fixed patterns, assemble code, or mechanical edits]
+[Predetermined execution: apply fixed rules only]
 or
-[Terra Child: Implementation-local analysis and choice allowed within fixed external contracts]
-or
-[Sol Child: Bounded relationship and consistency execution within fixed decisions and external contracts]
+[Implementation-local choice: choose internal implementation within fixed external contracts]
 
 Must not decide:
 - [부모 모델 고유의 판단 영역: Architecture, Public API, Product Policy, Security, Scope 확장 등]
@@ -106,7 +102,7 @@ Return protocol:
 | `Apply: All matches within scope` | 정해진 Search 범위에서 고정 Rule에 해당하는 모든 매치를 검사하고 처리한다. |
 | `Delegated authority` | 해당 범위 안에서 구현 방법을 선택할 수 있는지를 결정한다. |
 
-Terra도 `Apply: Exact`와 implementation-local choice를 함께 사용할 수 있다.
+Implementation-local Child도 `Apply: Exact`와 implementation-local choice를 함께 사용할 수 있다.
 출력이나 치환 결과를 고정해야 한다면 `Rule`과 acceptance에 별도로 명시한다.
 
 ### 완료 대상과 검증 근거
@@ -126,33 +122,15 @@ Terra도 `Apply: Exact`와 implementation-local choice를 함께 사용할 수 �
 
 ### Profile guidance
 
-아래 profile은 Gate A를 통과한 경우의 후보이며, 실제 위임은 Economic Gate까지 통과해야 한다.
+권한은 모델과 독립적으로 선택한다. [SKILL.md](../SKILL.md)의 작업별 위임 권한이 원본이며, 모델 추천은 [Model Selection Guide](model-selection.md)를 필요할 때 읽는다.
 
-| Profile | 선택 조건 | 허용 재량·Parent 제한 |
+| 위임 권한 | 제공할 계약 | 허용 재량 |
 | --- | --- | --- |
-| Luna Light | 구현 방법과 target locations closed | 확정된 구현 적용; Sol 또는 Terra Parent |
-| Luna Medium | 구현 방법 확정 + closed Match Rule + bounded Search 또는 검증 실패에 고정 Rule로 대응하는 1회 복구 | 고정 규칙으로 탐색·적용·검증·복구; 구현 판단 권한 확대 없음; Sol 또는 Terra Parent |
-| Terra Light | 의미·외부 계약 확정 + 기존 패턴으로 선택지가 좁은 implementation-local 작업 | 고정 계약과 기존 패턴 안의 좁은 구현 선택; Sol Parent 또는 effort가 Light보다 높은 Terra Parent |
-| Terra Medium | 의미·외부 계약 확정 + 일반 implementation-local 선택 잔여 | 고정 계약 안의 내부 구현 선택; Sol Parent 또는 effort가 Medium보다 높은 Terra Parent |
-| Sol Light | 의미·외부 계약 확정 + 상호 의존 관계나 독립 요구사항을 함께 추적하는 bounded 실행 | 관계·정합성 실행; effort가 Light보다 높은 Sol Parent이며 Terra에서 누락 확인을 위한 Parent 수동 검증·재작업이 늘어나는 근거 필요 |
-| Sol Medium | 의미·외부 계약 확정 + 상호 의존 관계나 독립 요구사항을 함께 추적하는 bounded 실행 | 관계·정합성 실행; effort가 Medium보다 높은 Sol Parent이며 Terra에서 누락 확인을 위한 Parent 수동 검증·재작업이 늘어나는 근거 필요 |
+| Predetermined execution | 고정 Rule, target 또는 Search, acceptance | Rule 안의 적용·탐색·검증·허용된 복구; 새 구현 선택 금지 |
+| Implementation-local choice | goal, fixed external contract, forbidden changes, acceptance, local criteria | 고정 계약 안의 내부 구현 선택; 상위 의미·제품·아키텍처·보안·호환성 판단 금지 |
 
-**Luna 공통 경계**
-
-Luna는 rule을 발명하거나 확장하지 않는다.
-`Apply: Exact`이면 지정 target만 처리한다.
-`Apply: All matches within scope`이면 non-exhaustive examples가 있어도 Search 경계의 모든 매치를 검사한다.
-semantic·architecture·product·compatibility·policy 판단이 필요하면 `NEEDS_PARENT_DECISION`이다.
-
-**Implementation-local·정합성 Child에 전달할 계약**
-
-공통 Scope·Apply·검증·worker 제한·반환 계약을 유지하면서, Terra 또는 effort-only Sol의 구현 지침에는 다음을 제공하고 절차를 과도하게 고정하지 않는다:
-
-- goal
-- fixed external contract
-- forbidden changes
-- acceptance
-- 기존 패턴 선호·최소 구현·Public API 보존의 local criteria
+모든 모델에서 `Apply: Exact`는 지정 target만, `All matches within scope`는 Search 전체의 모든 매치를 처리한다.
+non-exhaustive examples는 전체 목록이 아니다. 권한 밖의 판단이 필요하면 `NEEDS_PARENT_DECISION`으로 반환한다.
 
 ### Micro-batch completion format
 

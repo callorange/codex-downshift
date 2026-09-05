@@ -8,26 +8,53 @@ Consumption Index를 재계산하지 않는다. 추천에 적용한 해석은
 
 ## External Evaluation Data
 
-확인일: **2026-09-05**. 아래 관측 기록은 [Model Economics](model-economics.md)의 **2026-09-03 요율·추정 지수 snapshot**과 별도다.
+확인일: **2026-09-05**. 아래 관측 기록은 [Model Economics](model-economics.md)의 공식 요율(2026-09-05) 및 추정 지수(2026-09-03) snapshot과 별도다.
 기존 공식 Token-Credit Rate와 Estimated Consumption Index 수치를 재계산하거나 대체하지 않는다.
+
+### OpenAI: Astra 모델 범위
+
+출처: [GPT-6 Astra 모델 문서](https://developers.openai.com/api/docs/models/gpt-6-astra),
+[GPT-6 Astra 발표](https://openai.com/index/gpt-6-astra/).
+
+OpenAI는 Astra를 가장 어려운 end-to-end 작업을 위한 최상위 모델로 설명하며
+Light, Medium, High, XHigh, Max에 대응하는 reasoning effort를 지원한다.
+이는 모델의 공식 용도와 지원 설정에 대한 근거이며, 특정 저장소 작업에서 Sol보다
+비용 효율적이거나 지시 준수가 우월하다는 보장은 아니다.
 
 ### Artificial Analysis: 추론 레벨별 성능
 
 출처: [Luna release](https://artificialanalysis.ai/models/releases/gpt-5-6-luna),
 [Terra release](https://artificialanalysis.ai/models/releases/gpt-5-6-terra),
 [Sol release](https://artificialanalysis.ai/models/releases/gpt-5-6-sol),
+[Astra Light/Medium 비교](https://artificialanalysis.ai/models/comparisons/gpt-6-astra-low-vs-gpt-6-astra-medium),
+[Astra Medium/XHigh 비교](https://artificialanalysis.ai/models/comparisons/gpt-6-astra-medium-vs-gpt-6-astra-xhigh),
+[Astra High/Max 비교](https://artificialanalysis.ai/models/comparisons/gpt-6-astra-high-vs-gpt-6-astra),
+[Astra 평가 해설](https://artificialanalysis.ai/articles/benchmarking-gpt-6-astra),
 [Codex Coding Agent 비교](https://artificialanalysis.ai/agents/coding-agents/comparisons/codex-vs-grok-build),
 [Coding Agent Index 방법론](https://artificialanalysis.ai/methodology/coding-agents-benchmarking/).
-사용자가 지정한 비교 화면을 **2026-09-05**에 확인한 point-in-time snapshot이다.
+사용자가 지정한 모델들의 개별·비교 페이지를 **2026-09-05**에 대조한 point-in-time snapshot이다.
 
 Artificial Analysis Intelligence Index v4.2는 지식·추론·코딩·도구 사용을 포함한 복합 지표다.
 높을수록 좋으며, Codex 하네스의 구현 성능만을 뜻하지 않는다.
 
 | 모델 | Light | Medium | High | XHigh | Max |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Luna | 34 | 39 | 47 | 50 | 52 |
-| Terra | 41 | 47 | 50 | 53 | 57 |
-| Sol | 51 | 56 | 57 | 59 | 61 |
+| Luna | 26* | 30* | 37* | 42 | 43 |
+| Terra | 32* | 37* | 41 | 44 | 47 |
+| Sol | 41 | 46 | 48 | 50 | 51 |
+| Astra | 49 | 52 | 53 | 54 | 55 |
+
+모든 행을 v4.2로 맞췄다. `*`는 출처의 추정값(독립 평가 예정)이며 실측과 구분한다.
+기존 GPT-5.6 점수를 v4.2로 잘못 표시한 표를 교정했으며, 이전 버전과 점수 차이를
+모델 성능 변화로 해석하지 않는다. Astra 발표 해설의 v4.1.1 값도 이 표와 직접 비교하지 않는다.
+
+행별 직접 확인 출처:
+
+| 모델 | Light·Medium | High | XHigh | Max |
+| --- | --- | --- | --- | --- |
+| Luna | [비교](https://artificialanalysis.ai/models/comparisons/gpt-5-6-luna-low-vs-gpt-5-6-luna-medium) | [High](https://artificialanalysis.ai/models/gpt-5-6-luna-high) | [XHigh](https://artificialanalysis.ai/models/gpt-5-6-luna-xhigh) | [Max](https://artificialanalysis.ai/models/gpt-5-6-luna) |
+| Terra | [비교](https://artificialanalysis.ai/models/comparisons/gpt-5-6-terra-low-vs-gpt-5-6-terra-medium) | [High](https://artificialanalysis.ai/models/gpt-5-6-terra-high) | [XHigh](https://artificialanalysis.ai/models/gpt-5-6-terra-xhigh) | [Max](https://artificialanalysis.ai/models/gpt-5-6-terra) |
+| Sol | [Light](https://artificialanalysis.ai/models/comparisons/gpt-6-astra-low-vs-gpt-5-6-sol-low) · [Medium](https://artificialanalysis.ai/models/comparisons/gpt-6-astra-medium-vs-gpt-5-6-sol-medium) | [High](https://artificialanalysis.ai/models/gpt-5-6-sol-high) | [XHigh](https://artificialanalysis.ai/models/gpt-5-6-sol-xhigh) | [Max](https://artificialanalysis.ai/models/gpt-5-6-sol) |
 
 Artificial Analysis Coding Agent Index v1.4는 Codex 하네스에서 DeepSWE,
 Terminal-Bench v2.1, SWE-Atlas-QnA의 pass@1을 결합한다. 아래 셀은
@@ -38,6 +65,18 @@ Terminal-Bench v2.1, SWE-Atlas-QnA의 pass@1을 결합한다. 아래 셀은
 | Luna | 25 / 1.4M | 42 / 4.3M | 52 / 9.6M | 53 / 12.8M | 57 / 16M |
 | Terra | 39 / 1.7M | 48 / 3.2M | 55 / 5.6M | 56 / 6.6M | 60 / 9.6M |
 | Sol | 55 / 3.2M | 62 / 5.8M | 64 / 8.0M | 63 / 9.9M | 65 / 13.2M |
+| Astra | 미확보 | 미확보 | 미확보 | 미확보 | 67 / 4.0M |
+
+2026-09-05의 [Codex 비교표](https://artificialanalysis.ai/agents/coding-agents/comparisons/codex-vs-grok-build)에서 Astra Max의 task당 API 비용은 $4.72, active time은 26.8분이다.
+전체 설정의 비용·시간과 재계산 가능한 지수는 [Benchmark Costs](benchmark-costs.md)에 기록한다.
+
+Artificial Analysis의 Astra 발표 평가에서는 Astra Max의 Coding Agent Index가 **67**이며,
+같은 Codex 하네스의 Sol Max 대비 약 3분의 1 수준의 token을 사용했다고 보고했다.
+원문은 이 수치를 output token으로 한정하지 않는다. 같은 평가의 작업당 API 비용은
+Sol Max와 비슷하고 점수는 2점 높았다. 반면 Intelligence 평가에서는 output token이
+약 10% 줄어도 작업당 비용은 약 75% 높았다. 두 하네스의 경제성을 일반화하지 않는다.
+이는 **2026-09-03 발표 평가**의 관측이다. 이 검수에서 Astra Light~XHigh의 정확한
+Coding Agent 점수·task당 token을 확보하지 못했으므로 값을 추정하지 않는다.
 
 Coding Agent task당 token은 입력·cached input·cache write·reasoning·output을 포함한
 benchmark 평균이다. Codex 구독 allowance나 이 프로젝트의 Estimated Consumption Index와

@@ -11,7 +11,7 @@
 
 ## 🧪 Scenario 6: Child 작업 중 새 설계 판단 직면 (`NEEDS_PARENT_DECISION`)
 
-하위 워커(Luna, Terra 또는 effort-only Sol)가 구현 중 기존 레거시 코드와의 심각한 호환성 충돌이나 모호한 요구사항을 마주했을 때:
+하위 워커(Luna, Terra, Sol 또는 Astra)가 구현 중 기존 레거시 코드와의 심각한 호환성 충돌이나 모호한 요구사항을 마주했을 때:
 
 ```text
 NEEDS_PARENT_DECISION
@@ -95,16 +95,16 @@ Worktree:
   1. **권한·안전성 확인**: Gate A와 Gate B를 적용한다. 상위 판단이 남거나 영향 범위가 불명확하면 Parent Direct다.
   2. **경제성 확인**: 반복 구현·검증의 대체 실행량과 준비·검증·재작업 부담을 비교한다. Economic Gate를 통과하지 못하면 Parent Direct다. 작업 크기 자체는 실익의 근거가 아니다.
   3. **예외 승인 확인**: High가 필요한 구체적 이유와 고정 계약·검증 방법을 설명하고, 해당 effort 사용이 아직 승인되지 않았다면 사용자에게 요청한다. 이미 명시적으로 요청·승인된 범위는 다시 묻지 않는다.
-  4. **실행**: 승인 및 모든 Gate 통과 시 `model="gpt-5.6-terra"`, `reasoning_effort="high"`로 위임한다. 미승인 시 Parent Direct다.
+  4. **실행**: 승인 및 모든 Gate 통과 시 `model="gpt-5-6-terra"`, `reasoning_effort="high"`로 위임한다. 미승인 시 Parent Direct다.
 - effort 승인은 상위 판단 권한, 동일 모델 위임 금지, Leaf Worker, 복구 한도 또는 Gate 조건을 바꾸지 않는다.
 
 ---
 
 ## 🧪 Scenario 10: Child Spawn 실패 (Fail-Closed Fallback)
 
-- **상황**: 런타임 제약 또는 일시적 API 오류로 `spawn_agent(model="gpt-5.6-terra")` 호출이 실패함.
+- **상황**: 런타임 제약 또는 일시적 API 오류로 `spawn_agent(model="gpt-5-6-terra")` 호출이 실패함.
 - **올바른 동작 (Fail-Closed)**:
-  - ❌ `gpt-5.6-luna`로 우회 spawn하지 않음.
+  - ❌ `gpt-5-6-luna`로 우회 spawn하지 않음.
   - ❌ `model`을 생략한 child를 재시도하지 않음.
   - ✅ **부모 모델(Sol)이 해당 작업을 직접 이어서 수행하여 마무리합니다.**
 

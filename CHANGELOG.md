@@ -8,20 +8,25 @@
 ## [Unreleased]
 
 ### 추가 (Added)
+- **재현 가능한 비용 비교**: `benchmark-costs.md`에 동일 Codex 하네스의 공개 API 비용·토큰·시간과 정규화 산식, Codex 크레딧 환산 한계 및 실측 비교 방법을 기록. 기존 ECI 수치는 보존.
+- **GPT-6 Astra 지원**: Astra를 최상위 Active Parent와 제한된 same-model lower-effort Child로 추가하고 `Astra > Sol > Terra > Luna` 계층, Astra에서 Sol 이하로의 model downshift, Astra Light/Medium 자동 경로를 실행 계약·Capsule·README·명세에 동기화.
 - **같은 모델 reasoning effort 하향 위임**: 실제 Parent model·effort를 확인한 뒤 같은 모델의 엄격히 낮은 Light/Medium Child를 선택할 수 있도록 구성 기준 Downshift Only를 확장. Terra Medium → Terra Light, Terra High 이상 → Terra Medium, Sol Medium → Sol Light, Sol High 이상 → Sol Medium 경로와 lower-tier 적합성·Economic Gate 조건을 실행 규칙, Capsule, 경제성, 추천, 예시와 명세에 동기화.
 - **Parent Direct routing notice**: Gate A → Gate B → Economic Gate 평가를 수행한 최종 Parent Direct도 기존 Spawn Notice 호환 형식으로 한 번 표시하고, Child delegation·비적용 요청·spawn 실패의 notice 횟수 규칙을 명시.
 - **Economic Gate 및 준비 테스트**: Parent 준비·Child 실행·Parent 검증의 Effective Downshift Cost와 Parent Direct Cost를 비교하는 네 가지 필요조건과 human steering·rework·verification을 포함한 실제 작업 비용 관점을 명시. 2× Luna/3× Terra는 라우팅 기준이 아닌 근거 미확정 운영 가설로 비용 문서에만 보존.
 - **Luna all-matches 안전장치 및 micro-batch**: bounded Search 전체 매치와 non-exhaustive examples 규칙, 항목별 완료 형식을 추가.
 - **Spawn visibility 및 최소 capsule 문맥**: `[codex-downshift] → <model> (<effort>) | <task_name> | <brief reason>`과 Search/Modify/Apply 및 Minimum Sufficient Context를 명시.
 - **모델 근거·추천 참조 문서 분리 및 `SKILL.md` Token Diet**: 공식 요율·추정 지수·위임 비용 모델은 `model-economics.md`, 외부 관측은 `model-benchmarks.md`, 종합 추천은 `model-selection.md`로 분리. 라우팅 사례와 terminal/recovery 사례도 별도 문서로 나누고 `SKILL.md`에는 핵심 실행 계약과 on-demand 읽기 조건만 유지.
-- **Sol-Parent Golden Switch 규칙 정밀화**: implementation-local 선택을 Terra에 맡기는 역할 정책을 명시하고 Sol Parent 전용으로 분기. 추정 지수·Steps와 금전 비용의 비교 기준을 구분하며 시간·allowance 절감 보장으로 해석하지 않음.
 
 ### 변경 (Changed)
+- **권한과 모델 선택 분리**: 확정 실행/내부 구현 선택 권한을 모델 이름과 분리하고 같은 모델 effort 하향을 공통 조건으로 평가. 모델별 독점 권한과 Golden Switch를 후보 추천으로 대체.
+- **작업 단위 평가와 문서 정리**: 개별 편집 호출 대신 독립 작업 후보마다 게이트를 평가하고 중요 조건 변경 시 재평가. README·명세·Capsule의 중복 정책을 실행 원본과 연결하고 사례·추천을 동기화.
+
+- **Astra 요율·벤치마크·추천 반영**: OpenAI의 Astra Token-Credit Rate를 공식 표에 추가하고 Artificial Analysis Intelligence Index v4.2 및 Astra Max Coding Agent 관측을 별도 snapshot으로 기록. Astra의 Estimated Consumption Index는 산출 근거가 없어 추가하지 않으며, Terra Medium과 Sol Medium의 기존 기본 추천을 유지한 채 어려운 end-to-end 작업에 Astra Medium을 조건부 추천.
 
 - **Artificial Analysis 성능 근거와 추천 갱신**: GPT-5.6의 모델·추론 레벨별 Intelligence Index와
   Codex Coding Agent Index·task당 token을 기록하고, 공식 요율·Estimated Consumption Index·권한 경계와
-  함께 해석해 Luna·Terra·Sol의 작업별 추천 기준을 보완. Luna Medium은 Implementation Closed 상태에서
-  bounded search 또는 검증 실패에 Parent가 고정한 Rule로 대응하는 1회 복구가 실질적 실행량일 때의 후보로 정밀화.
+  함께 해석해 Luna·Terra·Sol의 작업별 추천 기준을 보완. Luna Medium은 고정 탐색·복구뿐 아니라
+  능력과 검증 근거가 충분한 좁은 내부 구현 선택에도 후보로 비교.
   비용과 점수는 대체로 함께 증가하지만 비례하지 않는다는 적용 경계를 명시하고, 기획 명세의 중복 수치표는 기준 문서 링크로 대체.
   기존 model-tier 위임 경로·판단 권한·공식 요율·추정 지수 수치는 유지. 같은 모델 lower-effort 경로는 benchmark에서 도출한 결론이 아니라 사용자 명시 정책으로 별도 추가.
 
@@ -48,6 +53,7 @@
 - **핵심 문서 최신화**: README, 기획 명세, 문서 인덱스, 기여 가이드의 역할과 기준 문서를 명확히 하고 현재 실행 규칙·비용 근거·표기 정책에 동기화.
 
 ### 수정 (Fixed)
+- **Astra 추가 검수**: Intelligence Index의 버전 혼합과 추정값 누락, Coding Agent token을 output token으로 한정한 오류를 수정. Astra → Sol 분기와 same-model effort 조건, 런타임 모델 ID(`gpt-5-6-*`)를 동기화하고 Astra 변경 이력을 Unreleased로 이동.
 - **보조 신호와 위임 조건 구분**: 단순 수정·파일 수·새 분석 여부만으로 경로를 단정하던 표현을 안전성·권한·경제성 조건으로 정렬. 2×/3×는 실행 지침에서 제외하고 비용 문서에 근거 미확정의 운영 가설로 명시.
 - **Micro-batch 개수 제한 제거**: 근거 없는 3–5개 조건을 복수 항목의 독립성·권한·묶음 처리 경제성으로 대체하고, 실제 위임의 Gate 통과 조건을 명시. 숫자는 구체적 예시에만 유지.
 - **위임 계약 정합성**: 네 경제성 질문의 충족을 위임 필요조건으로 통일하고 Gate 실패 시 Parent Direct, 배치 후보와 실제 위임의 조건을 동기화. `Apply`와 구현 재량을 분리하고 필요한 경우의 완료 대상·탐색 근거 및 명령 외 검증 절차를 스킬·README·명세·예시에 반영.
@@ -67,6 +73,7 @@
 - **Reasoning Effort 정책**: `low`/`medium` 자동 기본값, `high`/`xhigh`/`max` 사용자 명시적 승인 프로토콜 명문화.
 
 ### 변경 (Changed)
+
 - Downshift Only 정의 명확화: 상향 위임 및 동일 티어 재위임 금지, No Chaining(`Sol ➔ Terra ➔ Luna` 금지) 명시.
 - `docs/codex-downshift-spec.md` 및 `README.md` 전면 최신화 동기화.
 

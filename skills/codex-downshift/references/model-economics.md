@@ -21,19 +21,31 @@
 
 ## 1. OpenAI 공식 Token-Credit Rate
 
-OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다 ([OpenAI Help Center: credit-based usage](https://help.openai.com/en/articles/11481834) 기준).
+OpenAI가 공식 발표한 모델별 1M 토큰당 크레딧 단가입니다 ([OpenAI Help Center: credit-based usage 영문판](https://help.openai.com/en/articles/11481834) 기준).
 
 | 모델 | Input / 1M | Cached / 1M | Output / 1M |
 | --- | ---: | ---: | ---: |
 | Luna | 5 credits | 0.5 | 30 |
 | Terra | 50 | 5 | 300 |
 | Sol | 100 | 10 | 500 |
+| Astra | 250 | 25 | 1,250 |
+
+이 표는 영문판의 Business·Enterprise/Edu 대상 ChatGPT Work 및 Codex 표준 크레딧 요율이다.
+2026-09-05 재확인 시 [한국어판](https://help.openai.com/ko-kr/articles/11481834)에는 Astra 행이 아직 없어 영문판을 사용했다.
+Plus/Pro 포함 allowance의 차감 배율이나 Fast mode 요율로 그대로 적용하지 않는다.
 
 Luna 대비 단순 요율 배수는 Terra가 Input·Cached·Output에서 10×이며,
 Sol은 각각 20×·20×·약 16.7×다. 이 배수는 공식 표의 값으로 계산한
 프로젝트 해석이며 공식 요율표의 일부가 아니다.
+Astra는 Sol 대비 Input·Cached·Output이 모두 2.5×다.
 
 ---
+
+## 재현 가능한 현재 비용 비교
+
+같은 Codex 하네스의 공개 API 비용·토큰·점수와 계산식은 [Benchmark Costs](benchmark-costs.md)에 기록한다.
+이 자료의 API 비용 지수는 기존 ECI와 별개다. 현재 공개 비용 비교에는 재현 가능한 동일 하네스 관측을 우선하고,
+기존 ECI는 역사적 보조 자료로 유지한다. 정확한 Codex 크레딧은 종류별 토큰 수와 적용 요율이 확인될 때 계산한다.
 
 ## 2. Estimated Codex Consumption Index (예상 실질 소모 지수)
 
@@ -53,6 +65,9 @@ Sol은 각각 20×·20×·약 16.7×다. 이 배수는 공식 표의 값으로 �
 | **Terra** | 🟢 **4.46×** | 🟢 **5.35×** | 🟡 **8.39×** | 🟠 **13.99×** | 🔴 **28.85×** |
 | **Sol** | 🟡 **9.40×** | 🟠 **18.04×** | 🔴 **25.63×** | 🔴 **35.62×** | 🔴 **52.50×** |
 
+Astra는 공식 요율이 공개됐지만, 기존 지수와 같은 원시 입력·산식으로 재현할 수 있는
+agent 사용량 자료가 없으므로 Estimated Consumption Index 행을 추가하지 않는다.
+
 ---
 
 ## 3. 부모 기준선별 예상 상대 절감률 비교
@@ -69,7 +84,7 @@ Sol은 각각 20×·20×·약 16.7×다. 이 배수는 공식 표의 값으로 �
 
 ### 3.1 같은 모델 effort 하향의 예상 지수 차이
 
-같은 모델의 더 낮은 effort를 Child로 쓰면 model token-credit rate는 같지만 Estimated Consumption Index는 낮아진다.
+같은 모델의 더 낮은 effort는 model token-credit rate를 바꾸지 않는다. 기존 Terra·Sol snapshot에서는 Estimated Consumption Index가 낮아지지만 Astra의 감소율은 산출할 수 없다.
 아래는 자동 target인 Light 또는 Medium으로 내리는 대표 비교이며, 실제 Parent effort를 확인한 경우에만 적용한다.
 
 | Parent → Child | 예상 소모 지수 | Child 지수의 상대 감소 |
@@ -81,7 +96,7 @@ Sol은 각각 20×·20×·약 16.7×다. 이 배수는 공식 표의 값으로 �
 
 이 감소율은 Child 실행분만 비교한 추정치다. Capsule 준비, Parent 검증, 재지시와 재작업이 추가되므로
 위임 전체가 같은 비율로 절감된다는 뜻은 아니다. lower-model 후보가 충분하면 공식 요율도 더 낮으므로 먼저 비교한다.
-Terra same-model 경로는 implementation-local 선택 때문에 Luna 권한을 넘을 때, Sol same-model 경로는 관계·요구사항 누락을 결정적 검증만으로 확인하기 어려워 Terra가 Parent 수동 검증·재작업을 늘릴 때의 제한된 대안이다.
+같은 모델 effort 하향은 특정 작업 종류에 제한하지 않는다. 실제 Parent effort보다 엄격히 낮고 작업에 충분한 후보를 다른 적격 구성 및 Parent Direct와 전체 비용으로 비교한다.
 
 ---
 
@@ -105,7 +120,9 @@ Terra same-model 경로는 implementation-local 선택 때문에 Luna 권한을 
 
 ## 5. Sources & Snapshot
 
-Snapshot date: **2026-09-03**
+Official rate snapshot date: **2026-09-05**
+
+Estimated Consumption Index snapshot date: **2026-09-03**
 
 ### Official Codex credit-rate source
 - OpenAI ChatGPT / Codex credit-based usage rate card
@@ -153,9 +170,12 @@ OpenAI가 공개한 Plus/Pro의 5시간 또는 주간 allowance 공식 차감 �
 
 공식 token-credit 요율과 위 Estimated Consumption Index 표는 변경하지 않는다. 다음은 라우팅 판단을 위한 운영 모델이며 allowance 보장이 아니다.
 
-**Effective Downshift Cost** = Parent Delegation Preparation + Child Execution + Parent Verification
+**Effective Downshift Cost** = Parent Delegation Preparation + Child Execution + Parent Verification + Additional Rework
 
-**Parent Direct Cost** = Parent Analysis + Parent Implementation + Parent Validation
+**Parent Direct Cost** = Parent Analysis + Parent Implementation + Parent Validation + Additional Rework
+
+두 경로의 재시도·복구 비용을 모두 포함하며, 앞 항목에 포함된 재작업은 중복 계산하지 않는다.
+Human steering 시간은 모델 비용과 별도로 기록한다. 실측 비교 항목은 [Benchmark Costs](benchmark-costs.md#프로젝트-실측으로-보완할-항목)를 따른다.
 
 ### 준비 비용과 위임 판단
 
@@ -194,7 +214,7 @@ Parent preparation의 output/reasoning이 child prompt 비용을 초과할 수�
 
 **라우팅 판단**
 
-Luna/Terra 후보는 Gate A와 Gate B의 안전성·권한 판정으로 선택하고, 실제 위임은 Economic Gate의 Delegation Preparation Test를 모두 통과할 때만 수행한다.
+모든 Child 후보는 Gate A와 Gate B의 안전성·권한 판정으로 선택하고, 실제 위임은 Economic Gate의 Delegation Preparation Test를 모두 통과할 때만 수행한다.
 
 **보조 신호**
 
