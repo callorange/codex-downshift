@@ -53,6 +53,7 @@
 - **핵심 문서 최신화**: README, 기획 명세, 문서 인덱스, 기여 가이드의 역할과 기준 문서를 명확히 하고 현재 실행 규칙·비용 근거·표기 정책에 동기화.
 
 ### 수정 (Fixed)
+- **Implicit Skill invocation 범위**: `SKILL.md` description에서 내부 Gate가 판단해야 할 bounded·계약 확정 조건을 선행 trigger에서 제거하고, non-trivial 구현·수정·디버깅·테스트·저장소 작업을 후보로 포착하도록 조정. 설명·순수 리서치·구현 없는 기획·비개발 요청은 제외하고, 자동 활성화와 실제 Child 위임을 분리하는 수동 trigger evaluation 절차를 추가.
 - **Astra 추가 검수**: Intelligence Index의 버전 혼합과 추정값 누락, Coding Agent token을 output token으로 한정한 오류를 수정. Astra → Sol 분기와 same-model effort 조건, 런타임 모델 ID(`gpt-5-6-*`)를 동기화하고 Astra 변경 이력을 Unreleased로 이동.
 - **보조 신호와 위임 조건 구분**: 단순 수정·파일 수·새 분석 여부만으로 경로를 단정하던 표현을 안전성·권한·경제성 조건으로 정렬. 2×/3×는 실행 지침에서 제외하고 비용 문서에 근거 미확정의 운영 가설로 명시.
 - **Micro-batch 개수 제한 제거**: 근거 없는 3–5개 조건을 복수 항목의 독립성·권한·묶음 처리 경제성으로 대체하고, 실제 위임의 Gate 통과 조건을 명시. 숫자는 구체적 예시에만 유지.

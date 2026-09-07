@@ -1,6 +1,6 @@
 ---
 name: codex-downshift
-description: Use when operating as an Active Parent model (Astra, Sol, or Terra) on bounded implementation work where requirements or external contracts are clear. Evaluates safe and economical delegation to a lower model tier or the same model at a lower reasoning effort while preserving Parent Direct when delegation overhead is not worthwhile.
+description: Use for non-trivial coding implementation, modification, debugging, testing, or repository work performed by an Active Parent model (Astra, Sol, or Terra) when some execution may be worth downshifting. Evaluates safety, authority, and economics internally and keeps Parent Direct when delegation is unsuitable. Do not use for explanation-only, research-only, planning or brainstorming without implementation, or non-development requests.
 ---
 
 # Codex Downshift (Execution Delegator Skill)
