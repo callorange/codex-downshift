@@ -86,9 +86,12 @@ Child delegation이면 2–4단계를 수행하고 Parent Direct이면 직접 �
 ### 1. Trigger & Gate Check
 
 - **Active Configuration Resolution (hard precondition, not a new gate)**:
-  - **모델 확인**: Child를 선택하기 전에 현재 session/runtime 정보로 실제 Active Parent model을 확인한다. task complexity, 이전 turn, default 또는 repository context로 추정하지 않는다.
-  - **effort 확인**: 같은 모델의 effort 하향을 선택하려면 실제 Parent effort도 확인한다. effort를 확인할 수 없으면 같은 모델 Child는 ineligible이며, 확인된 model을 기준으로 하위 모델 후보만 평가한다.
+  - **직접 증거 우선**: Child를 선택하기 전에 현재 runtime/context에 직접 노출된 effective model과 effort를 확인한다. LLM 자기보고, task complexity, 이전 turn의 기억, default, repository context, `config.toml`, 지원 모델 목록 또는 model picker 후보로 추정하지 않는다.
+  - **Codex runtime fallback**: model 또는 effort 중 필요한 값을 직접 확인할 수 없으면 현재 Parent routing 결정 시점에 [PowerShell resolver](scripts/resolve-active-configuration.ps1) 또는 [bash resolver](scripts/resolve-active-configuration.sh)를 실행한다. 두 resolver는 `$CODEX_THREAD_ID`와 `$HOME/.codex/sessions`를 사용하고, `rg --files`로 matching rollout 후보를 좁힌 뒤 최신 파일의 마지막 `turn_context`에서 `payload.model`과 `payload.effort`만 JSON으로 반환한다. 직접 확인된 값은 그대로 사용하고, resolver 값은 누락된 값만 보완하되 양쪽 model이 불일치하면 effort를 결합하지 않는다. 이는 현재 Codex runtime에서 이용 가능한 fallback일 뿐 영구적이거나 공식적인 API 계약이 아니며, turn 사이에 결과를 캐시하지 않는다. 다른 session 내용은 출력하거나 근거로 사용하지 않는다.
+
+  - **판정**: model과 effort를 모두 확인하면 정상적으로 모든 후보를 평가한다. model만 확인하면 그 model보다 낮은 tier 후보는 계속 평가하되 same-model effort 후보만 제외한다. 직접 증거와 runtime fallback 모두에서 model을 확인하지 못하면 Parent Direct로 fail closed한다.
   - **엄격한 하향 확인**: 같은 모델 Child의 target effort가 Parent보다 낮지 않거나 비교할 수 없으면 Parent Direct로 fail closed한다.
+  - **권한 경계**: 이 resolution과 routing은 현재 사용자-facing/root Parent authority를 가진 agent만 수행한다. Capsule 또는 worker context에서 Leaf Worker로 지정된 Child는 자신의 환경에서 이 fallback을 실행해 자신을 Parent로 재분류하거나 이 스킬을 재적용하지 않으며, 다른 agent를 spawn하지 않는다.
 - [선행 조건] 상위 요구사항/아키텍처/보안 판단이 Parent에 의해 완료되었는가? (미완료 시 Parent Direct로 추론 완료 우선)
 - [보조 신호] LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않는다. 작업 속성(사소한 literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work)을 관찰한다.
 - ➔ Gate A(안전성) → Gate B(잔여 권한/후보 선택) → Economic Gate 순으로 평가한다.

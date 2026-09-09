@@ -218,8 +218,8 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 
 ### Failure Case: Active Parent 구성을 추정한 같은 모델 spawn
 
-- **Failure**: 실제 Parent effort를 확인하지 않고 Terra Medium 또는 Sol Light Child를 spawn한다.
-- **Expected**: 같은 모델 후보를 제외하고, 확인된 Parent model로 lower-model 후보를 평가하거나 Parent Direct로 처리한다.
+- **Failure**: 직접 runtime/context와 현재 Codex runtime fallback을 모두 확인하지 않고 Parent 구성을 추정해 Terra Medium 또는 Sol Light Child를 spawn한다.
+- **Expected**: fallback 후 model만 확인되면 같은 모델 후보를 제외하고 lower-model 후보를 평가하며, model도 확인되지 않으면 Parent Direct로 처리한다.
 - **Rule**: 같은 모델 경로에서는 실제 Parent model과 effort를 모두 확인하고 target effort가 엄격히 낮아야 한다.
 
 ---
