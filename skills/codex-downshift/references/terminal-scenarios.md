@@ -5,7 +5,7 @@
 [Delegation Examples](delegation-examples.md)를 따른다.
 
 모든 사례에는 [SKILL.md](../SKILL.md)의 Gate A → Gate B → Economic Gate, Leaf Worker, Fail Closed,
-최대 1회 recovery와 scope-matched fresh verification 규칙이 그대로 적용된다.
+bounded recovery와 Parent evidence review 규칙이 그대로 적용된다.
 
 ---
 
@@ -55,14 +55,18 @@ Worktree:
 
 ---
 
-## 🧪 Scenario 8: Validation 복구 한도 초과 또는 미시도 실패 (`TASK_FAILED`)
+## 🧪 Scenario 8: Bounded recovery 종료 (`TASK_FAILED`)
 
-- **상황 A (1회 복구 후 실패)**: Child가 코드를 수정한 후 테스트를 실행했으나 실패 ➔ 1회 복구를 시도하여 수정했으나 의존성 충돌로 재실행 역시 실패함.
-- **상황 B (복구 부적절 실패)**: 외부 테스트 인프라 다운, DB 서버 연결 불가 등 Child가 자체 구현으로 해결할 수 없는 환경 실패 발생.
+- **상황 A (기본 budget 소진)**: Capsule의 `Corrective attempts: 1`에 따라 validation 실패 원인을 수정하고 영향받는 검사를 재실행했지만, 같은 진단 원인의 실패가 유지되고 다른 수정 근거가 없음.
+- **상황 B (환경 실패, 구체적인 action 없음)**: Child가 허용된 scope에서 해결할 수 없는 테스트 환경 불일치가 확인됐지만 Parent나 사용자가 수행할 구체적인 조치도 없음.
 - **올바른 동작**:
-  - 상황 A: 1회 recovery 실패 후 즉시 `TASK_FAILED` 반환 (`Attempted: YES`).
-  - 상황 B: 억지로 recovery를 수행하지 않고 즉시 `TASK_FAILED` 반환 (`Attempted: NO`, 사유 기재).
+  - 상황 A: 사용한 budget과 남은 실패 증거를 기록하고 `TASK_FAILED` 반환.
+  - 상황 B: 작업 산출물을 억지로 수정하지 않고 `Used: 0`과 recovery 미시도 사유를 기록해 `TASK_FAILED` 반환.
+  - credential 제공, 서비스 시작, 승인처럼 구체적인 상위 조치가 있다면 대신 `NEEDS_PARENT_ACTION`을 사용.
   - `git reset --hard` 등으로 작업트리를 자의적으로 파괴하지 않고 상태를 보존하여 부모에게 인계.
+
+Parent가 서로 독립적인 두 test/fix cycle을 예상하고 Capsule에 `Corrective attempts: 2`를 명시했다면 Child는 두 cycle까지 사용할 수 있다. 모델 tier나 첫 실패만으로 budget을 자동 확장하지 않으며, hard stop 조건은 남은 횟수보다 우선한다.
+
 ```text
 TASK_FAILED
 
@@ -75,8 +79,9 @@ Validation:
   E   TypeError: unsupported operand type(s) for +: 'Decimal' and 'float'
 
 Recovery:
-- Attempted: YES
-- 1 recovery attempt executed to cast float to Decimal in calculate_tax, but mock fixture returned unexpected float format.
+- Budget: 1
+- Used: 1
+- Updated the allowed conversion path, then reran the affected test. The same diagnosed fixture contract mismatch remains and no further correction is supported within the delegated scope.
 
 Remaining blocker:
 Third-party gateway client fixture in tests/conftest.py returns mock data as float, conflicting with strict Decimal typing in payment service.
@@ -96,7 +101,7 @@ Worktree:
   2. **경제성 확인**: 반복 구현·검증의 대체 실행량과 준비·검증·재작업 부담을 비교한다. Economic Gate를 통과하지 못하면 Parent Direct다. 작업 크기 자체는 실익의 근거가 아니다.
   3. **예외 승인 확인**: High가 필요한 구체적 이유와 고정 계약·검증 방법을 설명하고, 해당 effort 사용이 아직 승인되지 않았다면 사용자에게 요청한다. 이미 명시적으로 요청·승인된 범위는 다시 묻지 않는다.
   4. **실행**: 승인 및 모든 Gate 통과 시 `model="gpt-5-6-terra"`, `reasoning_effort="high"`로 위임한다. 미승인 시 Parent Direct다.
-- effort 승인은 상위 판단 권한, 동일 모델 위임 금지, Leaf Worker, 복구 한도 또는 Gate 조건을 바꾸지 않는다.
+- effort 승인은 상위 판단 권한, 동일 모델 위임 금지, Leaf Worker, bounded recovery 또는 Gate 조건을 바꾸지 않는다.
 
 ---
 
@@ -110,11 +115,20 @@ Worktree:
 
 ---
 
-## 🧪 Scenario 11: Parent의 Claim-Matched Fresh Verification
+## 🧪 Scenario 11: Parent Evidence Review와 조건부 validation
 
-- **상황**: Luna가 단위 테스트 및 린트를 통과하고 `TASK_COMPLETED`를 반환함.
+### 충분한 Child evidence
+
+- **상황**: Luna가 실행 명령, exit status, 검증 범위, 핵심 결과와 미검증 범위를 포함한 `TASK_COMPLETED`를 반환했고 실제 tool result도 확인 가능하다. Parent의 diff 검토에서 새 우려가 없고 이후 변경도 없다.
 - **부모 모델의 올바른 동작**:
-  1. `git diff`를 열어 실제 변경된 코드가 Acceptance에 부합하는지 확인.
-  2. **Fresh Verification 직접 실행**: 회귀 테스트 `pytest tests/test_email_validator.py`를 직접 실행하여 `PASSED` 증거 확보.
-  3. **정직하고 정확한 완료 보고**:
-      > *"이메일 유효성 검증 로직이 성공적으로 구현되었습니다. 변경된 회귀 테스트를 부모 모델이 직접 재검증하여 통과를 확인했습니다 (Child는 전체 린트 통과를 보고함)."*
+  1. 실제 변경과 Acceptance를 대조한다.
+  2. Child claim과 evidence scope가 완료 주장에 충분한지 확인한다.
+  3. 이미 성공한 동일 테스트를 이유 없이 반복하지 않고, 확인한 evidence 범위 안에서 완료를 보고한다.
+
+### 추가 Parent-side validation 필요
+
+- **상황**: Child가 `pytest tests/test_email_validator.py -> PASSED`라고만 보고해 exit status, 검증 범위와 실제 tool result를 확인할 수 없다.
+- **부모 모델의 올바른 동작**:
+  1. 단순 성공 자기보고를 충분한 evidence로 취급하지 않는다.
+  2. 완료 주장에 필요한 가장 좁은 회귀 테스트를 Parent가 실행한다.
+  3. 실제 결과와 미검증 범위를 구분해 보고한다.

@@ -1,6 +1,6 @@
 ---
 name: codex-downshift
-description: Use for non-trivial coding implementation, modification, debugging, testing, or repository work performed by an Active Parent model (Astra, Sol, or Terra) when bounded execution may be worth downshifting, including when spawning a Child/subagent or selecting its task-appropriate model and reasoning effort. Evaluates delegation safety, decision authority, and end-to-end economics against Parent Direct, and keeps Parent Direct when delegation is unsuitable. Do not use for explanation-only, research-only, planning or brainstorming without implementation, or non-development requests.
+description: Use for non-trivial coding implementation, modification, debugging, or testing performed by an Active Parent model (Astra, Sol, or Terra) when bounded execution may be worth downshifting, including Child/subagent model and effort selection. Evaluates delegation safety, decision authority, and end-to-end economics against Parent Direct. Do not use for explanation-only, research-only, planning or brainstorming without implementation, non-development requests, or read-only review, audit, inspection, or diagnosis.
 ---
 
 # Codex Downshift (Execution Delegator Skill)
@@ -11,7 +11,9 @@ description: Use for non-trivial coding implementation, modification, debugging,
 
 ## 🎯 1. 핵심 철학 및 10대 불변 규칙 (10 Core Invariants)
 
-> **"Safe enough to delegate → delegate only the remaining authority → keep every child leaf-only → return structured evidence → let the Parent make only claims it freshly verified."**
+> **"Safe enough to delegate → delegate only the remaining authority → keep every child leaf-only → return structured evidence → let the Parent review the evidence behind every completion claim."**
+
+사용자의 명시적 목표·범위·결과 선호는 일반 default보다 우선한다. Child routing과 configuration은 Gate A, Gate B, Economic Gate, Downshift Only 및 delegated-authority 계약을 따른다. 요청한 Child가 이 계약에 적합하지 않으면 Parent Direct로 결과를 수행한다.
 
 ### 1. Parent Authority (부모 모델 권한 보존)
 
@@ -59,9 +61,11 @@ Child spawn 실패, 라우팅 모호성, 또는 권한 불확실 시 다른 하�
 - 모델 유지나 낮은 단가만으로 선택하지 않는다. 능력 적합성과 준비·실행·검증·재작업을 포함한 예상 비용으로 Parent Direct와 비교한다. 불확실성이 커서 이점을 판단할 수 없으면 Parent Direct다.
 - 설정별 후보 추천은 [Model Selection Guide](references/model-selection.md), 비용 근거는 [Model Economics](references/model-economics.md)를 필요할 때 읽는다.
 
-### 8. Max 1 Recovery
+### 8. Bounded Recovery
 
-Child validation 실패 시 자체 구현 수정은 가능한 경우에 한해 최대 1회만 허용(환경/의존성 등 부적절한 경우 미시도). 재실행 실패 또는 미시도 시 즉시 `TASK_FAILED`로 중단.
+Child의 기본 recovery budget은 최초 구현·검증 뒤 corrective attempt 1회다. Parent가 Capsule에 0 이상의 유한한 `Corrective attempts` 값을 명시한 경우에만 그 값으로 확장하거나 축소한다. corrective attempt는 실패한 validation을 해결하려고 허용된 작업 산출물을 새로 수정한 뒤 영향받는 validation을 다시 수행하는 한 cycle이다. 작업 산출물을 바꾸지 않는 잘못된 명령·인자·working directory 교정은 budget을 소비하지 않지만 같은 실행 오류를 반복하지 않는다. 최초 validation 전의 formatter·safe auto-fix는 정상적인 기계적 수렴이며 corrective attempt가 아니다.
+
+budget 소진, 위임 권한 초과, 허용 scope 밖 수정 필요, 구체적인 외부·Parent action 필요, 또는 같은 진단 원인에 대한 수정 뒤 같은 validation failure가 유지되고 다른 수정 근거가 없으면 즉시 적절한 terminal state로 종료한다. 모델 tier만으로 budget을 바꾸거나 Child가 실행 중 delegation ROI를 다시 판단하지 않는다.
 
 ### 9. Structured Return Protocols
 
@@ -69,7 +73,7 @@ Child는 반드시 4대 반환 프로토콜(`TASK_COMPLETED`, `TASK_FAILED`, `NE
 
 ### 10. Evidence Before Completion (Scope Matching)
 
-Parent는 Child 결과를 Blind Trust하지 않으며, **자신이 하려는 Completion Claim의 범위와 정확히 일치하는 Minimum Sufficient Fresh Verification을 직접 수행**.
+Parent는 Child 결과를 Blind Trust하지 않고 실제 변경과 validation evidence를 검토하며, Completion Claim과 evidence scope가 일치하는지 확인한다. Parent-side validation은 evidence가 부족하거나 변경·claim 범위·미해결 위험 때문에 필요할 때만 수행한다.
 
 ---
 
@@ -102,7 +106,7 @@ Child delegation이면 2–4단계를 수행하고 Parent Direct이면 직접 �
 
 ### 4. Collect & Scope-Matched Verify
 
-- 워커의 반환(`TASK_COMPLETED`) 수신 후, Parent가 `git diff` 확인 및 자신의 완료 주장에 부합하는 최소 단위 검증을 직접 실행.
+- 워커의 반환(`TASK_COMPLETED`) 수신 후 Parent가 실제 변경, Acceptance와 validation evidence를 대조한다. Parent-side validation 조건이 확인되면 그 조건을 해소하는 가장 좁은 검증을 실행한다.
 
 ---
 
@@ -230,7 +234,7 @@ Implementation-local choice에서는 Terra 이상을 선택하고 기존 패턴�
 | 반환 상태 | 반환 조건 | 필요한 보고·후속 동작 |
 | --- | --- | --- |
 | `TASK_COMPLETED` | Acceptance criteria 충족 및 검증 통과 | 완료 기준 대조와 검증 증거 보고 |
-| `TASK_FAILED` | 1회 복구 실패 또는 복구 미시도 | 작업트리 보존, 실패 원인 및 복구 시도 여부·미시도 사유 상세 보고 |
+| `TASK_FAILED` | 허용 scope와 recovery budget 안에서 완료하지 못했고 요구할 구체적인 Parent action도 없음 | 작업트리 보존, 실패 원인·사용한 recovery budget·미시도 사유 상세 보고 |
 | `NEEDS_PARENT_DECISION` | 위임 범위를 넘는 새로운 설계/동작 판단 필요 | 미결 판단과 위임 권한을 넘는 이유를 보고하고 Parent에게 제어권 반환 |
 | `NEEDS_PARENT_ACTION` | `git push`, `deploy`, 비밀값 등 외부 권한 작업 필요 | 필요한 외부 작업과 그 전까지 완료한 작업을 보고하고 Parent에게 제어권 반환 |
 
@@ -240,14 +244,22 @@ Implementation-local choice에서는 Terra 이상을 선택하고 기존 패턴�
 
 ## 🔍 4. Parent Evidence Before Completion & Scope Matching
 
-Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 순서로 완료를 확정합니다:
-1. `git diff` 및 수정 파일 목록 검토.
-2. Task Capsule의 Acceptance 충족 여부 확인. Completion set을 사용했다면 대상별 처리 결과와 필요한 검색 완료 근거도 확인한다.
-   검증은 명령 또는 관찰 가능한 확인 절차와 실제 결과로 뒷받침하며, 필요한 검증을 수행하지 못했다면 완료로 보고하지 않는다.
-3. **Claim-Verification Scope Matching**:
-   - **원칙**: `Verification scope MUST match the completion claim scope.`
-   - Parent가 사용자에게 보고하려는 완료 범위에 정확히 비례하는 **Minimum Sufficient Fresh Verification을 직접 실행**.
-   - *(예: 특정 회귀 버그 claim ➔ 해당 단위 테스트 직접 실행)*.
+Parent는 Child의 성공 보고를 Blind Trust하지 않고 다음 evidence review를 항상 수행합니다:
+
+1. Child가 변경을 만들었다면 실제 변경 대상과 diff를 검토한다. 변경 없음이 기대되는 실행이면 예상하지 않은 worktree 변경이 없는지 확인한다.
+2. Task Capsule의 Acceptance 충족 여부를 확인한다. Completion set을 사용했다면 대상별 처리 결과와 discovery evidence도 확인한다.
+3. Child validation evidence에서 실행 명령 또는 관찰 절차, 성공·실패 상태와 핵심 결과, 검증 범위, 미검증 범위, recovery 뒤 최종 결과를 확인한다. 확인 가능한 실제 tool result는 Child의 요약보다 우선한다.
+4. **`Verification scope MUST match the completion claim scope.`**에 따라 Child claim, evidence와 Parent의 Completion Claim 범위를 대조한다.
+
+단순 성공 자기보고는 충분한 evidence가 아니다. 다음 중 하나가 확인되면 Parent는 그 조건을 해소하는 가장 좁은 validation을 수행한다:
+
+- evidence 필수 항목이 없거나 실제 tool result를 확인할 수 없어 신뢰 범위가 불분명하다.
+- Parent가 Child 완료 뒤 관련 작업 산출물을 수정했다.
+- Parent의 Completion Claim 또는 public/shared contract 영향이 Child validation 범위보다 넓다.
+- diff 검토에서 새로운 미해결 우려를 발견했다.
+- Child validation이 실패했거나 실행되지 않았다.
+
+위 조건이 없고 관련 변경도 없다면 이미 성공한 동일 validation command를 반복하지 않는다. Parent가 수정했다면 그 수정의 직접 영향 범위만 다시 검증한다. 필요한 검증을 수행할 수 없으면 해당 범위를 완료로 보고하지 않는다.
 
 ## 📚 5. 참조 문서
 

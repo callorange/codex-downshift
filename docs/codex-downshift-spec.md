@@ -80,7 +80,7 @@ Astra, Sol과 Terra는 높은 품질의 추론과 구현 능력을 제공하지�
 
 실행 불변 규칙의 원본은 [SKILL.md](../skills/codex-downshift/SKILL.md)다.
 Parent의 상위 판단 소유, 엄격한 하향, 안전 게이트, 작업별 위임 권한, Leaf Worker,
-Fail Closed, effort 정책, 최대 1회 복구, 네 반환 상태, Parent의 fresh verification을 유지한다.
+Fail Closed, effort 정책, bounded recovery, 네 반환 상태와 Parent evidence review를 유지한다.
 
 위임 권한을 모델 이름에 묶으면 저렴한 모델이 충분한 작업도 배제하고 같은 모델 effort 하향을 불필요하게 제한한다.
 따라서 Predetermined execution과 Implementation-local choice를 먼저 구분하고, 해당 권한에 충분한 모델·effort를 별도로 선택한다.
@@ -241,6 +241,8 @@ Improve the readability of UserService.create_user docstring.
 완료는 `TASK_COMPLETED`, 실패는 `TASK_FAILED`, 권한 밖 판단은 `NEEDS_PARENT_DECISION`,
 외부 권한 작업은 `NEEDS_PARENT_ACTION`으로 반환한다. 필수 증거·작업트리 보존·복구 조건은 Capsule 원본을 따른다.
 
+Recovery는 최초 구현·검증 뒤 corrective attempt 1회를 기본값으로 하며 Parent가 Capsule에 0 이상의 유한한 횟수를 명시한 경우에만 바뀐다. corrective attempt는 실패한 validation을 해결하려고 허용된 작업 산출물을 수정한 뒤 영향받는 validation을 다시 수행하는 한 cycle이다. 구체적인 Parent/사용자 action이 없는 환경 실패는 `NEEDS_PARENT_ACTION`이 아니라 `TASK_FAILED`로 반환한다.
+
 ---
 
 ## 14. Trivial Task Delegation & 작업 단위 정책 (Task Granularity)
@@ -287,8 +289,11 @@ Astra Light/Medium은 동일 Codex 하네스 근거가 없는 실험 후보이�
 ## 18. Evidence Before Completion & Scope Matching
 
 Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으며 다음 원칙을 준수한다:
-- **`Verification scope MUST match the completion claim scope.`**
-- Parent가 사용자에게 보고하려는 claim 범위에 정확히 비례하는 **Minimum Sufficient Fresh Verification을 직접 수행**한다.
+
+- 실제 변경, Acceptance, Child validation evidence와 미검증 범위를 검토한다.
+- **`Verification scope MUST match the completion claim scope.`**에 따라 Child claim과 Parent의 완료 주장 범위를 대조한다.
+- Child evidence가 실행 명령 또는 관찰 절차, 상태·핵심 결과, 검증 범위와 미검증 범위를 구체적으로 제공하고 추가 검증 조건이 없으면 이미 성공한 동일 명령을 반복하지 않는다.
+- evidence 부족, Parent 후속 수정, 더 넓은 완료 주장, public/shared contract 영향 확대, 새 미해결 우려 또는 validation 실패가 확인되면 그 조건을 해소하는 가장 좁은 Parent-side validation을 수행한다.
 
 ---
 
@@ -309,6 +314,8 @@ Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으�
 - Gate A에서 High Consequence 작업이 완벽히 차단된다.
 - 하위 워커가 다른 에이전트를 생성하지 않는다 (No Chaining).
 - 부모 모델이 최종 판단권을 온전히 유지한다.
+- recovery는 기본 corrective attempt 1회이며 Capsule에 명시된 유한한 budget과 terminal state 경계를 지킨다.
+- Parent는 Child evidence를 검토하고, 관찰 가능한 조건이 있을 때만 필요한 Parent-side validation을 수행한다.
 
 ### 실사용 성공 기준
 
@@ -317,6 +324,7 @@ Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으�
 - Astra/Sol/Terra 사용량이 유의미하게 감소한다.
 - 위임으로 인한 불필요한 재작업이 최소화된다.
 - 품질 저하 없이 결과물의 완성도가 유지된다.
+- Astra/Sol/Terra 공통 행동 invariant는 [Harness Behavior Evals](harness-behavior-evals.md)에 따라 평가한다.
 
 ---
 

@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 추가 (Added)
+- **Harness Behavior Evals**: implicit activation, Routing Notice, strict downshift, delegated authority, bounded recovery와 Parent evidence review를 Astra·Sol·Terra 공통 invariant로 평가하는 contributor용 SSOT를 추가.
 - **재현 가능한 비용 비교**: `benchmark-costs.md`에 동일 Codex 하네스의 공개 API 비용·토큰·시간과 정규화 산식, Codex 크레딧 환산 한계 및 실측 비교 방법을 기록. 기존 ECI 수치는 보존.
 - **GPT-6 Astra 지원**: Astra를 최상위 Active Parent와 제한된 same-model lower-effort Child로 추가하고 `Astra > Sol > Terra > Luna` 계층, Astra에서 Sol 이하로의 model downshift, Astra Light/Medium 자동 경로를 실행 계약·Capsule·README·명세에 동기화.
 - **같은 모델 reasoning effort 하향 위임**: 실제 Parent model·effort를 확인한 뒤 같은 모델의 엄격히 낮은 Light/Medium Child를 선택할 수 있도록 구성 기준 Downshift Only를 확장. Terra Medium → Terra Light, Terra High 이상 → Terra Medium, Sol Medium → Sol Light, Sol High 이상 → Sol Medium 경로와 lower-tier 적합성·Economic Gate 조건을 실행 규칙, Capsule, 경제성, 추천, 예시와 명세에 동기화.
@@ -18,6 +19,7 @@
 - **모델 근거·추천 참조 문서 분리 및 `SKILL.md` Token Diet**: 공식 요율·추정 지수·위임 비용 모델은 `model-economics.md`, 외부 관측은 `model-benchmarks.md`, 종합 추천은 `model-selection.md`로 분리. 라우팅 사례와 terminal/recovery 사례도 별도 문서로 나누고 `SKILL.md`에는 핵심 실행 계약과 on-demand 읽기 조건만 유지.
 
 ### 변경 (Changed)
+- **Bounded Recovery 및 Parent Evidence Review**: Child recovery를 기본 corrective attempt 1회와 Capsule의 명시적 유한 budget으로 일반화하고, Parent의 필수 evidence review와 조건부 validation 실행을 분리해 동일 검증의 이유 없는 반복을 방지. read-only review·audit·inspection·diagnosis는 implicit activation 범위에서 제외.
 - **권한과 모델 선택 분리**: 확정 실행/내부 구현 선택 권한을 작업 상태로 먼저 구분하고 같은 모델 effort 하향을 공통 조건으로 평가. Luna는 `Implementation Closed`인 확정 실행으로 제한하되, Parent가 좁은 구현 선택을 Rule로 닫으면 Luna Medium 후보로 재분류할 수 있도록 명시.
 - **작업 단위 평가와 문서 정리**: 개별 편집 호출 대신 독립 작업 후보마다 게이트를 평가하고 중요 조건 변경 시 재평가. README·명세·Capsule의 중복 정책을 실행 원본과 연결하고 사례·추천을 동기화.
 

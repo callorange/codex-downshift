@@ -28,14 +28,14 @@
 | **5** | 구현 판단 잔여 작업 (Terra 부모) | **Terra** | ⚖️ **effort 확인 ➔ Terra 하위 effort 또는 Parent Direct** | 실제 Parent effort보다 낮고 작업에 충분한 Terra Light/Medium만 후보 |
 | **6** | Child 작업 중 새 설계 판단 직면 | **Child** | 🛑 **`NEEDS_PARENT_DECISION`** | 하위 워커 임의 판단 금지, 미결 사항 보고 후 부모 판단 |
 | **7** | Child 외부 부수효과 필요 직면 | **Child** | 🛑 **`NEEDS_PARENT_ACTION`** | git push/deploy 등 외부 권한 작업 시 부모에게 제어권 반환 |
-| **8** | 검증 실패 후 1회 복구 실패 또는 복구 부적절로 미시도 | **Child** | 🛑 **`TASK_FAILED`** | 무한 루프 금지. 복구 시도 여부·미시도 사유와 실패 원인을 보고하고 작업트리 보존 |
+| **8** | bounded recovery budget 소진 또는 복구 부적절로 미시도 | **Child** | 🛑 **`TASK_FAILED`** | 유한 budget과 중단 조건 준수. 사용 횟수·미시도 사유와 실패 원인을 보고하고 작업트리 보존 |
 | **9** | `high`/`xhigh`/`max` reasoning 필요 | **Astra/Sol/Terra** | ⚙️ **User Approval Protocol** | 자동 spawn 금지, Parent Direct 우선 검토 후 사용자 승인 요청 |
 | **10**| Child spawn 실패 / 런타임 오류 | **Astra/Sol/Terra** | 🛡️ **Fail-Closed Fallback** | 타 모델 우회/재시도 없이 부모 모델이 직접 수행 |
-| **11**| 정상 완료 보고 수신 | **Astra/Sol/Terra** | 🔍 **Claim-Matched Fresh Verification** | `TASK_COMPLETED` 수신 후 Parent 최소 직접 검증 후 보고 |
+| **11**| 정상 완료 보고 수신 | **Astra/Sol/Terra** | 🔍 **Parent Evidence Review** | `TASK_COMPLETED` 수신 후 실제 변경·evidence·claim scope를 검토하고 조건이 확인될 때만 Parent-side validation |
 | **12** | 로직·테스트가 없는 작은 오타 수정 | **Astra/Sol/Terra** | 🛑 **Economic Gate ➔ Parent Direct** | capsule/child 비용이 대체 실행량보다 큰 경우 직접 처리; 줄 수 자체가 결정 기준은 아님 |
 | **13** | 독립적인 확정 변경의 micro-batch | **Astra/Sol/Terra** | 🟢 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Luna Light. 항목별 결과를 보고하고 하나라도 판단이 필요하면 전체 완료로 표시하지 않음 |
 | **14** | 구현이 이미 확정되고 위임 경제성이 부족함 | **Sol** | 🛑 **Gate B: Luna 후보 ➔ Economic Gate 탈락** | Luna부터 비교해도 위임 경제성이 부족하면 Parent Direct. 다른 모델로 우회하지 않음 |
-| **15** | 고정 외부 계약 안의 내부 구현·테스트 루프 | **Sol** | 🟡 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Terra Medium. Parent가 diff와 claim-matched fresh verification 수행 |
+| **15** | 고정 외부 계약 안의 내부 구현·테스트 루프 | **Sol** | 🟡 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Terra Medium. Parent가 실제 변경·evidence를 검토하고 필요한 경우에만 추가 validation 수행 |
 | **16** | 최종 routing 결정 표시 | **Astra/Sol/Terra** | 👁️ **Routing Notice** | 평가한 결정마다 한 번; Child는 spawn 직전, Parent Direct는 첫 결정적 이유 표시. 전체 capsule 비노출, spawn 실패 시 추가 notice 없음 |
 | **17** | 관계·정합성 실행 (Astra 부모) | **Astra** | 🟡 **Sol 후보 ➔ Economic Gate** | Terra보다 실제 작업 비용이 낮으면 Sol Light/Medium model 하향 |
 | **18** | 일반 bounded 구현 (Astra 부모) | **Astra** | ⚖️ **effort 확인 ➔ Astra 하위 effort 또는 lower tier** | 실제 Parent effort보다 낮고 작업에 충분하며 적격 후보·Parent Direct 대비 전체 비용 이점이 있을 때 후보 |
@@ -90,7 +90,7 @@
   - [ ] All discount calculation rules pass unit tests.
   - [ ] InvalidOrderError raised on negative or zero total.
   Validation: pytest tests/test_discount.py && ruff check src/services/discount.py
-  Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
+  Recovery policy: Corrective attempts: 1. Stop when the finite budget is exhausted or authority, scope, external-action, or repeated-root-cause conditions require a terminal return.
   Worker constraints: Leaf worker only. Do not spawn or delegate to other agents or models. Do not perform external side-effects or destructive operations. Do not perform destructive git rollbacks. Stop at one of the four terminal return states.
   Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION"""
   )
@@ -130,7 +130,7 @@
   Validation:
   - Search scope 전체에 고정 Rule을 적용해 대상·매치 목록을 확인한다. 가능하면 수정 후 재검색해 의도하지 않은 잔여 매치를 확인한다.
   - pytest tests/test_serializers.py && ruff check src/serializers/
-  Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
+  Recovery policy: Corrective attempts: 1. Stop when the finite budget is exhausted or authority, scope, external-action, or repeated-root-cause conditions require a terminal return.
   Worker constraints: Leaf worker only. Do not spawn or delegate to other agents or models. Do not perform external side-effects or destructive operations. Do not perform destructive git rollbacks. Stop at one of the four terminal return states.
   Completion evidence:
   - Coverage: 각 대상 -> modified 또는 not modified: 사유.
@@ -192,7 +192,7 @@ Raises:
 Preserve: Signature, implementation, and type hints.
 Acceptance criteria: Target docstring matches Replacement docstring after indentation normalization; signature and implementation unchanged; ruff check passes.
 Validation: Compare the target docstring with Replacement docstring after indentation normalization; inspect git diff to confirm no signature or implementation changes; run ruff check src/services/user_service.py.
-Recovery policy: At most ONE recovery attempt when appropriate. If recovery is not appropriate or validation still fails, return TASK_FAILED immediately.
+Recovery policy: Corrective attempts: 1. Stop when the finite budget is exhausted or authority, scope, external-action, or repeated-root-cause conditions require a terminal return.
 Worker constraints: Leaf worker only. Do not spawn or delegate to other agents or models. Do not perform external side-effects or destructive operations. Do not perform destructive git rollbacks. Stop at one of the four terminal return states.
 Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PARENT_ACTION
 ```
@@ -254,7 +254,7 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 ## 🧪 Scenario 15: Terra 위임이 경제적인 경우
 
 - **상황·후보 판단**: 외부 API 계약과 acceptance는 고정됐지만 여러 모듈의 내부 자료구조 선택·구현·테스트 루프가 남은 Sol 작업은 Gate A/B를 통과할 수 있다.
-- **위임·검증**: 짧은 공개 표시 후 Terra Medium Child로 위임하고 Parent가 diff와 claim-matched fresh verification을 수행한다.
+- **위임·검증**: 짧은 공개 표시 후 Terra Medium Child로 위임하고 Parent가 실제 변경과 validation evidence를 검토한다. evidence 부족, Parent 후속 수정 또는 더 넓은 완료 주장 조건이 확인될 때만 필요한 Parent-side validation을 수행한다.
 
 ---
 

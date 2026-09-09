@@ -27,26 +27,11 @@
 ### 2) 스킬 규칙 및 지침 개선
 - 실제 Codex 환경에서의 동작 경험을 바탕으로 [`skills/codex-downshift/SKILL.md`](skills/codex-downshift/SKILL.md)의 규칙 개선을 제안합니다 (Issue 또는 Pull Request).
 
-### 3) Trigger evaluation
+### 3) Harness behavior evaluation
 
-Implicit Skill 선택은 모델과 런타임에 의존하므로 Markdown이나 정규식 검사만으로 결정적으로 재현할 수 있다고 간주하지 않습니다. 지원되는 Astra, Sol 또는 Terra 환경에서 새 대화로 각 프롬프트를 실행하고 다음 두 관찰값을 기록합니다.
+Skill description, Gate·권한·지원 configuration, recovery, Parent verification 또는 Routing Notice를 변경하면 [Harness Behavior Evals](docs/harness-behavior-evals.md)에 따라 Astra, Sol, Terra의 새 대화에서 변경 전후를 비교합니다.
 
-- `codex-downshift`가 명시 호출 없이 활성화되어 routing 평가를 수행했는가
-- 활성화된 경우 Child delegation과 Parent Direct 중 어떤 결과가 나왔는가
-
-최소 대표 프롬프트 집합:
-
-| 기대 | 프롬프트 |
-| --- | --- |
-| 자동 활성화 | `User 모델에 last_login_at 필드를 추가하고 로그인 성공 시 갱신되게 구현해줘. 관련 테스트도 추가해.` |
-| 자동 활성화 | `이 formatter 디렉터리에서 기존 규칙과 맞지 않는 구현을 찾아 같은 패턴으로 수정하고 테스트해.` |
-| 자동 활성화 | `이 버그의 원인을 찾아 수정하고 관련 테스트를 통과시켜.` |
-| 활성화 허용, Parent Direct 정상 | `이 함수의 명백한 오타 하나만 고쳐.` |
-| 비활성화 | `이 코드가 무슨 일을 하는지 설명해줘.` |
-| 비활성화 | `Django와 FastAPI의 차이를 조사해줘.` |
-| 비활성화 | `새 기능 아이디어를 브레인스토밍해줘.` |
-
-모델·reasoning effort·Codex 버전과 관찰 결과를 함께 남깁니다. 단일 실행의 누락이나 과잉 선택은 비결정적일 수 있으므로, description 변경 전후를 같은 구성과 프롬프트로 반복 비교합니다. 실제 Child 위임 여부는 자동 활성화와 별도로 Gate 결과로 평가합니다.
+Implicit activation과 실제 routing은 별도로 관찰하고, 특정 Child 모델을 정답으로 고정하지 않습니다. 공통 invariant, 시나리오, 기록 형식과 pass/fail 기준은 위 문서를 SSOT로 사용하며 이 기여 가이드에 복제하지 않습니다.
 
 ---
 
@@ -62,6 +47,7 @@ Implicit Skill 선택은 모델과 런타임에 의존하므로 Markdown이나 �
 | 공개 API 비용 입력·계산식·실측 비교 방법 | [Benchmark Costs](skills/codex-downshift/references/benchmark-costs.md) |
 | 모델·effort 설정 추천 | [`model-selection.md`](skills/codex-downshift/references/model-selection.md) |
 | Capsule·반환 서식 | [`task-capsule-template.md`](skills/codex-downshift/references/task-capsule-template.md) |
+| 모델 공통 행동 회귀 평가 | [Harness Behavior Evals](docs/harness-behavior-evals.md) |
 | 설치 절차 | [`README.md`](README.md) |
 
 전체 관계는 [문서 인덱스](docs/README.md)를 참고합니다.

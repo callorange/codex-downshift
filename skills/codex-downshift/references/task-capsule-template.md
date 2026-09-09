@@ -80,7 +80,9 @@ Acceptance criteria:
 Validation: [검증 명령 또는 관찰 가능한 확인 절차와 통과 기준]
 
 Recovery policy:
-At most ONE recovery attempt when appropriate. If recovery is not appropriate (e.g. env/dependency issue) or validation still fails, return TASK_FAILED immediately. Do not enter recursive retry loops.
+- Corrective attempts: [0 or a finite integer; default 1]
+- Stop when: budget exhausted; delegated authority exceeded; required modification leaves Scope.Modify/Search; a concrete external or Parent action is required; or the same diagnosed cause remains after correction with no new corrective evidence.
+- A corrective attempt is one cycle that changes an allowed work product to address failed validation, then reruns the affected validation. Correcting only a command, argument, or working directory does not consume the budget, but do not repeat the same execution error.
 
 Worker constraints:
 - Do not spawn or delegate to other agents or models.
@@ -94,6 +96,8 @@ Return protocol:
 - NEEDS_PARENT_DECISION
 - NEEDS_PARENT_ACTION
 ```
+
+실제 emitted Capsule은 `Corrective attempts` placeholder를 유한한 정수로 교체한다. 별도 확장 근거가 없으면 `1`을 사용한다. Parent가 예상 test/fix 실행량과 Economic Gate를 근거로 확장한 경우에만 짧은 이유를 함께 전달한다.
 
 ### 적용 범위와 구현 재량
 
@@ -116,7 +120,7 @@ Implementation-local Child도 `Apply: Exact`와 implementation-local choice를 �
 | 탐색 범위 | Completion set 사용 시 | Known targets를 포함하고 추가 대상은 지정된 Search와 Rule로 발견한다. `Exact`이면 지정 target이 경계다. |
 | 대상별 처리 결과 | Completion set 사용 시 | 각 대상을 `modified` 또는 근거가 있는 `not modified`로 보고한다. 미처리 대상은 완료로 표시하지 않는다. |
 | 탐색 증거 | all-matches 작업 | 검색 범위·적용 규칙·확인 결과를 보고한다. 가능하면 수정 후 같은 범위를 재검색해 의도하지 않은 잔여 매치를 확인한다. |
-| 검증 근거 | 완료 판단에 필요한 검증 | `Validation`에 실행한 명령 또는 관찰 가능한 확인 절차와 실제 결과를 기록한다. 명령어가 없다는 이유로 검증을 생략하지 않는다. |
+| 검증 근거 | 완료 판단에 필요한 검증 | 실행한 명령 또는 관찰 절차, 성공·실패 상태와 핵심 결과, 검증 범위, 미검증 범위, recovery 뒤 최종 결과를 기록한다. 명령어가 없다는 이유로 검증을 생략하지 않는다. |
 | 완료 판정 | 작업 완료 보고 시 | 발견한 대상의 처리 완료와 검색 범위 전체의 확인을 구분한다. 필요한 탐색·처리·검증 증거가 없으면 `TASK_COMPLETED`로 보고하지 않는다. |
 
 필요한 검증을 수행할 수 없으면 blocker와 작업트리를 보존해 기존 반환 상태에 맞게 보고한다.
@@ -164,10 +168,20 @@ Modified files:
 - <path2>
 
 Validation:
-- <command or observable check 1> -> PASSED
-  <short evidence>
+- <command or observable check 1> -> PASSED [exit status when available]
+  Scope: <files, behavior, or scenarios verified>
+  Evidence: <short result>
 - <command or observable check 2> -> PASSED
-  <short evidence>
+  Scope: <files, behavior, or scenarios verified>
+  Evidence: <short result>
+
+Not validated:
+- None | <scope not validated and why>
+
+Recovery:
+- Budget: <allowed corrective attempts>
+- Used: <corrective attempts used>
+- <final recovery result or "No recovery needed">
 
 Coverage (optional; Completion set을 사용한 경우):
 - <target> -> modified | not modified: <reason>
@@ -182,7 +196,7 @@ Notes:
 - None (or optional bounded implementation note)
 ```
 
-### 2) 복구 한도 초과 또는 미시도 실패 (`TASK_FAILED`)
+### 2) 복구 한도 초과 또는 해결 불가 실패 (`TASK_FAILED`)
 ```text
 TASK_FAILED
 
@@ -195,7 +209,8 @@ Validation:
   <short error evidence>
 
 Recovery:
-- Attempted: YES | NO
+- Budget: <allowed corrective attempts>
+- Used: <corrective attempts used>
 - <recovery summary or reason recovery was not appropriate>
 
 Remaining blocker:
@@ -228,7 +243,7 @@ Worktree:
 NEEDS_PARENT_ACTION
 
 Action required:
-<git push, deploy, secret 설정, 승인 필요 외부 작업>
+<Parent/사용자가 수행할 수 있는 구체적인 작업: git push, deploy, secret 설정, 서비스 시작, 승인 또는 Parent 권한 명령>
 
 Why needed:
 <외부 권한이 필요한 이유>
@@ -239,3 +254,5 @@ Task completed so far:
 Worktree:
 <현재 로컬 수정 상태>
 ```
+
+환경·의존성 실패 자체는 `NEEDS_PARENT_ACTION`의 충분한 조건이 아니다. 구체적인 Parent/사용자 action이 있으면 `NEEDS_PARENT_ACTION`, 위임되지 않은 선택이 필요하면 `NEEDS_PARENT_DECISION`, 둘 다 없고 현재 scope에서 해결할 수 없으면 `TASK_FAILED`를 사용한다.

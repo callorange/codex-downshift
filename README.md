@@ -66,7 +66,7 @@ src/formatters/에서 기존 문자열 포맷 규칙을 따르도록 반복 구�
 3. **Leaf Worker / No Chaining**: 모든 자식 워커는 Leaf Worker로 동작하며 다른 에이전트 생성이나 다단계 체이닝(`Sol ➔ Terra ➔ Luna`)이 엄격히 금지됩니다.
 4. **Safety Before Routing (Gate A → Gate B → Economic Gate)**: Bounded, Verifiable, Limited Consequence(저위험/가역적)를 먼저 확인하고, 남은 권한에 맞는 후보를 고른 뒤 준비·검증보다 leverage가 클 때만 위임합니다. DB migration이나 보안 등 High Consequence 작업은 구현이 닫혀 있어도 **부모 모델이 직접 수행**합니다.
 5. **Fail-Closed Fallback**: Child spawn 실패 또는 라우팅 모호 시 타 모델 우회 없이 **부모 모델이 직접 수행**합니다.
-6. **Evidence Before Completion**: Parent는 Child의 성공 보고를 맹신하지 않고, 자신의 완료 보고 범위와 일치하는 독립적인 **Minimum Sufficient Fresh Verification을 직접 수행**합니다.
+6. **Evidence Before Completion**: Parent는 Child의 성공 보고를 맹신하지 않고 실제 변경, validation evidence와 완료 주장 범위를 검토합니다. 증거가 부족하거나 Parent의 후속 변경·더 넓은 주장이 있을 때만 필요한 범위를 직접 검증합니다.
 
 ---
 
@@ -176,11 +176,13 @@ npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent
 | 반환 상태 | 의미 |
 | :--- | :--- |
 | `TASK_COMPLETED` | 완료 기준 충족과 검증 통과 증거를 보고 |
-| `TASK_FAILED` | 복구 미시도 또는 최대 1회 복구 실패 후 작업트리와 실패 원인을 보존하여 보고 |
+| `TASK_FAILED` | 유한한 recovery budget 안에서 완료하지 못했고 요구할 구체적인 Parent action도 없을 때 작업트리와 실패 원인을 보존하여 보고 |
 | `NEEDS_PARENT_DECISION` | 위임 범위를 넘는 새로운 설계·동작 판단이 필요 |
 | `NEEDS_PARENT_ACTION` | push, deploy 등 부모의 권한 또는 외부 작업이 필요 |
 
-부모는 자식의 성공 보고 후에도 diff와 완료 기준을 확인하고, 최종 보고 범위에 맞는 최소한의 검증을 직접 수행합니다. spawn 호출 규격은 [SKILL.md](skills/codex-downshift/SKILL.md), 전체 캡슐 서식과 반환 필드는 [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md)을 참고하세요.
+Recovery 기본값은 최초 구현·검증 뒤 corrective attempt 1회이며, Parent가 Capsule에 0 이상의 유한한 횟수를 명시한 경우에만 바뀝니다. corrective attempt는 실패한 validation을 해결하려고 허용된 작업 산출물을 수정한 뒤 영향받는 검사를 다시 수행하는 한 cycle입니다.
+
+부모는 자식의 성공 보고 후 실제 변경, 완료 기준, 실행 명령·결과·검증 범위·미검증 범위를 확인합니다. 관련 변경 없이 이미 성공한 동일 검증은 반복하지 않으며, 증거 부족·Parent 후속 수정·더 넓은 완료 주장·새 우려가 있을 때만 필요한 범위를 직접 검증합니다. spawn 호출 규격은 [SKILL.md](skills/codex-downshift/SKILL.md), 전체 캡슐 서식과 반환 필드는 [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md)을 참고하세요.
 
 ---
 
@@ -196,7 +198,8 @@ codex-downshift/
 ├── AGENTS.md
 ├── docs/
 │   ├── README.md
-│   └── codex-downshift-spec.md
+│   ├── codex-downshift-spec.md
+│   └── harness-behavior-evals.md
 └── skills/
     └── codex-downshift/
         ├── SKILL.md
@@ -225,6 +228,7 @@ codex-downshift/
 | [Benchmark Costs](skills/codex-downshift/references/benchmark-costs.md) | 공개 API 비용 입력·계산식·실측 비교 방법 |
 | [Model Selection Guide](skills/codex-downshift/references/model-selection.md) | 비용·성능·실제 작업 부담을 종합한 설정 추천 |
 | [Task Capsule Template](skills/codex-downshift/references/task-capsule-template.md) | Child 입력과 Terminal Return Protocol 서식 |
+| [Harness Behavior Evals](docs/harness-behavior-evals.md) | Astra·Sol·Terra 공통 activation, routing, recovery와 검증 행동 평가 |
 | [Documentation Index](docs/README.md) | 핵심 문서의 기준과 동기화 관계 |
 | [Changelog](CHANGELOG.md) · [Contributing Guide](CONTRIBUTING.md) | 변경 이력과 기여 절차 |
 

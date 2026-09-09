@@ -17,6 +17,7 @@
 | [task-capsule-template.md](../skills/codex-downshift/references/task-capsule-template.md) | Task Capsule과 Terminal Return Protocol 서식 | Runtime reference |
 | [delegation-examples.md](../skills/codex-downshift/references/delegation-examples.md) | Gate·권한별 라우팅 시나리오 | Behavioral reference |
 | [terminal-scenarios.md](../skills/codex-downshift/references/terminal-scenarios.md) | Child 반환·복구·예외 effort와 Parent 검증 사례 | Runtime scenarios |
+| [harness-behavior-evals.md](harness-behavior-evals.md) | Astra·Sol·Terra 공통 activation, routing, recovery와 검증 행동 평가 | Eval SSOT |
 
 문서 간 설명이 다르면 위 표의 담당 문서를 먼저 확인합니다.
 `AGENTS.md`의 Project Rules는 저장소 문서의 표기 규칙을 정의하며 스킬의 런타임 정책을 대신하지 않습니다.
