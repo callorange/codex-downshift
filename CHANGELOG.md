@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 추가 (Added)
+- **Active Configuration runtime fallback**: effective model·effort가 context에 직접 노출되지 않을 때 `CODEX_THREAD_ID`와 최신 session rollout의 마지막 `turn_context`를 조회하는 PowerShell/bash resolver를 추가. model-only 상태는 lower-tier routing을 유지하고 same-model effort 하향만 제외하며, model 미확인은 Parent Direct로 fail closed.
 - **Harness Behavior Evals**: implicit activation, Routing Notice, strict downshift, delegated authority, bounded recovery와 Parent evidence review를 Astra·Sol·Terra 공통 invariant로 평가하는 contributor용 SSOT를 추가.
 - **재현 가능한 비용 비교**: `benchmark-costs.md`에 동일 Codex 하네스의 공개 API 비용·토큰·시간과 정규화 산식, Codex 크레딧 환산 한계 및 실측 비교 방법을 기록. 기존 ECI 수치는 보존.
 - **GPT-6 Astra 지원**: Astra를 최상위 Active Parent와 제한된 same-model lower-effort Child로 추가하고 `Astra > Sol > Terra > Luna` 계층, Astra에서 Sol 이하로의 model downshift, Astra Light/Medium 자동 경로를 실행 계약·Capsule·README·명세에 동기화.

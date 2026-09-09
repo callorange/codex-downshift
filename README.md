@@ -11,8 +11,9 @@
 ### 준비 사항
 
 - Astra, Sol 또는 Terra를 부모 모델로 사용하는 Codex 환경이 필요합니다.
-- 위임 실행에는 모델과 reasoning effort를 지정할 수 있는 Native Subagent 기능이 필요합니다. 부모 모델을 확인할 수 없거나 자식 생성에 실패하면 부모가 직접 처리합니다.
-- 아래 CLI 설치에는 Node.js와 `npx`가 필요합니다. 스킬 자체는 Markdown 지침으로 구성되어 별도의 데몬이나 실행 서버를 요구하지 않습니다.
+- 위임 실행에는 모델과 reasoning effort를 지정할 수 있는 Native Subagent 기능이 필요합니다. effective model/effort가 context에 직접 노출되지 않으면 runtime resolver가 `CODEX_THREAD_ID`와 session rollout에서 확인하며, model까지 확인하지 못하거나 자식 생성에 실패하면 부모가 직접 처리합니다.
+- runtime resolver에는 `rg`가 필요합니다. PowerShell은 기본 JSON 기능을 사용하고, bash는 `jq`, `python3`/`python`, macOS `osascript` 순으로 사용 가능한 parser를 선택합니다.
+- 아래 CLI 설치에는 Node.js와 `npx`가 필요합니다. 스킬은 Markdown 실행 계약과 작은 resolver script로 구성되며 별도의 데몬이나 실행 서버를 요구하지 않습니다.
 
 ### 설치
 
@@ -34,7 +35,7 @@ npx skills@latest add callorange/codex-downshift --skill codex-downshift --agent
 | 사용자 수동 설치 | `~/.agents/skills/codex-downshift/` — 공식 Codex 로컬 탐색 경로 |
 | skills CLI의 Codex 설치 | CLI 문서는 프로젝트 `.agents/skills/`, 전역 `~/.codex/skills/`로 표기한다. 설치 버전·방식에 따른 실제 경로와 링크 대상은 CLI 출력으로 확인한다. |
 
-수동 설치는 이 저장소의 `skills/codex-downshift/` 폴더 전체를 복사하고 `SKILL.md`와 `references/`를 함께 유지한다.
+수동 설치는 이 저장소의 `skills/codex-downshift/` 폴더 전체를 복사하고 `SKILL.md`, `references/`, `scripts/`를 함께 유지한다.
 CLI의 agent 선택이나 경로 이름만으로 다른 에이전트와의 격리를 보장하지 않는다. CLI는 공용 원본을 가리키는 symlink 또는 복사 방식을 사용할 수 있다.
 확인일: **2026-09-04**. 근거: [Codex 로컬 스킬 탐색](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills), [skills CLI 설치 방식·에이전트별 경로](https://github.com/vercel-labs/skills#supported-agents).
 
@@ -94,7 +95,7 @@ src/formatters/에서 기존 문자열 포맷 규칙을 따르도록 반복 구�
 
 ## 위임 기준
 
-먼저 현재 runtime/session 정보로 실제 부모 모델을 확인합니다. 같은 모델 경로를 검토하려면 실제 Parent effort도 확인합니다. 부모가 요구사항·공개 계약·보안 등 상위 판단을 확정한 뒤 아래 순서로 평가합니다.
+먼저 현재 runtime/context에서 실제 부모 model과 effort를 확인합니다. 필요한 값이 직접 노출되지 않으면 설치 환경에 맞는 [PowerShell](skills/codex-downshift/scripts/resolve-active-configuration.ps1) 또는 [bash](skills/codex-downshift/scripts/resolve-active-configuration.sh) resolver로 현재 thread의 최신 rollout을 조회합니다. model만 확인되면 lower-tier 후보는 계속 평가하고 같은 모델 effort 하향만 제외하며, model을 확인하지 못하면 Parent Direct입니다. 이 rollout 조회는 현재 Codex runtime용 fallback이며 공식 API 계약으로 간주하지 않습니다.
 
 | 단계 | 확인할 내용 | 통과하지 못하면 |
 | :--- | :--- | :--- |
@@ -203,6 +204,9 @@ codex-downshift/
 └── skills/
     └── codex-downshift/
         ├── SKILL.md
+        ├── scripts/
+        │   ├── resolve-active-configuration.ps1
+        │   └── resolve-active-configuration.sh
         └── references/
             ├── benchmark-costs.md
             ├── delegation-examples.md
@@ -220,6 +224,7 @@ codex-downshift/
 | 문서 | 역할 |
 | --- | --- |
 | [SKILL.md](skills/codex-downshift/SKILL.md) | 에이전트가 적용하는 실행 규칙 원본 |
+| [Runtime Resolvers](skills/codex-downshift/scripts/) | 현재 thread rollout에서 effective model·effort를 확인하는 PowerShell/bash fallback |
 | [Project Specification](docs/codex-downshift-spec.md) | 설계 의도·정책 근거·성공 기준 |
 | [Delegation Examples](skills/codex-downshift/references/delegation-examples.md) | Gate와 권한별 라우팅 시나리오 |
 | [Terminal & Recovery Scenarios](skills/codex-downshift/references/terminal-scenarios.md) | Child 반환·복구·예외 effort와 Parent 검증 사례 |

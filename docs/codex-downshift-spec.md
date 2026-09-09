@@ -90,6 +90,8 @@ Fail Closed, effort 정책, bounded recovery, 네 반환 상태와 Parent eviden
 
 Active Parent는 Astra·Sol·Terra이며 `Astra > Sol > Terra > Luna` 순서상 낮은 모델 또는
 같은 모델의 엄격히 낮은 effort에 실행을 맡긴다. 실제 Parent 구성을 추정하지 않는다.
+runtime/context에 필요한 값이 직접 노출되지 않으면 현재 thread ID와 최신 session rollout의 마지막 `turn_context`를 읽는 제한적 runtime fallback을 사용한다.
+model만 확인되면 lower-tier 후보는 유지하고 same-model effort 후보만 제외하며, model을 확인하지 못하면 Parent Direct다. rollout 형식은 영구적인 공식 API 계약으로 간주하지 않는다.
 자동 target은 Light/Medium이며 High 이상은 사용자 승인 예외다. 상세 호출 인자는 SKILL의 Spawn Contract를 따른다.
 
 ## 6. 결정적 라우팅 파이프라인 (Gate A → Gate B → Economic Gate)
@@ -104,7 +106,7 @@ LOC·파일 수·단일 검증은 보조 신호이며, 시키는 데 드는 일�
 
 ## 7. 프로젝트 파일 구조
 
-`codex-downshift`는 외부 런타임 의존성 없이 순수 Agent Skills 표준에 따라 간결하게 구성된다.
+`codex-downshift`는 Markdown 실행 계약을 중심으로 하며, Active Configuration이 직접 노출되지 않는 현재 Codex runtime을 위한 작은 PowerShell/bash resolver만 포함한다.
 
 ```text
 codex-downshift/
@@ -120,6 +122,9 @@ codex-downshift/
 └── skills/
     └── codex-downshift/
         ├── SKILL.md
+        ├── scripts/
+        │   ├── resolve-active-configuration.ps1
+        │   └── resolve-active-configuration.sh
         └── references/
             ├── benchmark-costs.md
             ├── delegation-examples.md
@@ -131,9 +136,9 @@ codex-downshift/
 ```
 
 ### 필요하지 않은 것 (Non-Essentials)
-- 별도 daemon, background server, wrapper script
+- 별도 daemon, background server 또는 범용 runtime wrapper
 - 복잡한 config TOML 또는 custom agent TOML
-- 별도 Python/Node 런타임 엔진
+- 프로젝트가 직접 제공·운영하는 Python/Node 런타임 엔진
 - Codex의 기본 Multi-Agent 기능(`spawn_agent`)을 프롬프트 지침 수준에서 제어한다.
 
 ---
@@ -301,7 +306,7 @@ Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으�
 
 - 범용 AI model router나 임의 switching을 구현하지 않는다.
 - 상위 모델 호출이나 같은 모델의 동일·상위 effort 위임을 구현하지 않는다.
-- 별도의 daemon, config 시스템, runtime wrapper를 추가하지 않는다.
+- 별도의 daemon, config 시스템 또는 범용 runtime wrapper를 추가하지 않는다. 현재 thread configuration을 읽는 제한적 resolver는 이 범위에 포함되지 않는다.
 - `high`/`xhigh`/`max` reasoning effort를 자동 spawn에 사용하지 않는다.
 
 ---
@@ -310,6 +315,7 @@ Parent는 Child의 성공 보고를 무조건 신뢰(Blind Trust)하지 않으�
 
 ### 기능적 성공 기준
 - Astra/Sol/Terra에서 명확한 실행 작업이 엄격히 낮은 모델 구성의 워커로 안전하게 위임된다.
+- effective configuration이 직접 노출되지 않아도 현재 thread rollout에서 최신 model·effort를 확인하며, model-only와 model 미확인 상태가 각각 제한된 routing과 Parent Direct로 결정된다.
 - 같은 모델 경로는 실제 Parent effort가 확인되고 target effort가 엄격히 낮을 때만 선택된다.
 - Gate A에서 High Consequence 작업이 완벽히 차단된다.
 - 하위 워커가 다른 에이전트를 생성하지 않는다 (No Chaining).

@@ -2,14 +2,14 @@
 
 `codex-downshift` 프로젝트에 관심을 가져주셔서 감사합니다!
 
-본 프로젝트는 OpenAI Codex 환경에서 Astra, Sol 또는 Terra를 Active Parent로 유지하면서, Gate A → Gate B → Economic Gate와 Decision Authority에 따라 bounded execution 작업을 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort를 사용하는 Child로 하향 위임하여 사용량과 비용을 절감하는 순수 마크다운 기반의 경량 스킬입니다. LOC·파일 수·단일 deterministic validation은 secondary signal이며, 준비·검증 오버헤드가 비슷하면 Parent Direct로 처리합니다.
+본 프로젝트는 OpenAI Codex 환경에서 Astra, Sol 또는 Terra를 Active Parent로 유지하면서, Gate A → Gate B → Economic Gate와 Decision Authority에 따라 bounded execution 작업을 더 낮은 모델 tier 또는 같은 모델의 더 낮은 reasoning effort를 사용하는 Child로 하향 위임하여 사용량과 비용을 절감하는 Markdown 중심의 경량 스킬입니다. runtime/context에 configuration이 직접 노출되지 않을 때만 작은 PowerShell/bash resolver를 사용합니다. LOC·파일 수·단일 deterministic validation은 secondary signal이며, 준비·검증 오버헤드가 비슷하면 Parent Direct로 처리합니다.
 
 ---
 
 ## 🧭 1. 기여 시 준수해야 할 핵심 원칙
 
 1. **경량 프롬프트 지향 (No Daemons / No Heavy Runtimes)**:
-   - 핵심 동작을 위해 별도의 외부 런타임(Python/Node 데몬, 복잡한 설정 파일 등)을 추가하지 않습니다.
+   - 별도의 daemon, background server, 복잡한 설정 또는 범용 runtime wrapper를 추가하지 않습니다. configuration resolver는 현재 thread의 runtime evidence만 읽는 좁은 fallback으로 유지합니다.
    - 모든 위임 로직은 프롬프트 주도적이며 Agent Skills 표준 형식을 유지합니다.
 2. **부모 모델의 판단권 존중**:
    - 상위 수준의 추론, 사용자 의도 해석, 아키텍처 설계, 최종 결과 평가는 항상 부모 모델이 전담합니다.
@@ -42,6 +42,7 @@ Implicit activation과 실제 routing은 별도로 관찰하고, 특정 Child �
 | 변경 대상 | 기준 문서 |
 | --- | --- |
 | 실행 규칙과 라우팅 계약 | [`SKILL.md`](skills/codex-downshift/SKILL.md) |
+| Active Configuration 조회 구현 | [`scripts/`](skills/codex-downshift/scripts/) |
 | 공식 요율·추정 지수·위임 비용 모델 | [`model-economics.md`](skills/codex-downshift/references/model-economics.md) |
 | 외부 benchmark 관측 | [`model-benchmarks.md`](skills/codex-downshift/references/model-benchmarks.md) |
 | 공개 API 비용 입력·계산식·실측 비교 방법 | [Benchmark Costs](skills/codex-downshift/references/benchmark-costs.md) |

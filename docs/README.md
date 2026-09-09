@@ -9,6 +9,7 @@
 | --- | --- | --- |
 | [README.md](../README.md) | 사용자 소개, 설치·업데이트, 사용 흐름 | Current |
 | [SKILL.md](../skills/codex-downshift/SKILL.md) | 에이전트 실행 규칙과 라우팅 계약 | Execution SSOT |
+| [Runtime Resolvers](../skills/codex-downshift/scripts/) | 현재 thread rollout의 effective model·effort 조회 구현 | Runtime fallback |
 | [codex-downshift-spec.md](codex-downshift-spec.md) | 설계 의도, 정책 근거, 성공 기준 | v0.1.4 baseline + Unreleased |
 | [model-economics.md](../skills/codex-downshift/references/model-economics.md) | 공식 요율, 추정 지수, 위임 비용 모델 | Economics reference |
 | [model-benchmarks.md](../skills/codex-downshift/references/model-benchmarks.md) | 모델·추론 레벨별 외부 평가 snapshot과 한계 | Evidence reference |
