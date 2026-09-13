@@ -79,11 +79,13 @@ Parent는 Child 결과를 Blind Trust하지 않고 실제 변경과 validation e
 
 ## 🛑 The Parent Execution Protocol (4단계 다운시프트 루프)
 
-Parent는 독립적으로 위임 가능한 작업 후보마다 게이트를 한 번 평가한다. 개별 편집 도구 호출마다 반복하지 않는다.
+원래 사용자 요청은 전체 목표이지 반드시 위임 후보는 아니다. 요청 자체가 이미 bounded execution unit인 경우를 제외하고, 전체 프롬프트를 기본 후보 하나로 취급하지 않는다. Parent는 현재 실제로 수행하려는 논리적으로 닫힌 실행 단위 또는 bounded batch를 candidate로 형성하고, 각 candidate마다 게이트를 한 번 평가한다. 파일 읽기·함수 검색·한 줄 수정·개별 shell command·formatter 실행 같은 tool-call 단위로 쪼개거나 매 편집 호출마다 재평가하지 않는다.
 범위·권한·위험이 실질적으로 바뀌거나 실패로 기존 판단 근거가 무효화되면 재평가한다.
-Child delegation이면 2–4단계를 수행하고 Parent Direct이면 직접 실행·검증한다.
+Child delegation이면 2–4단계를 수행하고 Parent Direct이면 해당 candidate를 직접 실행·검증한다. Parent Direct는 candidate-local이며 사용자 요청의 나머지 작업으로 전파되지 않는다.
 
-### 1. Trigger & Gate Check
+### 1. Trigger, Candidate Formation & Gate Check
+
+- **Parent Analysis / Candidate Formation**: Parent가 소유할 미결 요구사항·제품 동작·아키텍처·Public API·보안·호환성 판단을 식별하고 먼저 해결한다. Parent-owned decision과 predetermined execution이 섞여 있으면 분리한다. 판단이 남아 있는 상태는 전체 요청의 Parent Direct 최종 판정이 아니라 routing 보류다. 필요한 판단을 직접 마친 뒤 남은 실행 작업에서 독립적인 logical execution unit 또는 bounded batch를 식별하고 candidate별 routing에 진입한다. 이후 별개 candidate가 생겨도 같은 절차를 적용한다.
 
 - **Active Configuration Resolution (hard precondition, not a new gate)**:
   - **직접 증거 우선**: Child를 선택하기 전에 현재 runtime/context에 직접 노출된 effective model과 effort를 확인한다. LLM 자기보고, task complexity, 이전 turn의 기억, default, repository context, `config.toml`, 지원 모델 목록 또는 model picker 후보로 추정하지 않는다.
@@ -92,10 +94,10 @@ Child delegation이면 2–4단계를 수행하고 Parent Direct이면 직접 �
   - **판정**: model과 effort를 모두 확인하면 정상적으로 모든 후보를 평가한다. model만 확인하면 그 model보다 낮은 tier 후보는 계속 평가하되 same-model effort 후보만 제외한다. 직접 증거와 runtime fallback 모두에서 model을 확인하지 못하면 Parent Direct로 fail closed한다.
   - **엄격한 하향 확인**: 같은 모델 Child의 target effort가 Parent보다 낮지 않거나 비교할 수 없으면 Parent Direct로 fail closed한다.
   - **권한 경계**: 이 resolution과 routing은 현재 사용자-facing/root Parent authority를 가진 agent만 수행한다. Capsule 또는 worker context에서 Leaf Worker로 지정된 Child는 자신의 환경에서 이 fallback을 실행해 자신을 Parent로 재분류하거나 이 스킬을 재적용하지 않으며, 다른 agent를 spawn하지 않는다.
-- [선행 조건] 상위 요구사항/아키텍처/보안 판단이 Parent에 의해 완료되었는가? (미완료 시 Parent Direct로 추론 완료 우선)
+- [선행 조건] 현재 candidate의 상위 판단이 완료되었는가? 미완료라면 Parent가 해당 판단을 직접 해결한 뒤 remaining work의 Candidate Formation으로 돌아간다.
 - [보조 신호] LOC·파일 수는 약한 secondary signal일 뿐이며 Parent Direct 또는 delegation을 독립적으로 결정하지 않는다. 작업 속성(사소한 literal/mechanical edit, fixed-rule bounded execution, bounded search, 예상 test/fix loop, implementation-local decision, high-consequence/irreversible work)을 관찰한다.
 - ➔ Gate A(안전성) → Gate B(잔여 권한/후보 선택) → Economic Gate 순으로 평가한다.
-- **Parent Direct**: Gate A, Gate B, 또는 Economic Gate가 Parent Direct를 선택하면 delegation 목적의 Task Capsule을 작성하지 않고 Child를 spawn하지 않는다. Parent가 직접 구현하고 직접 검증한다.
+- **Parent Direct**: Gate A, Gate B, 또는 Economic Gate가 Parent Direct를 선택하면 해당 candidate에 대한 Task Capsule을 작성하거나 Child를 spawn하지 않는다. Parent가 그 candidate를 직접 구현·검증하고, 별개로 남은 실행 candidate는 다시 형성·평가한다.
 - **Child delegation**: 위임이 선택된 경우에만 다음 단계를 수행한다.
 
 ### 2. Capsule Emission
@@ -117,6 +119,7 @@ Child delegation이면 2–4단계를 수행하고 Parent Direct이면 직접 �
 
 | 단계 | 판단 | 통과하지 못하면 |
 | --- | --- | --- |
+| Parent Analysis / Candidate Formation | Parent-owned decision을 해결하고 남은 실행을 논리적으로 닫힌 candidate로 식별 | 판단 해결 후 remaining work로 재진입; 아직 gate 판정 아님 |
 | Active Configuration Resolution | 실제 Parent model 확인; same-model 후보는 실제 effort도 확인 | 확인할 수 없는 후보 제외; model 미확인이면 Parent Direct |
 | Gate A: Safety | Bounded, Verifiable, Limited Consequence; 보안·권한·DB migration·배포·파괴적 변경 배제 | Parent Direct |
 | Gate B: Authority & Capability | 위임 권한을 정하고 그 권한에 충분한 엄격한 하위 구성을 비교 | 적격 후보가 없으면 Parent Direct |

@@ -21,6 +21,8 @@ Implicit Skill 선택과 모델 routing은 비결정적일 수 있으므로 단�
 | 비활성 범위 | 구현 없는 설명·연구·계획·read-only review/audit/inspection/diagnosis에서 routing 평가와 notice가 없음 |
 | 활성화 관찰 | routing을 평가했다면 Routing Notice가 정확히 한 번 출력됨 |
 | Gate | Economic Gate를 포함한 Gate 결과가 Parent Direct를 허용하며 부적격 Child를 생성하지 않음 |
+| Candidate Formation | 전체 요청을 기본 후보 하나로 취급하지 않고 Parent-owned decision을 해결한 뒤 남은 논리적 실행 단위별로 routing함 |
+| Parent Direct 범위 | 한 candidate의 Parent Direct 뒤에도 별개 실행 candidate를 평가하며 tool-call 단위 재평가는 하지 않음 |
 | Downshift | 선택한 Child configuration이 확인된 Parent보다 엄격히 낮음 |
 | 권한 | Luna는 Predetermined execution만 수행하고 모든 Child가 지정된 delegated authority를 지킴 |
 | Leaf Worker | Child가 다른 agent나 model을 생성하지 않음 |
@@ -41,6 +43,8 @@ Implicit Skill 선택과 모델 routing은 비결정적일 수 있으므로 단�
 | read-only 코드 리뷰·감사 | 비활성, notice 없음 |
 | 버그 원인만 조사하고 수정 금지 | 비활성, notice 없음 |
 | 작은 literal 수정 | 활성화 가능; Economic Gate에 따른 Parent Direct 허용 |
+| 판단과 실행이 섞인 요청 | Parent가 상위 판단을 해결한 뒤 남은 bounded 구현·테스트 candidate를 평가 |
+| 혼합 routing | candidate A가 Parent Direct여도 독립적인 candidate B의 Child 가능성을 평가 |
 | 반복 fixed-rule 수정 | strict downshift, bounded scope, leaf-only |
 | bounded search 구현 | discovery·execution completeness와 evidence |
 | implementation-local choice | Terra 이상 적격 구성, 고정 외부 계약 유지 |

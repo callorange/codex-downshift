@@ -97,7 +97,7 @@ Worktree:
 - **원칙**: `high` / `xhigh` / `max`는 normal downshift optimization path가 아니며, 자동 라우팅에서 절대 선택되지 않습니다. 오직 사용자가 명시적으로 요청하거나 승인한 **exceptional override**로만 동작합니다.
 - **상황**: Sol이 외부 동작·API·호환성 요구를 고정한 로컬 알고리즘 작업에서, Medium 실행 결과의 구체적인 누락을 확인했다. 남은 선택은 고정 계약 안의 내부 구현이며, 영향이 국소적이고 결정적 검증이 가능하다.
 - **올바른 동작 흐름**:
-  1. **권한·안전성 확인**: Gate A와 Gate B를 적용한다. 상위 판단이 남거나 영향 범위가 불명확하면 Parent Direct다.
+  1. **권한·안전성 확인**: 상위 판단이 남으면 Parent가 먼저 해결하고 남은 실행 candidate를 형성한다. 그 candidate의 영향 범위가 불명확하면 Gate A에서 Parent Direct다.
   2. **경제성 확인**: 반복 구현·검증의 대체 실행량과 준비·검증·재작업 부담을 비교한다. Economic Gate를 통과하지 못하면 Parent Direct다. 작업 크기 자체는 실익의 근거가 아니다.
   3. **예외 승인 확인**: High가 필요한 구체적 이유와 고정 계약·검증 방법을 설명하고, 해당 effort 사용이 아직 승인되지 않았다면 사용자에게 요청한다. 이미 명시적으로 요청·승인된 범위는 다시 묻지 않는다.
   4. **실행**: 승인 및 모든 Gate 통과 시 `model="gpt-5-6-terra"`, `reasoning_effort="high"`로 위임한다. 미승인 시 Parent Direct다.

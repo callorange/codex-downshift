@@ -52,7 +52,7 @@ src/formatters/에서 기존 문자열 포맷 규칙을 따르도록 반복 구�
 위임 조건을 충족하는 작업만 더 낮은 모델 구성에 맡겨줘.
 ```
 
-부모는 요구사항을 정리하고 위임 가능 여부를 판단합니다. 위임하는 경우 Task Capsule 작성과 자식 모델 선택까지 수행하므로 사용자가 spawn 파라미터를 직접 작성할 필요는 없습니다. 준비·검증 비용에 비해 실행량이 작으면 **Parent Direct**로 처리하는 것이 정상입니다.
+부모는 먼저 자신이 맡아야 할 판단을 해결하고 남은 실행 작업을 논리적으로 닫힌 후보로 식별합니다. 사용자 전체 요청이 자동으로 후보 하나가 되지는 않습니다. 위임하는 경우 Task Capsule 작성과 자식 모델 선택까지 수행하므로 사용자가 spawn 파라미터를 직접 작성할 필요는 없습니다. 준비·검증 비용에 비해 실행량이 작으면 해당 후보를 **Parent Direct**로 처리하는 것이 정상입니다.
 
 [위임 기준](#위임-기준) · [비용 비교와 실행 계약](#-실행-계약과-비용-근거) · [지원 모델](#-지원-모델-및-위임-매트릭스) · [업데이트](#-업데이트-updating) · [참조 문서](#-문서-및-참조-자료)
 
@@ -95,6 +95,8 @@ src/formatters/에서 기존 문자열 포맷 규칙을 따르도록 반복 구�
 
 ## 위임 기준
 
+라우팅 전에 Parent가 제품 동작·아키텍처·Public API·보안·호환성 등 미결 판단을 직접 해결하고, 남은 작업에서 독립적인 실행 단위 또는 bounded batch를 형성합니다. 미결 판단이 있다는 이유만으로 전체 요청을 Parent Direct로 확정하지 않습니다. 각 후보에 Gate를 적용하며, 한 후보의 Parent Direct 결정은 다른 후보에 이어지지 않습니다. 개별 tool call이나 파일 수정마다 후보를 만들지 않습니다.
+
 먼저 현재 runtime/context에서 실제 부모 model과 effort를 확인합니다. 필요한 값이 직접 노출되지 않으면 설치 환경에 맞는 [PowerShell](skills/codex-downshift/scripts/resolve-active-configuration.ps1) 또는 [bash](skills/codex-downshift/scripts/resolve-active-configuration.sh) resolver로 현재 thread의 최신 rollout을 조회합니다. model만 확인되면 lower-tier 후보는 계속 평가하고 같은 모델 effort 하향만 제외하며, model을 확인하지 못하면 Parent Direct입니다. 이 rollout 조회는 현재 Codex runtime용 fallback이며 공식 API 계약으로 간주하지 않습니다.
 
 | 단계 | 확인할 내용 | 통과하지 못하면 |
@@ -121,7 +123,7 @@ Economic Gate는 다음 네 조건을 **모두** 요구합니다. 이를 통과�
 이 후보 설명은 모델에 상위 판단 권한을 부여하지 않습니다. 같은 모델 effort 하향도 각 모델의 적격 권한 안에서는 특정 업무 분야에 제한하지 않습니다.
 
 설정별 근거·예외는 [Model Selection Guide](skills/codex-downshift/references/model-selection.md)를 따릅니다.
-게이트는 독립 작업 후보마다 평가하며 개별 편집 도구 호출마다 반복하지 않습니다.
+게이트는 형성된 독립 실행 후보마다 평가하며 개별 편집 도구 호출마다 반복하지 않습니다.
 범위·권한·위험 또는 실패로 판단 근거가 바뀌면 재평가합니다.
 
 ### Routing Notice
