@@ -36,7 +36,7 @@
 | **13** | 독립적인 확정 변경의 micro-batch | **Astra/Sol/Terra** | 🟢 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Luna Light. 항목별 결과를 보고하고 하나라도 판단이 필요하면 전체 완료로 표시하지 않음 |
 | **14** | 구현이 이미 확정되고 위임 경제성이 부족함 | **Sol** | 🛑 **Gate B: Luna 후보 ➔ Economic Gate 탈락** | Luna부터 비교해도 위임 경제성이 부족하면 Parent Direct. 다른 모델로 우회하지 않음 |
 | **15** | 고정 외부 계약 안의 내부 구현·테스트 루프 | **Sol** | 🟡 **Gate A/B ➔ Economic Gate** | 모든 gate 통과 시 Terra Medium. Parent가 실제 변경·evidence를 검토하고 필요한 경우에만 추가 validation 수행 |
-| **16** | 최종 routing 결정 표시 | **Astra/Sol/Terra** | 👁️ **Routing Notice** | 평가한 결정마다 한 번; Child는 spawn 직전, Parent Direct는 첫 결정적 이유 표시. 전체 capsule 비노출, spawn 실패 시 추가 notice 없음 |
+| **16** | 최종 routing 결정 표시 | **Astra/Sol/Terra** | 👁️ **Routing Notice** | 평가한 candidate마다 한 번; Child는 spawn 직전, Parent Direct는 첫 결정적 이유 표시. 전체 capsule 비노출, spawn 실패 시 추가 notice 없음 |
 | **17** | 관계·정합성 실행 (Astra 부모) | **Astra** | 🟡 **Sol 후보 ➔ Economic Gate** | Terra보다 실제 작업 비용이 낮으면 Sol Light/Medium model 하향 |
 | **18** | 일반 bounded 구현 (Astra 부모) | **Astra** | ⚖️ **effort 확인 ➔ Astra 하위 effort 또는 lower tier** | 실제 Parent effort보다 낮고 작업에 충분하며 적격 후보·Parent Direct 대비 전체 비용 이점이 있을 때 후보 |
 | **19** | 좁고 검증 가능한 내부 구현 작업 | **Astra/Sol/Terra** | 선택이 남으면 Terra Light; Parent가 Rule을 고정하면 Luna Medium | 남은 권한을 기준으로 후보를 구분하고 적합성·경제성을 확인 |
@@ -262,7 +262,7 @@ Return protocol: TASK_COMPLETED, TASK_FAILED, NEEDS_PARENT_DECISION, NEEDS_PAREN
 
 **적용 조건·횟수**
 
-Gate A → Gate B → Economic Gate routing 평가를 수행했으면, 부모는 최종 결정을 정확히 한 번 짧게 표시한다.
+Gate A → Gate B → Economic Gate routing을 평가한 각 candidate의 최종 결정을 한 번 짧게 표시한다. 한 요청에서 여러 candidate를 평가하면 각각 표시하며, candidate 내부 tool call마다 반복하지 않는다.
 
 **Child delegation**
 

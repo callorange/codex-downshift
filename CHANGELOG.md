@@ -20,6 +20,7 @@
 - **모델 근거·추천 참조 문서 분리 및 `SKILL.md` Token Diet**: 공식 요율·추정 지수·위임 비용 모델은 `model-economics.md`, 외부 관측은 `model-benchmarks.md`, 종합 추천은 `model-selection.md`로 분리. 라우팅 사례와 terminal/recovery 사례도 별도 문서로 나누고 `SKILL.md`에는 핵심 실행 계약과 on-demand 읽기 조건만 유지.
 
 ### 변경 (Changed)
+- **후보별 라우팅 문서 정합성**: Routing Notice를 candidate별 1회로 명확히 하고 혼합 라우팅 행동 평가와 기록 형식을 보완.
 - **실행 후보별 라우팅**: Parent가 상위 미결 판단을 해결한 뒤 남은 논리적 실행 단위 또는 bounded batch를 후보로 형성하고 Gate를 평가하도록 명시. Parent Direct는 해당 후보에만 적용하며 이후 별개 후보의 routing을 막지 않음.
 - **Bounded Recovery 및 Parent Evidence Review**: Child recovery를 기본 corrective attempt 1회와 Capsule의 명시적 유한 budget으로 일반화하고, Parent의 필수 evidence review와 조건부 validation 실행을 분리해 동일 검증의 이유 없는 반복을 방지. read-only review·audit·inspection·diagnosis는 implicit activation 범위에서 제외.
 - **권한과 모델 선택 분리**: 확정 실행/내부 구현 선택 권한을 작업 상태로 먼저 구분하고 같은 모델 effort 하향을 공통 조건으로 평가. Luna는 `Implementation Closed`인 확정 실행으로 제한하되, Parent가 좁은 구현 선택을 Rule로 닫으면 Luna Medium 후보로 재분류할 수 있도록 명시.

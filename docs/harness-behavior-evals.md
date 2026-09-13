@@ -19,9 +19,9 @@ Implicit Skill 선택과 모델 routing은 비결정적일 수 있으므로 단�
 | 영역 | Pass 조건 |
 | --- | --- |
 | 비활성 범위 | 구현 없는 설명·연구·계획·read-only review/audit/inspection/diagnosis에서 routing 평가와 notice가 없음 |
-| 활성화 관찰 | routing을 평가했다면 Routing Notice가 정확히 한 번 출력됨 |
+| 활성화 관찰 | routing을 평가한 candidate마다 최종 Routing Notice가 정확히 한 번 출력됨; 한 요청의 복수 candidate는 각각 notice를 가질 수 있으며 내부 tool call에는 반복하지 않음 |
 | Gate | Economic Gate를 포함한 Gate 결과가 Parent Direct를 허용하며 부적격 Child를 생성하지 않음 |
-| Candidate Formation | 전체 요청을 기본 후보 하나로 취급하지 않고 Parent-owned decision을 해결한 뒤 남은 논리적 실행 단위별로 routing함 |
+| Candidate Formation | 전체 요청을 기본 후보 하나로 취급하지 않고 Parent-owned decision을 해결한 뒤 남은 bounded 실행 단위별로 routing함 |
 | Parent Direct 범위 | 한 candidate의 Parent Direct 뒤에도 별개 실행 candidate를 평가하며 tool-call 단위 재평가는 하지 않음 |
 | Downshift | 선택한 Child configuration이 확인된 Parent보다 엄격히 낮음 |
 | 권한 | Luna는 Predetermined execution만 수행하고 모든 Child가 지정된 delegated authority를 지킴 |
@@ -65,6 +65,8 @@ Implicit Skill 선택과 모델 routing은 비결정적일 수 있으므로 단�
 | 자동 활성화 | `User 모델에 last_login_at 필드를 추가하고 로그인 성공 시 갱신되게 구현해줘. 관련 테스트도 추가해.` |
 | 자동 활성화 | `이 formatter 디렉터리에서 기존 규칙과 맞지 않는 구현을 찾아 같은 패턴으로 수정하고 테스트해.` |
 | 자동 활성화 | `이 버그의 원인을 찾아 수정하고 관련 테스트를 통과시켜.` |
+| Candidate Formation | `기존 프로젝트 패턴을 조사해 입력 검증 위치와 응답 방식을 결정한 뒤, 그 계약에 맞춰 관련 Form·view·URL을 구현하고 테스트를 추가해.` |
+| 혼합 routing | `설정 파일의 단일 오타를 고치고, 별개로 src/serializers/ 범위에서 확정된 필드명 old_name을 new_name으로 반복 변경해 관련 테스트도 수정해.` |
 | 활성화 허용, Parent Direct 정상 | `이 함수의 명백한 오타 하나만 고쳐.` |
 | 비활성화 | `이 코드가 무슨 일을 하는지 설명해줘.` |
 | 비활성화 | `이 변경을 검토만 하고 코드는 수정하지 마.` |
@@ -83,8 +85,10 @@ Prompt:
 Runs:
 
 Implicit activation: YES | NO | MIXED
-Routing notices: <count and content per run>
-Routing result: <Parent Direct or observed Child configuration>
+Routing notices (per run):
+- <candidate/task_name> → <notice content>
+Routing results (per run):
+- <candidate/task_name> → <Parent Direct or observed Child configuration>
 Delegated authority:
 Clarification / approval pauses:
 Recovery budget / used:

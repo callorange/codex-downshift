@@ -79,13 +79,13 @@ Parent는 Child 결과를 Blind Trust하지 않고 실제 변경과 validation e
 
 ## 🛑 The Parent Execution Protocol (4단계 다운시프트 루프)
 
-원래 사용자 요청은 전체 목표이지 반드시 위임 후보는 아니다. 요청 자체가 이미 bounded execution unit인 경우를 제외하고, 전체 프롬프트를 기본 후보 하나로 취급하지 않는다. Parent는 현재 실제로 수행하려는 논리적으로 닫힌 실행 단위 또는 bounded batch를 candidate로 형성하고, 각 candidate마다 게이트를 한 번 평가한다. 파일 읽기·함수 검색·한 줄 수정·개별 shell command·formatter 실행 같은 tool-call 단위로 쪼개거나 매 편집 호출마다 재평가하지 않는다.
+원래 사용자 요청은 전체 목표이지 반드시 위임 후보는 아니다. 요청 자체가 이미 bounded execution unit인 경우를 제외하고, 전체 프롬프트를 기본 후보 하나로 취급하지 않는다. Parent는 현재 실제로 수행하려는, 상위 판단이 해결되고 scope·acceptance가 bounded된 실행 단위 또는 bounded batch를 candidate로 형성하고, 각 candidate마다 게이트를 한 번 평가한다. 파일 읽기·함수 검색·한 줄 수정·개별 shell command·formatter 실행 같은 tool-call 단위로 쪼개거나 매 편집 호출마다 재평가하지 않는다.
 범위·권한·위험이 실질적으로 바뀌거나 실패로 기존 판단 근거가 무효화되면 재평가한다.
 Child delegation이면 2–4단계를 수행하고 Parent Direct이면 해당 candidate를 직접 실행·검증한다. Parent Direct는 candidate-local이며 사용자 요청의 나머지 작업으로 전파되지 않는다.
 
 ### 1. Trigger, Candidate Formation & Gate Check
 
-- **Parent Analysis / Candidate Formation**: Parent가 소유할 미결 요구사항·제품 동작·아키텍처·Public API·보안·호환성 판단을 식별하고 먼저 해결한다. Parent-owned decision과 predetermined execution이 섞여 있으면 분리한다. 판단이 남아 있는 상태는 전체 요청의 Parent Direct 최종 판정이 아니라 routing 보류다. 필요한 판단을 직접 마친 뒤 남은 실행 작업에서 독립적인 logical execution unit 또는 bounded batch를 식별하고 candidate별 routing에 진입한다. 이후 별개 candidate가 생겨도 같은 절차를 적용한다.
+- **Parent Analysis / Candidate Formation**: Parent가 소유할 미결 요구사항·제품 동작·아키텍처·Public API·보안·호환성 판단을 식별하고 먼저 해결한다. Parent-owned decision과 predetermined execution이 섞여 있으면 분리한다. 판단이 남아 있는 상태는 전체 요청의 Parent Direct 최종 판정이 아니라 routing 보류다. 필요한 판단을 직접 마친 뒤 남은 실행 작업에서 독립적인 bounded execution unit 또는 batch를 식별하고 candidate별 routing에 진입한다. 고정된 외부 계약 안의 implementation-local choice는 Gate B에서 권한을 정할 수 있으면 candidate가 될 수 있다. 이후 별개 candidate가 생겨도 같은 절차를 적용한다.
 
 - **Active Configuration Resolution (hard precondition, not a new gate)**:
   - **직접 증거 우선**: Child를 선택하기 전에 현재 runtime/context에 직접 노출된 effective model과 effort를 확인한다. LLM 자기보고, task complexity, 이전 turn의 기억, default, repository context, `config.toml`, 지원 모델 목록 또는 model picker 후보로 추정하지 않는다.
@@ -119,7 +119,7 @@ Child delegation이면 2–4단계를 수행하고 Parent Direct이면 해당 ca
 
 | 단계 | 판단 | 통과하지 못하면 |
 | --- | --- | --- |
-| Parent Analysis / Candidate Formation | Parent-owned decision을 해결하고 남은 실행을 논리적으로 닫힌 candidate로 식별 | 판단 해결 후 remaining work로 재진입; 아직 gate 판정 아님 |
+| Parent Analysis / Candidate Formation | Parent-owned decision을 해결하고 남은 실행을 scope·acceptance가 bounded된 candidate로 식별 | 판단 해결 후 remaining work로 재진입; 아직 gate 판정 아님 |
 | Active Configuration Resolution | 실제 Parent model 확인; same-model 후보는 실제 effort도 확인 | 확인할 수 없는 후보 제외; model 미확인이면 Parent Direct |
 | Gate A: Safety | Bounded, Verifiable, Limited Consequence; 보안·권한·DB migration·배포·파괴적 변경 배제 | Parent Direct |
 | Gate B: Authority & Capability | 위임 권한을 정하고 그 권한에 충분한 엄격한 하위 구성을 비교 | 적격 후보가 없으면 Parent Direct |
@@ -159,7 +159,7 @@ Core rules로 결정되면 모든 reference를 preload하지 않는다.
 
 ### 👁️ Routing Notice
 
-Active Configuration Resolution → Gate A → Gate B → Economic Gate routing 평가를 실제로 수행한 경우에만, 최종 routing 결정을 사용자에게 정확히 한 번 표시한다.
+Active Configuration Resolution → Gate A → Gate B → Economic Gate routing을 실제로 평가한 각 candidate의 최종 결정을 사용자에게 정확히 한 번 표시한다. 한 사용자 요청에서 여러 candidate를 평가하면 각각 notice를 표시할 수 있다. 개별 tool call이나 candidate 내부 단계마다 반복하지 않는다.
 
 | 상황 | 출력 시점·횟수 | 표시 내용과 제한 |
 | --- | --- | --- |
